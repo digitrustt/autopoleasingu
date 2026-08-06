@@ -295,17 +295,41 @@ pnpm --filter @auta/worker sniff https://mauto.pl/samochody-poleasingowe --match
 pnpm --filter @auta/worker sniff <url> --links   # wzorzec adresu oferty
 ```
 
-### Harmonogram — dwie kadencje
+### Harmonogram — raz dziennie w GitHub Actions
+
+Zaciąg chodzi w chmurze (`.github/workflows/scrape.yml`), codziennie o 03:00 UTC.
+Można go też odpalić ręcznie z zakładki Actions, opcjonalnie na jednym źródle.
 
 ```bash
-cp scripts/com.auta.*.plist ~/Library/LaunchAgents/
-launchctl load ~/Library/LaunchAgents/com.auta.scraper.plist   # co 10 min
-launchctl load ~/Library/LaunchAgents/com.auta.deep.plist      # codziennie 3:15
-tail -f /tmp/auta-scraper.log
+gh workflow run "Zaciag ofert"                      # wszystko
+gh workflow run "Zaciag ofert" -f source=volvo      # jedno źródło
 ```
 
-| Job | Kiedy | Limit detali | Po co |
-|---|---|---|---|
+**Dlaczego raz dziennie, a nie co 10 minut jak zakładał pierwotny plan.**
+Cykl dziesięciominutowy rozwiązywał problem, którego nie ma — auta nie kupuje się
+w dziesięć minut. Pomiar pokazał zresztą, że *„co 10 minut" i tak było fikcją*:
+pełny przelot przez 26 źródeł trwa **23,7 minuty**, więc blokada zamieniała
+harmonogram w pętlę ciągłą. Większość tego czasu to celowe 1,2 s odstępu na
+żądanie — higiena wobec źródeł, której nie da się skrócić bez bycia niegrzecznym.
+
+Dobowy przebieg to ~710 min miesięcznie przy darmowym limicie 2000, więc repo
+zostaje **prywatne** i nie ma żadnej maszyny do utrzymania.
+
+Odrzucone alternatywy:
+
+| Rozwiązanie | Powód odrzucenia |
+|---|---|
+| launchd na Macu | działa tylko gdy komputer jest wybudzony |
+| Vercel Cron (Hobby) | limit: raz dziennie i **60 s** na funkcję; przebieg trwa 24 min |
+| Repo publiczne dla darmowych minut | kod 26 adapterów publicznie to zaproszenie, żeby źródła zaczęły się bronić |
+
+Wycena (`pnpm revalue`) leci w tym samym zadaniu, **po** zaciągu — mediana musi
+widzieć komplet danych. Krok podsumowania wypisuje tabelę „źródło → aktywne → nowe"
+do podsumowania przebiegu i oznacza źródła, które nie mają ani jednej oferty.
+Bez tego cichy zgon adaptera przechodzi niezauważony: przebieg kończy się sukcesem,
+tylko oferty przestają dochodzić.
+
+---|---|---|---|
 | `com.auta.scraper` | co 10 min | 12 na źródło | wykrycie **nowych** i **zniknięć** |
 | `com.auta.deep` | 3:15 | bez limitu | odświeżenie **cen** wszystkich ofert |
 
