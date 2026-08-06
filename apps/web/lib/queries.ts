@@ -41,6 +41,19 @@ export type SortKey =
  * Postgres stawia NULL-e na poczatku przy DESC — czyli "najdrozsze" zaczynałyby
  * sie od aut bez ceny.
  */
+/*
+ * Przy sortowaniu PO CENIE aukcje ida za oferta "kup teraz".
+ *
+ * Powod nie jest kosmetyczny: cena aukcyjna to biezaca oferta w licytacji,
+ * ktora pojdzie w gore — nie jest wiec porownywalna z cena zakupu. Zmierzone
+ * na tej bazie: wsrod 200 najtanszych ofert 157 to licytacje, wiec "cena
+ * rosnaco" pokazywala 108 aukcji na 120 kafelkow, z czolowka po 1 zl i 100 zl.
+ * Wygladalo to na okazje stulecia, a bylo licytacja w polowie drogi.
+ *
+ * Kto chce ogladac same aukcje, ma do tego filtr `kind`.
+ */
+const AUCTIONS_LAST = sql`${listings.offerKind} = 'auction'`;
+
 const ORDER = {
   new: desc(listings.firstSeenAt),
   price_asc: sql`${listings.priceGross} asc nulls last`,
@@ -174,6 +187,9 @@ export async function getListings(f: Filters, page = 1, limit = PAGE_SIZE) {
      */
     .orderBy(
       sql`${listings.priceGross} is null`,
+      // Tylko przy sortowaniu po cenie — przy "najnowsze" swieza aukcja
+      // jest tak samo nowa jak kazda inna oferta i nie ma powodu jej spychac.
+      ...(sort === "price_asc" || sort === "price_desc" ? [AUCTIONS_LAST] : []),
       ORDER[sort] ?? ORDER.new,
       // Stabilny tie-break po id — bez niego oferty o rownej cenie potrafia
       // przeskakiwac miedzy stronami przy kolejnych zapytaniach.
@@ -434,9 +450,14 @@ export async function getStats() {
       newToday: sql<number>`count(*) filter (
         where ${listings.status} = 'active' and ${listings.firstSeenAt} > now() - interval '24 hours'
       )::int`,
+      /*
+       * Mediana LICZONA BEZ AUKCJI. Cena aukcyjna rosnie w czasie, wiec
+       * wrzucona do jednego worka z cenami "kup teraz" zanizala naglowek
+       * (117 630 zamiast 119 900 zl) — ta sama zasada, ktora rzadzi wycena.
+       */
       medianPrice: sql<number>`coalesce(
         percentile_cont(0.5) within group (order by ${listings.priceGross})
-        filter (where ${listings.status} = 'active'), 0
+        filter (where ${listings.status} = 'active' and ${listings.offerKind} = 'fixed'), 0
       )::int`,
     })
     .from(listings);
