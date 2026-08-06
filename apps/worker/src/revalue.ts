@@ -45,7 +45,31 @@ async function main() {
    * w czasie. Wpuszczenie ich zanizyloby mediane i wygenerowalo falszywe okazje.
    */
   await db.execute(sql`
-    with basket as (
+    with
+    /*
+     * DEDUP PO VIN — bez tego ta sama fizyczna sztuka wchodzi do koszyka tyle
+     * razy, w ilu serwisach wisi, i przeciaga mediane w strone aut akurat
+     * wystawionych wielokanalowo. Zmierzone na tej bazie: 11 805 ofert z VIN-em
+     * to tylko 11 483 rozne auta — 322 wiersze nadmiarowe, a rekordzisci
+     * (dwa BMW po ~560 tys. zl) siedzieli w trzech zrodlach naraz.
+     *
+     * Z duplikatow bierzemy NAJTANSZA oferte: dla tego samego egzemplarza cena
+     * rynkowa to ta najnizsza dostepna — nikt racjonalnie nie zaplaci wiecej za
+     * identyczne auto. Oferty bez VIN-u zostaja wszystkie, bo nie mamy jak
+     * stwierdzic, ze to duplikaty.
+     */
+    unikalne as (
+      select distinct on (coalesce(vin, 'id:' || id))
+        make, model, year, mileage_km, fuel, gearbox, price_gross, status
+      from listings
+      where price_gross is not null
+        and offer_kind = 'fixed'
+        and mileage_km is not null
+        and year is not null
+        and status in ('active', 'gone')
+      order by coalesce(vin, 'id:' || id), price_gross asc
+    ),
+    basket as (
       select
         make, model, year,
         (mileage_km / ${MILEAGE_BUCKET})::smallint as mileage_bucket,
@@ -56,11 +80,7 @@ async function main() {
         percentile_cont(0.5) within group (order by price_gross)
           filter (where status = 'gone')                              as sold_median,
         count(*) filter (where status = 'gone')                       as sold_count
-      from listings
-      where price_gross is not null
-        and offer_kind = 'fixed'
-        and mileage_km is not null
-        and year is not null
+      from unikalne
       group by 1, 2, 3, 4, 5, 6
       having count(*) filter (where status in ('active', 'gone')) >= ${MIN_SAMPLES}
     )

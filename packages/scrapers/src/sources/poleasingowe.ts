@@ -137,6 +137,8 @@ export const poleasingowe: SourceAdapter = {
     const priceNet = priceMatch ? parseInteger(priceMatch[1].replace(/\s/g, "")) : null;
     const priceGross = priceNet != null ? Math.round(priceNet * VAT) : null;
 
+    const endsAt = html.match(/endDateTimer:\s*moment\('([\d-]+ [\d:]+)'\)/)?.[1];
+
     const firstImage = html.match(
       /<img[^>]+src="(https:\/\/[^"]+\/(?:auctions|files|images)\/[^"]+\.(?:jpe?g|png|webp))"/i,
     );
@@ -172,7 +174,14 @@ export const poleasingowe: SourceAdapter = {
       thumbnailUrl: firstImage?.[1] ?? null,
 
       offerKind: "auction",
-      auctionEndsAt: null,
+      /*
+       * Termin konca licytacji NIE jest w DOM — widoczny licznik to binding
+       * Alpine.js, pusty w surowym HTML-u. Prawdziwa data siedzi w inline
+       * <script> jako `endDateTimer: moment('2026-08-10 12:00:00')`. Wczesniej
+       * bylo tu na sztywno null, wiec 489 aukcji z tego zrodla nie mialo
+       * terminu — a bez niego alert "konczy sie za 2 h" nie ma na czym stanac.
+       */
+      auctionEndsAt: endsAt ? new Date(endsAt.replace(" ", "T")) : null,
     };
   },
 };
