@@ -67,24 +67,10 @@ jobs:
 
       # Bez tego cichy zgon adaptera przechodzi niezauwazony: przebieg konczy sie
       # sukcesem, tylko oferty przestaja dochodzic.
+      # Bez tego cichy zgon adaptera przechodzi niezauwazony: przebieg konczy sie
+      # sukcesem, tylko oferty przestaja dochodzic.
       - name: Podsumowanie
         if: always()
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: |
-          pnpm --filter @auta/worker exec tsx -e "
-            import { db, listings, sources } from '@auta/db';
-            import { eq, sql } from 'drizzle-orm';
-            const r = await db.select({
-              id: sources.id,
-              active: sql\`count(\${listings.id}) filter (where \${listings.status}='active')::int\`,
-              fresh: sql\`count(\${listings.id}) filter (where \${listings.firstSeenAt} > now() - interval '25 hours')::int\`,
-            }).from(sources).leftJoin(listings, eq(listings.sourceId, sources.id))
-              .groupBy(sources.id).orderBy(sources.id);
-            const dead = r.filter(x => Number(x.active) === 0);
-            console.log('| zrodlo | aktywne | nowe |');
-            console.log('|---|---:|---:|');
-            for (const x of r) console.log(\`| \${x.id} | \${x.active} | \${x.fresh} |\`);
-            if (dead.length) console.log('UWAGA — zrodla bez ofert:', dead.map(d => d.id).join(', '));
-            process.exit(0);
-          " >> \$GITHUB_STEP_SUMMARY
+        run: pnpm --filter @auta/worker summary >> "$GITHUB_STEP_SUMMARY"
