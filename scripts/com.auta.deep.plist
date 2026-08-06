@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  GLEBOKI przebieg — odswiezenie cen wszystkich znanych ofert, raz na dobe.
+
+  Szybki przebieg (com.auta.scraper) bierze tylko 12 detali na zrodlo, wiec sam
+  z siebie nigdy nie odswiezylby 15 tys. ofert. Ten job robi pelna range: limit
+  jest praktycznie zdjety, a refresh-after=20 h sprawia, ze kazda oferta zostaje
+  odwiedzona raz dziennie.
+
+  Pora 03:15 celowo: pelny przelot to kilka godzin, a wtedy zarowno serwisy,
+  jak i Twoj Mac maja najmniej roboty.
+
+  UWAGA — launchd NIE budzi uspionego Maca. Jesli komputer spi o 3:15, job
+  odpali sie przy najblizszym wybudzeniu (launchd nadrabia zalegle StartCalendar
+  po wybudzeniu). Gdy zalezy Ci na punktualnosci, ustaw wybudzanie:
+    sudo pmset repeat wakeorpoweron MTWRFSU 03:10:00
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.auta.deep</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Users/kuba/auta/scripts/scrape.sh</string>
+    <string>deep</string>
+  </array>
+
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key>
+    <integer>3</integer>
+    <key>Minute</key>
+    <integer>15</integer>
+  </dict>
+
+  <key>StandardOutPath</key>
+  <string>/tmp/auta-scraper.log</string>
+  <key>StandardErrorPath</key>
+  <string>/tmp/auta-scraper.log</string>
+
+  <key>RunAtLoad</key>
+  <false/>
+</dict>
+</plist>

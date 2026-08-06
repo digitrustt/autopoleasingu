@@ -1,0 +1,5 @@
+# Scraper zostaje na Macu — Vercel serwuje wylacznie front.
+# Bez tego Vercel probowalby zbudowac workera, ktory wymaga Playwrighta
+# i polaczenia z baza w czasie budowania.
+apps/worker
+scripts/certs

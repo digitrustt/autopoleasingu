@@ -1,0 +1,23 @@
+{
+  "name": "auta",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "db:push": "pnpm --filter @auta/db push",
+    "db:studio": "pnpm --filter @auta/db studio",
+    "scrape": "pnpm --filter @auta/worker scrape",
+    "inspect": "pnpm --filter @auta/worker inspect",
+    "web": "pnpm --filter @auta/web dev",
+    "build": "NEXT_DIST_DIR=.next-build pnpm --filter @auta/web build",
+    "typecheck": "pnpm --filter @auta/web exec tsc --noEmit",
+    "revalue": "pnpm --filter @auta/worker revalue"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  },
+  "packageManager": "pnpm@9.15.0"
+}

@@ -1,0 +1,20 @@
+{
+  "name": "@auta/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "//": "NODE_EXTRA_CA_CERTS: aukcje.leasygroup.pl serwuje niepelny lancuch TLS \u2014 brakuje posredniego CA Certum. Przegladarka i curl dobieraja go same przez AIA, Node tego nie robi i konczy na UNABLE_TO_VERIFY_LEAF_SIGNATURE. Dokladamy wiec sam certyfikat posredni (wyciagniety z aukcje.vbleasing.pl, ktory podaje pelny lancuch). To NIE oslabia weryfikacji: podpis nadal musi sie zgadzac az do zaufanego korzenia.",
+  "scripts": {
+    "scrape": "NODE_EXTRA_CA_CERTS=../../scripts/certs/certum-dv-tls-g2-r39.pem tsx --env-file-if-exists=../../.env src/scrape.ts",
+    "inspect": "NODE_EXTRA_CA_CERTS=../../scripts/certs/certum-dv-tls-g2-r39.pem tsx --env-file-if-exists=../../.env src/inspect.ts",
+    "sniff": "NODE_EXTRA_CA_CERTS=../../scripts/certs/certum-dv-tls-g2-r39.pem tsx --env-file-if-exists=../../.env src/sniff.ts",
+    "check": "NODE_EXTRA_CA_CERTS=../../scripts/certs/certum-dv-tls-g2-r39.pem tsx --env-file-if-exists=../../.env src/audit.ts",
+    "revalue": "NODE_EXTRA_CA_CERTS=../../scripts/certs/certum-dv-tls-g2-r39.pem tsx --env-file-if-exists=../../.env src/revalue.ts"
+  },
+  "dependencies": {
+    "@auta/core": "workspace:*",
+    "@auta/db": "workspace:*",
+    "@auta/scrapers": "workspace:*",
+    "drizzle-orm": "^0.38.2"
+  }
+}

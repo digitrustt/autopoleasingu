@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SZYBKI przebieg — wykrywanie nowych i znikajacych ofert.
+
+  Instalacja obu harmonogramow:
+    cp scripts/com.auta.*.plist ~/Library/LaunchAgents/
+    launchctl load ~/Library/LaunchAgents/com.auta.scraper.plist
+    launchctl load ~/Library/LaunchAgents/com.auta.deep.plist
+
+  Podglad logow:  tail -f /tmp/auta-scraper.log
+  Zatrzymanie:    launchctl unload ~/Library/LaunchAgents/com.auta.scraper.plist
+
+  Limit 12 detali na zrodlo jest CELOWO maly. W tym przebiegu chodzi o discover:
+  to on wykrywa oferty nowe i te, ktore zniknely (czyli ~sprzedane). Detale nowych
+  ofert i tak ida na poczatek kolejki, wiec 12 wystarcza, a caly przelot przez
+  26 zrodel miesci sie w oknie 10 minut. Odswiezaniem cen zajmuje sie com.auta.deep.
+
+  Dlaczego launchd, a nie GitHub Actions: cron w Actions ma minimalny odstep
+  5 minut i bywa opozniany o kilkanascie minut przy obciazeniu — dla snipera,
+  ktory ma trafic w oferte w ~60 s, to dyskwalifikacja. Lokalnie jest za darmo
+  i bez limitu minut.
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.auta.scraper</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Users/kuba/auta/scripts/scrape.sh</string>
+    <string>fast</string>
+  </array>
+
+  <!-- Co 10 minut. -->
+  <key>StartInterval</key>
+  <integer>600</integer>
+
+  <key>StandardOutPath</key>
+  <string>/tmp/auta-scraper.log</string>
+  <key>StandardErrorPath</key>
+  <string>/tmp/auta-scraper.log</string>
+
+  <key>RunAtLoad</key>
+  <false/>
+</dict>
+</plist>

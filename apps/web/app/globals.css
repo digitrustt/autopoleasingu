@@ -1,0 +1,151 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #0b0d10;
+  --color-panel: #14181d;
+  --color-line: #232a32;
+
+  /*
+   * Akcent marki jest CELOWO bezbarwny. Kolory na tej stronie niosa informacje
+   * i tylko informacje: zielony = nowa oferta, bursztyn = przecena, fiolet =
+   * aukcja. Czwarty kolor marki konkurowalby z tamtymi trzema. Zmiana akcentu
+   * na barwny = podmiana tych dwoch linii.
+   */
+  --color-accent: #f2f5f9;
+  --color-accent-soft: #8b95a1;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--color-ink);
+  color: #e7ecf3;
+}
+
+/* ---------------------------------------------------------------------------
+   Radar ladowania. Patrz components/Radar.tsx — animacja jest w czystym CSS,
+   bo ekran ladowania nie moze czekac na hydratacje JS-u.
+--------------------------------------------------------------------------- */
+
+.radar-sweep {
+  /*
+   * Smuga za wskazowka. Krycie musi byc WYRAZNE — przy 0.16 wiazka gubila sie
+   * w tle i radar wygladal na nieruchoma celownice. Maska przycina klin do kola,
+   * bo conic-gradient wypelnia caly kwadrat.
+   */
+  background: conic-gradient(
+    from 0deg,
+    var(--color-accent) 0deg,
+    rgb(242 245 249 / 0.30) 14deg,
+    rgb(242 245 249 / 0.07) 55deg,
+    transparent 110deg,
+    transparent 360deg
+  );
+  mask-image: radial-gradient(circle, #000 0 47%, transparent 48%);
+  opacity: 0.55;
+  animation: radar-spin 1.8s linear infinite;
+}
+
+@keyframes radar-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Fala rozchodzaca sie od srodka — druga warstwa ruchu, zeby czytalo sie "skan". */
+.radar-pulse {
+  border: 1px solid var(--color-accent);
+  opacity: 0;
+  animation: radar-pulse 1.8s ease-out infinite;
+}
+
+@keyframes radar-pulse {
+  0% {
+    transform: scale(0.25);
+    opacity: 0.5;
+  }
+  80% {
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+.radar-blip {
+  opacity: 0;
+  animation: radar-ping 1.8s ease-out infinite;
+}
+
+/* Punkt zapala sie, gdy przechodzi po nim wiazka, i gasnie. */
+@keyframes radar-ping {
+  0% {
+    opacity: 0;
+    box-shadow: 0 0 0 0 rgb(242 245 249 / 0.55);
+  }
+  8% {
+    opacity: 1;
+    box-shadow: 0 0 0 7px rgb(242 245 249 / 0);
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Szkielety kart w trakcie ladowania — zeby lista nie zamieniala sie w pustke. */
+.skeleton {
+  background: linear-gradient(
+    100deg,
+    var(--color-panel) 40%,
+    rgb(255 255 255 / 0.04) 50%,
+    var(--color-panel) 60%
+  );
+  background-size: 220% 100%;
+  animation: skeleton-slide 1.4s ease-in-out infinite;
+}
+
+@keyframes skeleton-slide {
+  to {
+    background-position: -120% 0;
+  }
+}
+
+/* Delikatne wejscie kafelkow po zaladowaniu listy. */
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.card-in {
+  animation: card-in 0.32s ease-out both;
+}
+
+/*
+ * Ruch bywa problemem — od rozpraszania po mdlosci przy zaburzeniach
+ * przedsionkowych. Kto prosi system o mniej animacji, dostaje statyczny radar
+ * (nadal czytelny) i kafelki bez wjazdu.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .radar-sweep,
+  .radar-pulse,
+  .radar-blip,
+  .skeleton,
+  .card-in {
+    animation: none;
+  }
+  .radar-blip {
+    opacity: 0.8;
+  }
+}
