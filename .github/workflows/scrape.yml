@@ -1,0 +1,90 @@
+name: Zaciag ofert
+
+# Raz dziennie. Auto to nie buty — nikt nie kupuje go w 10 minut, wiec cykl
+# dziesieciominutowy z pierwotnego planu byl rozwiazaniem problemu, ktorego
+# nie ma. Dobowy przebieg kosztuje ~25 min z darmowego limitu 2000 min/mc.
+on:
+  schedule:
+    - cron: "0 3 * * *" # 03:00 UTC = 04:00/05:00 w Polsce
+  workflow_dispatch: # reczne odpalenie z zakladki Actions
+    inputs:
+      limit:
+        description: "Ile detali na zrodlo"
+        default: "150"
+      source:
+        description: "Tylko jedno zrodlo (puste = wszystkie)"
+        default: ""
+
+# Dwa przebiegi naraz bilyby sie o wiersze w bazie i podwajaly ruch u zrodel.
+concurrency:
+  group: scrape
+  cancel-in-progress: false
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    # Pelny przelot to ~25 min; limit z zapasem na wolniejsze zrodla.
+    timeout-minutes: 90
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Tylko Bravoauto wymaga przegladarki (listing renderuje sie po stronie
+      # klienta). --with-deps dociaga biblioteki systemowe, ktorych runner nie ma.
+      - name: Chromium dla Bravoauto
+        run: pnpm --filter @auta/scrapers exec playwright install --with-deps chromium
+
+      - name: Zaciag
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SCRAPER_CONTACT: ${{ secrets.SCRAPER_CONTACT }}
+          # leasyGROUP serwuje niepelny lancuch TLS — patrz apps/worker/package.json
+          NODE_EXTRA_CA_CERTS: ${{ github.workspace }}/scripts/certs/certum-dv-tls-g2-r39.pem
+        run: |
+          if [ -n "${{ inputs.source }}" ]; then
+            pnpm scrape --source "${{ inputs.source }}" --limit "${{ inputs.limit || 150 }}"
+          else
+            pnpm scrape --limit "${{ inputs.limit || 150 }}" --refresh-after 20
+          fi
+
+      # Wycena PO zaciagu — mediana musi widziec komplet danych, inaczej
+      # skakalaby zaleznie od tego, ktore zrodla zdazyly wpasc.
+      - name: Wycena i deal score
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: pnpm revalue
+
+      # Bez tego cichy zgon adaptera przechodzi niezauwazony: przebieg konczy sie
+      # sukcesem, tylko oferty przestaja dochodzic.
+      - name: Podsumowanie
+        if: always()
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          pnpm --filter @auta/worker exec tsx -e "
+            import { db, listings, sources } from '@auta/db';
+            import { eq, sql } from 'drizzle-orm';
+            const r = await db.select({
+              id: sources.id,
+              active: sql\`count(\${listings.id}) filter (where \${listings.status}='active')::int\`,
+              fresh: sql\`count(\${listings.id}) filter (where \${listings.firstSeenAt} > now() - interval '25 hours')::int\`,
+            }).from(sources).leftJoin(listings, eq(listings.sourceId, sources.id))
+              .groupBy(sources.id).orderBy(sources.id);
+            const dead = r.filter(x => Number(x.active) === 0);
+            console.log('| zrodlo | aktywne | nowe |');
+            console.log('|---|---:|---:|');
+            for (const x of r) console.log(\`| \${x.id} | \${x.active} | \${x.fresh} |\`);
+            if (dead.length) console.log('UWAGA — zrodla bez ofert:', dead.map(d => d.id).join(', '));
+            process.exit(0);
+          " >> \$GITHUB_STEP_SUMMARY
