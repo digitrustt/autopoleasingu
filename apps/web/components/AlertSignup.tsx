@@ -11,8 +11,9 @@ import { useState } from "react";
  * od nowa. Użytkownik dopiero co je ustawił i widzi wyniki — powtarzanie tego
  * w osobnym kreatorze jest najpewniejszym sposobem, żeby nikt się nie zapisał.
  *
- * Pokazujemy się tylko wtedy, gdy jakiś filtr jest ustawiony: alert „wszystkie
- * oferty" oznaczałby setki maili dziennie i natychmiastowe wypisanie.
+ * Pokazujemy się tylko wtedy, gdy jakiś filtr jest ustawiony — bez filtrów ten
+ * formularz nie miałby czego przejąć. Zapis na przegląd ogólny jest możliwy,
+ * ale w stopce: patrz FooterSignup.
  */
 export function AlertSignup({
   filters,

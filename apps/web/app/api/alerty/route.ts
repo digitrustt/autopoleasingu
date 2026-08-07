@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Podaj poprawny adres e-mail" }, { status: 400 });
   }
 
-  const label = typeof body.label === "string" ? body.label.trim().slice(0, 80) || null : null;
+  const labelRaw = typeof body.label === "string" ? body.label.trim().slice(0, 80) || null : null;
 
   const raw = (body.filters ?? {}) as Record<string, unknown>;
   const filters: Record<string, string> = {};
@@ -41,12 +41,17 @@ export async function POST(req: NextRequest) {
     const v = raw[k];
     if (v != null && String(v).trim() !== "") filters[k] = String(v).trim().slice(0, 60);
   }
-  if (Object.keys(filters).length === 0) {
-    return NextResponse.json(
-      { error: "Ustaw przynajmniej jeden filtr, inaczej alert obejmie wszystko" },
-      { status: 400 },
-    );
-  }
+  /*
+   * Zapis BEZ filtrow jest dozwolony i daje dzienny przeglad najlepszych okazji.
+   *
+   * Poczatkowo bylo tu twarde odrzucenie — z obawy przed "setkami maili".
+   * Obawa byla nieuzasadniona: alerty chodza RAZ NA DOBE z limitem 12 ofert
+   * na wiadomosc, a worker sortuje po deal score. Zapis bez filtrow to wiec
+   * jeden mail dziennie z dwunastoma najlepszymi okazjami z ~3,5 tys. nowych
+   * ofert, czyli zwykly newsletter, a nie zalew.
+   */
+  const label =
+    labelRaw ?? (Object.keys(filters).length === 0 ? "Najlepsze nowe okazje" : null);
 
   /*
    * Prosty limit: pieciu zapisow na adres. Bez tego jeden formularz pozwala
