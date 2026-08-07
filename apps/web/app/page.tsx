@@ -1,4 +1,5 @@
 import { Filters } from "@/components/Filters";
+import { Logo } from "@/components/Logo";
 import { Radar } from "@/components/Radar";
 import { Results } from "@/components/Results";
 import { getMakes, getModels, getSources, getStats } from "@/lib/queries";
@@ -76,9 +77,8 @@ export default async function Page({ searchParams }: { searchParams: Promise<Sea
     <main className="mx-auto max-w-[1400px] px-4 py-6">
       <header className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">
-            auto<span className="text-accent">poleasingu</span>
-            <span className="text-neutral-600">.pl</span>
+          <h1 className="text-2xl">
+            <Logo />
           </h1>
           <p className="text-sm text-neutral-400">
             {num.format(stats.active)} aktywnych z {sourceList.length} źródeł ·{" "}

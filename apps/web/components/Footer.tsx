@@ -1,3 +1,4 @@
+import { Logo } from "@/components/Logo";
 import Link from "next/link";
 
 /**
@@ -20,10 +21,7 @@ export function Footer() {
     <footer className="mx-auto mt-12 max-w-[1400px] border-t border-[var(--color-line)] px-4 py-6">
       <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 text-[13px] text-neutral-500">
         <p>
-          <span className="text-neutral-300">
-            auto<span className="text-accent">poleasingu</span>
-            <span className="text-neutral-600">.pl</span>
-          </span>
+          <Logo />
           {/*
             Zdanie, ktore musi tu byc: serwis nie sprzedaje aut i nie posredniczy.
             Bez tego uzytkownik moze wziac nas za sprzedajacego i miec roszczenia

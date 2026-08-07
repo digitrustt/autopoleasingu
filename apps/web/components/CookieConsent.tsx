@@ -1,6 +1,7 @@
 "use client";
 
 import { type Consent, readConsent, writeConsent } from "@/lib/consent";
+import { Cookie } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -39,13 +40,14 @@ export function CookieConsent() {
       className="fixed inset-x-0 bottom-0 z-50 border-t border-[var(--color-line)] bg-[var(--color-panel)]/95 backdrop-blur"
     >
       <div className="mx-auto flex max-w-[1400px] flex-wrap items-center justify-between gap-x-6 gap-y-3 px-4 py-3.5">
-        <p className="max-w-[68ch] text-[13px] leading-relaxed text-neutral-400">
-          Chcemy zbierać anonimowe statystyki: które oferty oglądasz, po czym filtrujesz, skąd
-          trafiłeś i ile czasu spędzasz. Pomaga to poprawiać wyszukiwarkę.{" "}
-          <span className="text-neutral-300">Bez zgody nic nie zapisujemy.</span>{" "}
-          <Link href="/cookies" className="underline underline-offset-2 hover:text-accent">
-            Szczegóły
-          </Link>
+        <p className="flex max-w-[70ch] items-center gap-2.5 text-[13px] leading-relaxed text-neutral-400">
+          <Cookie size={18} className="shrink-0 text-neutral-500" />
+          <span>
+            Używamy ciasteczek do anonimowych statystyk korzystania z serwisu.{" "}
+            <Link href="/cookies" className="underline underline-offset-2 hover:text-accent">
+              Szczegóły
+            </Link>
+          </span>
         </p>
 
         <div className="flex shrink-0 items-center gap-2">
@@ -61,7 +63,7 @@ export function CookieConsent() {
             onClick={() => decide("granted")}
             className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-black transition-colors hover:bg-white"
           >
-            Zgadzam się
+            Wyrażam zgodę
           </button>
         </div>
       </div>
