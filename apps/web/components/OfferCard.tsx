@@ -71,7 +71,7 @@ export function OfferCard({ o, index = 0 }: { o: OfferRow; index?: number }) {
 
   return (
     <OfferLink
-      href={o.url}
+      href={`/oferta/${o.id}`}
       offer={{
         id: o.id,
         make: o.make,
@@ -81,6 +81,7 @@ export function OfferCard({ o, index = 0 }: { o: OfferRow; index?: number }) {
         source: o.sourceName,
         dealScore: o.dealScore,
         kind: o.offerKind,
+        z: "lista",
       }}
       /*
        * Opoznienie rosnie z pozycja w siatce, ale jest przyciete na 12 kafelkach —
@@ -128,7 +129,7 @@ export function OfferCard({ o, index = 0 }: { o: OfferRow; index?: number }) {
           {o.dealScore != null && <DealBadge score={o.dealScore} compact />}
         </div>
 
-        {/* Strzalka pojawia sie pod kursorem — sygnal, ze kafelek wychodzi na zewnatrz. */}
+        {/* Strzalka pod kursorem — sygnal, ze kafelek jest klikalny. */}
         <span className="absolute bottom-2 right-2 flex h-7 w-7 translate-y-1 items-center justify-center rounded-full bg-accent text-black opacity-0 transition duration-200 group-hover:translate-y-0 group-hover:opacity-100">
           <ArrowRight size={15} />
         </span>

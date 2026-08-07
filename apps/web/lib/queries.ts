@@ -512,3 +512,341 @@ export async function getSourceHealth() {
 }
 
 export type SourceHealth = Awaited<ReturnType<typeof getSourceHealth>>[number];
+
+/* ────────────────────────────────────────────────────────────────────────────
+ * Strony docelowe marka / model
+ *
+ * Zapytania ponizej obsluguja /[marka] i /[marka]/[model]. Powstaly, bo cala
+ * baza — 22 tys. ofert i 1290 par marka+model — wisiala pod jednym adresem
+ * z filtrami w query stringu. Wyszukiwarka widziala z tego jedna strone.
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+/** Tylko oferty, ktore realnie da sie porownac — bez nich statystyki klamia. */
+const LIVE = and(eq(listings.status, "active"), isNotNull(listings.priceGross));
+
+/**
+ * Marki z liczba ofert, malejaco.
+ *
+ * Kolejnosc ma znaczenie przy rozwiazywaniu sluga: gdy dwa zapisy nazwy daja
+ * ten sam slug, wygrywa ten z wieksza liczba ofert. Patrz lib/slug.ts.
+ */
+export async function getMakesWithCounts() {
+  return db
+    .select({
+      make: listings.make,
+      total: sql<number>`count(*)::int`,
+      medianPrice: sql<number | null>`percentile_cont(0.5) within group (
+        order by ${listings.priceGross}
+      ) filter (where ${listings.offerKind} = 'fixed')::int`,
+    })
+    .from(listings)
+    .where(eq(listings.status, "active"))
+    .groupBy(listings.make)
+    .orderBy(desc(sql`count(*)`));
+}
+
+/** Modele jednej marki z liczba ofert i mediana — do listy na stronie marki. */
+export async function getModelsWithCounts(make: string) {
+  return db
+    .select({
+      model: listings.model,
+      total: sql<number>`count(*)::int`,
+      minPrice: sql<number | null>`min(${listings.priceGross}) filter (
+        where ${listings.offerKind} = 'fixed'
+      )::int`,
+      medianPrice: sql<number | null>`percentile_cont(0.5) within group (
+        order by ${listings.priceGross}
+      ) filter (where ${listings.offerKind} = 'fixed')::int`,
+    })
+    .from(listings)
+    .where(and(eq(listings.status, "active"), eq(listings.make, make)))
+    .groupBy(listings.model)
+    .orderBy(desc(sql`count(*)`));
+}
+
+/**
+ * Liczby na naglowek strony docelowej.
+ *
+ * Mediana i rozpietosc liczone WYLACZNIE z ofert "kup teraz" — cena aukcyjna
+ * to biezaca oferta w licytacji i jeszcze urosnie, wiec w statystyce cen
+ * rynkowych nie ma czego szukac. Ta sama zasada rzadzi wycena i naglowkiem
+ * strony glownej.
+ */
+export async function getSegmentStats(make: string, model?: string) {
+  const scope = model
+    ? and(eq(listings.make, make), eq(listings.model, model))
+    : eq(listings.make, make);
+
+  const [row] = await db
+    .select({
+      total: sql<number>`count(*)::int`,
+      withPrice: sql<number>`count(*) filter (where ${listings.priceGross} is not null)::int`,
+      newToday: sql<number>`count(*) filter (
+        where ${listings.firstSeenAt} > now() - interval '24 hours'
+      )::int`,
+      deals: sql<number>`count(*) filter (where ${listings.dealScore} >= 0.1)::int`,
+      sources: sql<number>`count(distinct ${listings.sourceId})::int`,
+      minPrice: sql<number | null>`min(${listings.priceGross}) filter (
+        where ${listings.offerKind} = 'fixed'
+      )::int`,
+      maxPrice: sql<number | null>`max(${listings.priceGross}) filter (
+        where ${listings.offerKind} = 'fixed'
+      )::int`,
+      medianPrice: sql<number | null>`percentile_cont(0.5) within group (
+        order by ${listings.priceGross}
+      ) filter (where ${listings.offerKind} = 'fixed')::int`,
+      medianMileage: sql<number | null>`percentile_cont(0.5) within group (
+        order by ${listings.mileageKm}
+      )::int`,
+      minYear: sql<number | null>`min(${listings.year})::int`,
+      maxYear: sql<number | null>`max(${listings.year})::int`,
+    })
+    .from(listings)
+    .where(and(eq(listings.status, "active"), scope));
+
+  return row;
+}
+
+/**
+ * Rozbicie po roczniku: ile sztuk i za ile.
+ *
+ * To jest ta jedna tabelka, dla ktorej warto wejsc na strone modelu — mowi,
+ * ile kosztuje ROCZNIK, a nie "model od 40 tys.". Zadne pojedyncze zrodlo
+ * tego nie pokaze, bo zadne nie ma 26 kanalow naraz.
+ */
+export async function getYearBreakdown(make: string, model: string) {
+  return db
+    .select({
+      year: listings.year,
+      total: sql<number>`count(*)::int`,
+      minPrice: sql<number>`min(${listings.priceGross})::int`,
+      medianPrice: sql<number>`percentile_cont(0.5) within group (
+        order by ${listings.priceGross}
+      )::int`,
+      medianMileage: sql<number | null>`percentile_cont(0.5) within group (
+        order by ${listings.mileageKm}
+      )::int`,
+    })
+    .from(listings)
+    .where(
+      and(
+        LIVE,
+        eq(listings.make, make),
+        eq(listings.model, model),
+        eq(listings.offerKind, "fixed"),
+        isNotNull(listings.year),
+      ),
+    )
+    .groupBy(listings.year)
+    .orderBy(desc(listings.year));
+}
+
+/** Rozbicie po paliwie — druga najczestsza os wyboru po roczniku. */
+export async function getFuelBreakdown(make: string, model: string) {
+  return db
+    .select({
+      fuel: listings.fuel,
+      total: sql<number>`count(*)::int`,
+      medianPrice: sql<number>`percentile_cont(0.5) within group (
+        order by ${listings.priceGross}
+      )::int`,
+    })
+    .from(listings)
+    .where(
+      and(
+        LIVE,
+        eq(listings.make, make),
+        eq(listings.model, model),
+        eq(listings.offerKind, "fixed"),
+        isNotNull(listings.fuel),
+      ),
+    )
+    .groupBy(listings.fuel)
+    .orderBy(desc(sql`count(*)`));
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+ * Pojedyncza oferta — /oferta/[id]
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+/**
+ * Jedna oferta z pelna specyfikacja.
+ *
+ * Bierzemy rowniez oferty ze statusem `gone`. Zniknieta oferta NIE jest bledem
+ * 404: adres mogl juz trafic do indeksu albo na czyjas liste, a strona
+ * z informacja "sprzedane, oto podobne" jest warta wiecej niz pusty blad —
+ * i dla czytelnika, i dla wyszukiwarki.
+ */
+export async function getListing(id: number) {
+  const [row] = await db
+    .select({
+      id: listings.id,
+      url: listings.url,
+      vin: listings.vin,
+      status: listings.status,
+      make: listings.make,
+      model: listings.model,
+      trim: listings.trim,
+      year: listings.year,
+      registration: listings.registration,
+      firstRegistrationAt: listings.firstRegistrationAt,
+      mileageKm: listings.mileageKm,
+      priceGross: listings.priceGross,
+      priceNet: listings.priceNet,
+      fuel: listings.fuel,
+      gearbox: listings.gearbox,
+      drive: listings.drive,
+      powerHp: listings.powerHp,
+      engineCcm: listings.engineCcm,
+      body: listings.body,
+      color: listings.color,
+      seats: listings.seats,
+      city: listings.city,
+      thumbnailUrl: listings.thumbnailUrl,
+      seller: listings.seller,
+      offerKind: listings.offerKind,
+      auctionEndsAt: listings.auctionEndsAt,
+      marketPrice: listings.marketPrice,
+      dealScore: listings.dealScore,
+      dealSamples: listings.dealSamples,
+      dealFromSold: listings.dealFromSold,
+      firstSeenAt: listings.firstSeenAt,
+      lastSeenAt: listings.lastSeenAt,
+      goneAt: listings.goneAt,
+      sourceId: listings.sourceId,
+      sourceName: sources.name,
+    })
+    .from(listings)
+    .innerJoin(sources, eq(sources.id, listings.sourceId))
+    .where(eq(listings.id, id));
+
+  if (!row) return null;
+
+  const history = await db
+    .select({
+      priceGross: listingSnapshots.priceGross,
+      mileageKm: listingSnapshots.mileageKm,
+      capturedAt: listingSnapshots.capturedAt,
+    })
+    .from(listingSnapshots)
+    .where(eq(listingSnapshots.listingId, id))
+    .orderBy(asc(listingSnapshots.capturedAt));
+
+  // Ta sama sztuka u innego zrodla — rozjazd cen miedzy kanalami siega
+  // kilkudziesieciu tysiecy i jest najmocniejszym sygnalem w calej bazie.
+  const twins = row.vin
+    ? await db
+        .select({
+          id: listings.id,
+          priceGross: listings.priceGross,
+          offerKind: listings.offerKind,
+          status: listings.status,
+          url: listings.url,
+          sourceName: sources.name,
+        })
+        .from(listings)
+        .innerJoin(sources, eq(sources.id, listings.sourceId))
+        .where(
+          and(eq(listings.vin, row.vin), eq(listings.status, "active"), sql`${listings.id} <> ${id}`),
+        )
+        .orderBy(asc(listings.priceGross))
+    : [];
+
+  return { ...row, history, twins };
+}
+
+export type ListingDetail = NonNullable<Awaited<ReturnType<typeof getListing>>>;
+
+/**
+ * Podobne oferty — ten sam model, zblizony rocznik.
+ *
+ * Sluzy dwóm rzeczom naraz: czytelnikowi, ktory trafil na sprzedane auto,
+ * i linkowaniu wewnetrznemu, bez ktorego strony ofert bylyby slepymi zaulkami
+ * dla robota indeksujacego.
+ */
+export async function getSimilar(row: {
+  id: number;
+  make: string;
+  model: string;
+  year: number | null;
+}, limit = 8) {
+  return db
+    .select({
+      id: listings.id,
+      make: listings.make,
+      model: listings.model,
+      trim: listings.trim,
+      year: listings.year,
+      mileageKm: listings.mileageKm,
+      priceGross: listings.priceGross,
+      fuel: listings.fuel,
+      thumbnailUrl: listings.thumbnailUrl,
+      dealScore: listings.dealScore,
+      offerKind: listings.offerKind,
+      sourceName: sources.name,
+    })
+    .from(listings)
+    .innerJoin(sources, eq(sources.id, listings.sourceId))
+    .where(
+      and(
+        LIVE,
+        eq(listings.make, row.make),
+        eq(listings.model, row.model),
+        sql`${listings.id} <> ${row.id}`,
+        ...(row.year ? [sql`abs(coalesce(${listings.year}, 0) - ${row.year}) <= 2`] : []),
+      ),
+    )
+    .orderBy(sql`${listings.dealScore} desc nulls last`, desc(listings.firstSeenAt))
+    .limit(limit);
+}
+
+export type SimilarRow = Awaited<ReturnType<typeof getSimilar>>[number];
+
+/* ────────────────────────────────────────────────────────────────────────────
+ * Mapa strony
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+/**
+ * Adresy do sitemapy.
+ *
+ * Progi sa celowe. Model z jedna oferta znika z bazy przy najblizszym
+ * przebiegu scrapera i zostawia po sobie 404 w indeksie — zglaszamy wiec
+ * dopiero te, ktore maja z czego zyc. VIN-y ograniczamy do egzemplarzy
+ * wystawionych u WIECEJ niz jednego zrodla, bo tylko tam strona historii
+ * mowi cokolwiek, czego nie ma w samej ofercie.
+ */
+export async function getSitemapEntries() {
+  const [makes, models, vins, offers] = await Promise.all([
+    db
+      .select({ make: listings.make, updated: sql<string>`max(${listings.lastSeenAt})` })
+      .from(listings)
+      .where(eq(listings.status, "active"))
+      .groupBy(listings.make)
+      .having(sql`count(*) >= 3`),
+
+    db
+      .select({
+        make: listings.make,
+        model: listings.model,
+        updated: sql<string>`max(${listings.lastSeenAt})`,
+      })
+      .from(listings)
+      .where(eq(listings.status, "active"))
+      .groupBy(listings.make, listings.model)
+      .having(sql`count(*) >= 3`),
+
+    db
+      .select({ vin: listings.vin, updated: sql<string>`max(${listings.lastSeenAt})` })
+      .from(listings)
+      .where(and(eq(listings.status, "active"), isNotNull(listings.vin)))
+      .groupBy(listings.vin)
+      .having(sql`count(*) > 1`),
+
+    db
+      .select({ id: listings.id, updated: listings.lastSeenAt })
+      .from(listings)
+      .where(LIVE),
+  ]);
+
+  return { makes, models, vins, offers };
+}
