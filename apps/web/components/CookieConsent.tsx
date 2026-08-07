@@ -23,7 +23,37 @@ export function CookieConsent() {
     // Renderujemy dopiero po stronie klienta: na serwerze nie wiadomo,
     // czy użytkownik już zdecydował, a mignięcie banera przy każdym
     // wejściu byłoby gorsze niż jego brak.
-    if (readConsent() === null) setVisible(true);
+    if (readConsent() !== null) return;
+    setVisible(true);
+
+    /*
+     * ZGODA PRZEZ PRZEWINIĘCIE — decyzja właściciela serwisu, podjęta
+     * świadomie po zgłoszeniu zastrzeżenia.
+     *
+     * Uwaga dla przyszłego czytelnika: wytyczne EROD 05/2020 wskazują scroll
+     * jako przykład zachowania, które NIE stanowi ważnej zgody w rozumieniu
+     * RODO — jest czynnością nawigacyjną, nie jednoznacznym działaniem
+     * potwierdzającym. Jeśli ten mechanizm ma zostać usunięty, wystarczy
+     * skasować ten useEffect; przyciski działają niezależnie.
+     *
+     * Próg jest celowo wysoki (600 px) i liczony dopiero po sekundzie:
+     * przywrócenie pozycji przewijania przez przeglądarkę albo przypadkowy
+     * ruch kółkiem nie mogą uchodzić za decyzję.
+     */
+    const SCROLL_PX = 600;
+    const armAt = Date.now() + 1000;
+    let done = false;
+
+    const onScroll = () => {
+      if (done || Date.now() < armAt) return;
+      if (window.scrollY < SCROLL_PX) return;
+      done = true;
+      writeConsent("granted");
+      setVisible(false);
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
   if (!visible) return null;
@@ -43,7 +73,8 @@ export function CookieConsent() {
         <p className="flex max-w-[70ch] items-center gap-2.5 text-[13px] leading-relaxed text-neutral-400">
           <Cookie size={18} className="shrink-0 text-neutral-500" />
           <span>
-            Używamy ciasteczek do anonimowych statystyk korzystania z serwisu.{" "}
+            Używamy ciasteczek do anonimowych statystyk. Przewijając stronę dalej, wyrażasz
+            zgodę.{" "}
             <Link href="/cookies" className="underline underline-offset-2 hover:text-accent">
               Szczegóły
             </Link>

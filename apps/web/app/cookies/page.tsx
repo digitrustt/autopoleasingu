@@ -11,12 +11,24 @@ export const metadata: Metadata = {
 export default function Cookies() {
   return (
     <LegalPage title="Cookies i analityka" updated="7 sierpnia 2026">
-      <Section title="Zasada">
+      <Section title="Jak wyrażasz zgodę">
+        <p>Zgodę na analitykę wyrażasz na jeden z dwóch sposobów:</p>
+        <ul className="ml-4 list-disc space-y-1 marker:text-neutral-600">
+          <li>klikając <strong className="text-neutral-200">„Wyrażam zgodę"</strong> w banerze,</li>
+          <li>
+            <strong className="text-neutral-200">przewijając stronę dalej</strong> — po przewinięciu
+            o ponad 600 pikseli baner znika, a analityka się uruchamia.
+          </li>
+        </ul>
         <p>
-          <strong className="text-neutral-200">Dopóki nie klikniesz „Zgadzam się", nie zapisujemy
-          w Twojej przeglądarce niczego</strong> poza samą informacją o tym, jaką decyzję podjąłeś.
-          Analityka uruchamia się dopiero po zgodzie — nie działa „na wszelki wypadek"
-          z możliwością późniejszego wyłączenia.
+          Jeśli nie chcesz się zgodzić, kliknij <strong className="text-neutral-200">„Odrzuć"</strong>{" "}
+          zanim zaczniesz przewijać, albo wyłącz analitykę przełącznikiem niżej — działa
+          w każdej chwili, także po fakcie.
+        </p>
+        <p>
+          Zanim wybierzesz którykolwiek z tych sposobów,{" "}
+          <strong className="text-neutral-200">nie zapisujemy w Twojej przeglądarce niczego</strong>{" "}
+          poza samą informacją o podjętej decyzji.
         </p>
       </Section>
 
