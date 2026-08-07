@@ -1,3 +1,5 @@
+import { Analytics } from "@/components/Analytics";
+import { CookieConsent } from "@/components/CookieConsent";
 import { Footer } from "@/components/Footer";
 import type { Metadata } from "next";
 import "./globals.css";
@@ -20,6 +22,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="flex min-h-screen flex-col antialiased">
         <div className="flex-1">{children}</div>
         <Footer />
+        {/* Oba nic nie robia bez zgody — patrz lib/consent.ts. */}
+        <CookieConsent />
+        <Analytics />
       </body>
     </html>
   );

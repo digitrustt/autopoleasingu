@@ -1,3 +1,4 @@
+import { OfferLink } from "@/components/OfferLink";
 import { DealBadge } from "@/components/DealBadge";
 import { TwinLink } from "@/components/TwinLink";
 import { shortSource } from "@/lib/format";
@@ -69,10 +70,18 @@ export function OfferCard({ o, index = 0 }: { o: OfferRow; index?: number }) {
     o.twin != null && o.twin.offerKind !== "auction" && o.twin.diff != null && o.twin.diff < 0;
 
   return (
-    <a
+    <OfferLink
       href={o.url}
-      target="_blank"
-      rel="noopener noreferrer"
+      offer={{
+        id: o.id,
+        make: o.make,
+        model: o.model,
+        year: o.year,
+        price: o.priceGross,
+        source: o.sourceName,
+        dealScore: o.dealScore,
+        kind: o.offerKind,
+      }}
       /*
        * Opoznienie rosnie z pozycja w siatce, ale jest przyciete na 12 kafelkach —
        * przy 60 ofertach ostatnia wjezdzalaby z sekunda opoznienia, co czytaloby
@@ -262,6 +271,6 @@ export function OfferCard({ o, index = 0 }: { o: OfferRow; index?: number }) {
           </span>
         </div>
       </div>
-    </a>
+    </OfferLink>
   );
 }

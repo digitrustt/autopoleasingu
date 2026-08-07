@@ -3,7 +3,8 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Polityka prywatności — autopoleasingu.pl",
-  description: "Jakie dane zbieramy: praktycznie żadnych. Bez konta, bez ciasteczek, bez analityki.",
+  description:
+    "Jakie dane zbieramy, na jakiej podstawie i jak to wyłączyć. Bez zgody nie zbieramy nic.",
 };
 
 export default function Prywatnosc() {
@@ -11,9 +12,29 @@ export default function Prywatnosc() {
     <LegalPage title="Polityka prywatności" updated="7 sierpnia 2026">
       <Section title="Krótko">
         <p>
-          <strong className="text-neutral-200">Nie zbieramy o Tobie żadnych danych osobowych.</strong>{" "}
-          Serwis nie ma kont, formularzy, newslettera, ciasteczek ani analityki. Możesz z niego
-          korzystać, nie zostawiając nam niczego.
+          Serwis nie ma kont, formularzy ani newslettera —{" "}
+          <strong className="text-neutral-200">nigdy nie prosimy Cię o dane osobowe</strong>.
+        </p>
+        <p>
+          Jeśli wyrazisz zgodę, zbieramy anonimowe statystyki korzystania: odwiedzane podstrony,
+          użyte filtry, źródło wejścia, przybliżoną lokalizację (kraj i miasto) oraz czas na
+          stronie. <strong className="text-neutral-200">Bez Twojej zgody nie uruchamiamy tego
+          wcale.</strong> Pełny opis i przełącznik są na stronie{" "}
+          <a className="underline hover:text-accent" href="/cookies">Cookies i analityka</a>.
+        </p>
+      </Section>
+
+      <Section title="Analityka — podstawa i zakres">
+        <p>
+          Narzędziem jest PostHog, hostowany na serwerach w Unii Europejskiej. Podstawą
+          przetwarzania jest <strong className="text-neutral-200">Twoja zgoda</strong>{" "}
+          (art. 6 ust. 1 lit. a RODO), którą możesz wycofać w każdej chwili — bez podawania
+          powodu i bez konsekwencji dla korzystania z serwisu.
+        </p>
+        <p>
+          Dane są anonimowe: nie zawierają imienia, e-maila ani niczego, co pozwoliłoby Cię
+          bezpośrednio wskazać. Lokalizacja jest przybliżona do miasta i wyliczana z adresu IP —
+          nie znamy Twojego adresu. W nagraniach sesji maskujemy wszystkie pola tekstowe.
         </p>
       </Section>
 
