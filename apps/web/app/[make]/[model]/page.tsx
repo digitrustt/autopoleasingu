@@ -1,16 +1,23 @@
 import { Crumbs } from "@/components/Crumbs";
 import { OfferCard } from "@/components/OfferCard";
 import { StatStrip } from "@/components/StatStrip";
+import { MileagePrice } from "@/components/charts/MileagePrice";
+import { PriceHistogram } from "@/components/charts/PriceHistogram";
+import { YearBars } from "@/components/charts/YearBars";
 import {
+  getBodyBreakdown,
   getFuelBreakdown,
   getListings,
   getMakesWithCounts,
   getModelsWithCounts,
+  getPrices,
+  getScatter,
   getSegmentStats,
   getYearBreakdown,
 } from "@/lib/queries";
 import { makeHref, modelHref, resolveSlug, slugify } from "@/lib/slug";
-import { SlidersHorizontal } from "lucide-react";
+import { bodySpec, fuelSpec } from "@/lib/spec";
+import { CalendarRange, Gauge, Layers, SlidersHorizontal, TrendingDown } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -23,11 +30,6 @@ const pln = new Intl.NumberFormat("pl-PL", {
   maximumFractionDigits: 0,
 });
 const num = new Intl.NumberFormat("pl-PL");
-
-const FUEL_PL: Record<string, string> = {
-  petrol: "Benzyna", diesel: "Diesel", hybrid: "Hybryda", phev: "PHEV",
-  electric: "Elektryk", lpg: "LPG", cng: "CNG", other: "Inne",
-};
 
 /** Slug -> nazwy z bazy. Model rozwiazujemy dopiero w obrebie znalezionej marki. */
 async function resolve(makeSlug: string, modelSlug: string) {
@@ -79,10 +81,13 @@ export default async function ModelPage({
   const { make, model, models } = found;
   const name = `${make} ${model}`;
 
-  const [stats, years, fuels, offers] = await Promise.all([
+  const [stats, years, fuels, bodies, prices, scatter, offers] = await Promise.all([
     getSegmentStats(make, model),
     getYearBreakdown(make, model),
     getFuelBreakdown(make, model),
+    getBodyBreakdown(make, model),
+    getPrices(make, model),
+    getScatter(make, model),
     getListings({ make, model, sort: "deal_desc" }, 1, 24),
   ]);
 
@@ -152,16 +157,28 @@ export default async function ModelPage({
 
       {years.length > 0 && (
         <section className="mb-8">
-          <h2 className="mb-1 text-lg font-semibold text-neutral-100">
+          <h2 className="mb-1 flex items-center gap-2 text-lg font-semibold text-neutral-100">
+            <CalendarRange size={17} className="text-neutral-600" />
             Ile kosztuje {name} według rocznika
           </h2>
           <p className="mb-3 text-[13px] text-neutral-500">
             Mediana i cena minimalna liczone wyłącznie z ofert „kup teraz”. Ceny aukcyjne są
-            bieżącą ofertą w licytacji i jeszcze urosną, więc nie wchodzą do tej tabeli.
+            bieżącą ofertą w licytacji i jeszcze urosną, więc nie wchodzą do tych zestawień.
           </p>
-          {/* overflow-x-auto: przy waskim ekranie tabela ma sie przewijac sama,
-              zamiast rozpychac cala strone w poziomie. */}
-          <div className="overflow-x-auto rounded-xl border border-[var(--color-line)]">
+
+          {/*
+            Wykres i tabela pokazuja te same liczby, ale odpowiadaja na inne
+            pytania: z tabeli odczytuje sie konkretna wartosc, z wykresu widac
+            ksztalt utraty wartosci i ktory rocznik odstaje od reszty.
+          */}
+          <div className="grid gap-4 xl:grid-cols-2">
+            <div className="rounded-xl border border-[var(--color-line)] bg-[var(--color-panel)] p-4">
+              <YearBars rows={years} />
+            </div>
+
+            {/* overflow-x-auto: przy waskim ekranie tabela ma sie przewijac sama,
+                zamiast rozpychac cala strone w poziomie. */}
+            <div className="overflow-x-auto rounded-xl border border-[var(--color-line)]">
             <table className="w-full min-w-[520px] text-sm">
               <thead>
                 <tr className="border-b border-[var(--color-line)] text-left text-[11px] uppercase tracking-wide text-neutral-600">
@@ -193,37 +210,118 @@ export default async function ModelPage({
                     </td>
                   </tr>
                 ))}
-              </tbody>
-            </table>
+                </tbody>
+              </table>
+            </div>
           </div>
         </section>
       )}
 
-      {fuels.length > 1 && (
-        <section className="mb-8">
-          <h2 className="mb-3 text-lg font-semibold text-neutral-100">Ceny według paliwa</h2>
-          <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-            {fuels.map((f) => (
-              <li
-                key={f.fuel}
-                className="rounded-lg border border-[var(--color-line)] bg-[var(--color-panel)] px-3 py-2.5"
-              >
-                <p className="text-sm font-medium text-neutral-200">
-                  {FUEL_PL[f.fuel ?? ""] ?? f.fuel}
-                </p>
-                <p className="text-[11px] text-neutral-600">
-                  {num.format(f.total)} {f.total === 1 ? "oferta" : "ofert"} · mediana{" "}
-                  {pln.format(f.medianPrice)}
-                </p>
-              </li>
-            ))}
-          </ul>
+      {(prices.length >= 6 || scatter.length >= 6) && (
+        <section className="mb-8 grid gap-4 lg:grid-cols-2">
+          {prices.length >= 6 && (
+            <div className="rounded-xl border border-[var(--color-line)] bg-[var(--color-panel)] p-4">
+              <h2 className="text-lg font-semibold text-neutral-100">Rozkład cen</h2>
+              <p className="mb-4 text-[13px] leading-relaxed text-neutral-500">
+                Sama mediana nie mówi, czy rynek jest jednolity. Tu widać, czy oferty skupiają
+                się wokół jednej ceny, czy rozpadają na dwie grupy.
+              </p>
+              <PriceHistogram prices={prices} />
+            </div>
+          )}
+
+          {scatter.length >= 6 && (
+            <div className="rounded-xl border border-[var(--color-line)] bg-[var(--color-panel)] p-4">
+              <h2 className="flex items-center gap-2 text-lg font-semibold text-neutral-100">
+                <Gauge size={17} className="text-neutral-600" />
+                Cena a przebieg
+              </h2>
+              <p className="mb-4 text-[13px] leading-relaxed text-neutral-500">
+                Ile realnie kosztuje każde dziesięć tysięcy kilometrów na tym modelu — czyli czy
+                opłaca się dopłacić za mniejszy przebieg.
+              </p>
+              <MileagePrice points={scatter} />
+            </div>
+          )}
+        </section>
+      )}
+
+      {(fuels.length > 1 || bodies.length > 1) && (
+        <section className="mb-8 grid gap-6 sm:grid-cols-2">
+          {fuels.length > 1 && (
+            <div>
+              <h2 className="mb-3 text-lg font-semibold text-neutral-100">Ceny według paliwa</h2>
+              <ul className="flex flex-col gap-2">
+                {fuels.map((f) => {
+                  const spec = fuelSpec(f.fuel);
+                  return (
+                    <li
+                      key={f.fuel}
+                      className="flex items-center justify-between gap-3 rounded-lg border border-[var(--color-line)] bg-[var(--color-panel)] px-3 py-2.5"
+                    >
+                      <span className="flex min-w-0 items-center gap-2">
+                        {spec && <spec.Icon size={15} className="shrink-0 text-neutral-600" />}
+                        <span className="truncate text-sm text-neutral-200">
+                          {spec?.label ?? f.fuel}
+                        </span>
+                      </span>
+                      <span className="shrink-0 text-[13px] tabular-nums text-neutral-500">
+                        {num.format(f.total)} szt. ·{" "}
+                        <span className="font-semibold text-neutral-200">
+                          {pln.format(f.medianPrice)}
+                        </span>
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
+
+          {bodies.length > 1 && (
+            <div>
+              <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold text-neutral-100">
+                <Layers size={17} className="text-neutral-600" />
+                Ceny według nadwozia
+              </h2>
+              <ul className="flex flex-col gap-2">
+                {bodies.map((b) => {
+                  const spec = bodySpec(b.body);
+                  return (
+                    <li
+                      key={b.body}
+                      className="flex items-center justify-between gap-3 rounded-lg border border-[var(--color-line)] bg-[var(--color-panel)] px-3 py-2.5"
+                    >
+                      <span className="flex min-w-0 items-center gap-2">
+                        {spec && <spec.Icon size={15} className="shrink-0 text-neutral-600" />}
+                        <span className="truncate text-sm text-neutral-200">{b.body}</span>
+                      </span>
+                      <span className="shrink-0 text-[13px] tabular-nums text-neutral-500">
+                        {num.format(b.total)} szt.
+                        {b.medianPrice != null && (
+                          <>
+                            {" · "}
+                            <span className="font-semibold text-neutral-200">
+                              {pln.format(b.medianPrice)}
+                            </span>
+                          </>
+                        )}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
         </section>
       )}
 
       <section className="mb-8">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold text-neutral-100">Oferty {name}</h2>
+          <h2 className="flex items-center gap-2 text-lg font-semibold text-neutral-100">
+            <TrendingDown size={17} className="text-emerald-400" />
+            Oferty {name} — najlepsze okazje
+          </h2>
           <Link
             href={`/?make=${encodeURIComponent(make)}&model=${encodeURIComponent(model)}`}
             className="flex items-center gap-1.5 rounded-lg border border-[var(--color-line)] px-3 py-1.5 text-[13px] text-neutral-400 transition-colors hover:border-accent/70 hover:text-accent"

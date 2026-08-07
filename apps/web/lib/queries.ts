@@ -850,3 +850,146 @@ export async function getSitemapEntries() {
 
   return { makes, models, vins, offers };
 }
+
+/* ────────────────────────────────────────────────────────────────────────────
+ * Zdjecia i wykresy na stronach docelowych
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+/**
+ * Kafelki modeli na stronie marki — z jednym reprezentatywnym zdjeciem.
+ *
+ * Zdjecie wybiera `distinct on` po najnowszej ofercie z miniatura: nowsza
+ * oferta to zwykle nowszy lift i lepsze zdjecie studyjne, a nie fotka
+ * z telefonu na parkingu.
+ *
+ * Reszta pol (paliwo, nadwozie) to wartosc NAJCZESTSZA, nie pierwsza z brzegu
+ * — przy Octavii kombi i sedan stoja obok siebie, wiec losowy wybor bylby
+ * mylacy przez polowe czasu.
+ */
+export async function getModelCards(make: string) {
+  const rows = await db.execute(sql`
+    with baza as (
+      select model, thumbnail_url, price_gross, offer_kind, fuel, body, year, first_seen_at
+      from listings
+      where status = 'active' and make = ${make}
+    ),
+    foto as (
+      select distinct on (model) model, thumbnail_url
+      from baza
+      where thumbnail_url is not null
+      order by model, first_seen_at desc
+    ),
+    paliwo as (
+      select distinct on (model) model, fuel, count(*) as n
+      from baza where fuel is not null
+      group by model, fuel order by model, n desc
+    ),
+    nadwozie as (
+      select distinct on (model) model, body, count(*) as n
+      from baza where body is not null
+      group by model, body order by model, n desc
+    )
+    select
+      b.model,
+      count(*)::int                                            as total,
+      min(b.price_gross) filter (where b.offer_kind = 'fixed')::int  as min_price,
+      (percentile_cont(0.5) within group (order by b.price_gross)
+        filter (where b.offer_kind = 'fixed'))::int            as median_price,
+      min(b.year)::int                                         as min_year,
+      max(b.year)::int                                         as max_year,
+      f.thumbnail_url                                          as thumbnail,
+      p.fuel                                                   as top_fuel,
+      n.body                                                   as top_body
+    from baza b
+    left join foto f     on f.model = b.model
+    left join paliwo p   on p.model = b.model
+    left join nadwozie n on n.model = b.model
+    group by b.model, f.thumbnail_url, p.fuel, n.body
+    order by count(*) desc
+  `);
+
+  return (rows as unknown as Record<string, unknown>[]).map((r) => ({
+    model: String(r.model),
+    total: Number(r.total),
+    minPrice: r.min_price == null ? null : Number(r.min_price),
+    medianPrice: r.median_price == null ? null : Number(r.median_price),
+    minYear: r.min_year == null ? null : Number(r.min_year),
+    maxYear: r.max_year == null ? null : Number(r.max_year),
+    thumbnail: (r.thumbnail as string | null) ?? null,
+    topFuel: (r.top_fuel as string | null) ?? null,
+    topBody: (r.top_body as string | null) ?? null,
+  }));
+}
+
+export type ModelCard = Awaited<ReturnType<typeof getModelCards>>[number];
+
+/**
+ * Punkty do wykresu cena/przebieg.
+ *
+ * Same aukcje pomijamy — cena aukcyjna to biezaca oferta w licytacji, wiec
+ * na wykresie ceny rynkowej lezalaby duzo za nisko i psula caly obraz.
+ */
+export async function getScatter(make: string, model: string) {
+  return db
+    .select({
+      id: listings.id,
+      mileageKm: listings.mileageKm,
+      priceGross: listings.priceGross,
+      year: listings.year,
+    })
+    .from(listings)
+    .where(
+      and(
+        LIVE,
+        eq(listings.make, make),
+        eq(listings.model, model),
+        eq(listings.offerKind, "fixed"),
+        isNotNull(listings.mileageKm),
+      ),
+    );
+}
+
+export type ScatterPoint = Awaited<ReturnType<typeof getScatter>>[number];
+
+/** Wszystkie ceny "kup teraz" jednego modelu — do histogramu rozkladu. */
+export async function getPrices(make: string, model: string): Promise<number[]> {
+  const rows = await db
+    .select({ price: listings.priceGross })
+    .from(listings)
+    .where(
+      and(LIVE, eq(listings.make, make), eq(listings.model, model), eq(listings.offerKind, "fixed")),
+    );
+  return rows.map((r) => r.price as number);
+}
+
+/** Nadwozia w segmencie — druga po paliwie os, wedlug ktorej ludzie wybieraja. */
+export async function getBodyBreakdown(make: string, model?: string) {
+  const rows = await db
+    .select({
+      /*
+       * Grupujemy po malych literach, bo zrodla pisza nadwozie roznie
+       * ("SUV", "suv", "Suv") i bez tego jeden typ rozpadal sie na trzy
+       * wiersze. Do wyswietlenia bierzemy min() — w ASCII wielkie litery sa
+       * przed malymi, wiec wygrywa "SUV", a nie "suv".
+       */
+      body: sql<string>`min(${listings.body})`,
+      total: sql<number>`count(*)::int`,
+      medianPrice: sql<number | null>`percentile_cont(0.5) within group (
+        order by ${listings.priceGross}
+      )::int`,
+    })
+    .from(listings)
+    .where(
+      and(
+        LIVE,
+        eq(listings.make, make),
+        ...(model ? [eq(listings.model, model)] : []),
+        eq(listings.offerKind, "fixed"),
+        isNotNull(listings.body),
+      ),
+    )
+    .groupBy(sql`lower(${listings.body})`)
+    .orderBy(desc(sql`count(*)`))
+    .limit(8);
+  return rows;
+}

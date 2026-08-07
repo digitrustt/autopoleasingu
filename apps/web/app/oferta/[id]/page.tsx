@@ -3,19 +3,39 @@ import { DealBadge } from "@/components/DealBadge";
 import { OfferLink } from "@/components/OfferLink";
 import { PriceHistory } from "@/components/PriceHistory";
 import { SimilarStrip } from "@/components/SimilarStrip";
+import { MileagePrice } from "@/components/charts/MileagePrice";
+import { PriceHistogram } from "@/components/charts/PriceHistogram";
 import { shortSource } from "@/lib/format";
-import { getListing, getSimilar } from "@/lib/queries";
-import { makeHref, modelHref } from "@/lib/slug";
 import {
-
+  getListing,
+  getPrices,
+  getScatter,
+  getSimilar,
+  getYearBreakdown,
+} from "@/lib/queries";
+import { makeHref, modelHref } from "@/lib/slug";
+import { bodySpec, driveSpec, fuelSpec, gearboxSpec } from "@/lib/spec";
+import {
   ArrowUpRight,
   Banknote,
+  Building2,
+  Calendar,
+  CalendarClock,
+  ChartColumn,
   CircleSlash,
+  Compass,
   Copy,
+  Cylinder,
   Gauge,
   Gavel,
+  History,
   ImageOff,
+  MapPin,
+  Palette,
+  Store,
   Timer,
+  Users,
+  Zap,
 } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -35,12 +55,10 @@ const pln = new Intl.NumberFormat("pl-PL", {
 const num = new Intl.NumberFormat("pl-PL");
 const day = new Intl.DateTimeFormat("pl-PL", { day: "2-digit", month: "short", year: "numeric" });
 
-const FUEL_PL: Record<string, string> = {
-  petrol: "Benzyna", diesel: "Diesel", hybrid: "Hybryda", phev: "PHEV",
-  electric: "Elektryk", lpg: "LPG", cng: "CNG", other: "Inne",
-};
-const GEARBOX_PL: Record<string, string> = { manual: "Manual", automatic: "Automat", other: "—" };
-const DRIVE_PL: Record<string, string> = { fwd: "Przód", rwd: "Tył", awd: "4×4", other: "—" };
+/** Polska odmiana: "1 dzien", "3 dni", "12 dni". */
+function daysPl(n: number): string {
+  return n === 1 ? "1 dzień" : `${n} dni`;
+}
 
 function parseId(raw: string): number | null {
   const n = Number(raw);
@@ -63,7 +81,7 @@ export async function generateMetadata({
   const description =
     `${name} po leasingu` +
     (o.mileageKm != null ? `, ${num.format(o.mileageKm)} km` : "") +
-    (o.fuel ? `, ${FUEL_PL[o.fuel] ?? o.fuel}` : "") +
+    (fuelSpec(o.fuel) ? `, ${fuelSpec(o.fuel)?.label}` : "") +
     `. Oferta z ${shortSource(o.sourceName)}` +
     (o.marketPrice ? `, mediana rynkowa ${pln.format(o.marketPrice)}.` : ".");
 
@@ -86,11 +104,22 @@ export async function generateMetadata({
  * Pomijamy tez goly myslnik: czesc zrodel wpisuje "-" albo "—" tam, gdzie
  * pola po prostu nie podano, a przepisany wprost wyglada na dziure w danych.
  */
-function Row({ label, value }: { label: string; value: React.ReactNode }) {
+function Row({
+  label,
+  value,
+  Icon,
+}: {
+  label: string;
+  value: React.ReactNode;
+  Icon?: typeof Gauge;
+}) {
   if (value == null || value === "" || value === "-" || value === "—") return null;
   return (
     <div className="flex items-baseline justify-between gap-4 border-b border-[var(--color-line)] py-2 last:border-0">
-      <dt className="text-[13px] text-neutral-500">{label}</dt>
+      <dt className="flex items-center gap-2 text-[13px] text-neutral-500">
+        {Icon && <Icon size={13} className="shrink-0 text-neutral-700" />}
+        {label}
+      </dt>
       <dd className="text-right text-[13px] font-medium text-neutral-200">{value}</dd>
     </div>
   );
@@ -103,7 +132,19 @@ export default async function OfferPage({ params }: { params: Promise<{ id: stri
   const o = await getListing(id);
   if (!o) notFound();
 
-  const similar = await getSimilar(o);
+  /*
+   * Kontekst rynkowy tego egzemplarza. Trzy zapytania wiecej, ale to one
+   * odrozniaja te strone od skopiowanego ogloszenia: pokazuja, gdzie ta
+   * konkretna sztuka stoi wsrod pozostalych.
+   */
+  const [similar, prices, scatter, years] = await Promise.all([
+    getSimilar(o),
+    getPrices(o.make, o.model),
+    getScatter(o.make, o.model),
+    getYearBreakdown(o.make, o.model),
+  ]);
+
+  const sameYear = o.year ? years.find((y) => y.year === o.year) : undefined;
   const name = [o.make, o.model].filter(Boolean).join(" ");
   const isAuction = o.offerKind === "auction";
   const gone = o.status !== "active";
@@ -170,28 +211,32 @@ export default async function OfferPage({ params }: { params: Promise<{ id: stri
           <section className="mt-6">
             <h2 className="mb-2 text-lg font-semibold text-neutral-100">Dane pojazdu</h2>
             <dl className="rounded-xl border border-[var(--color-line)] bg-[var(--color-panel)] px-4 py-1">
-              <Row label="Rocznik" value={o.year} />
+              <Row label="Rocznik" value={o.year} Icon={Calendar} />
               <Row
                 label="Przebieg"
                 value={o.mileageKm != null ? `${num.format(o.mileageKm)} km` : null}
+                Icon={Gauge}
               />
-              <Row label="Paliwo" value={o.fuel ? (FUEL_PL[o.fuel] ?? o.fuel) : null} />
+              <Row label="Paliwo" value={fuelSpec(o.fuel)?.label} Icon={fuelSpec(o.fuel)?.Icon} />
               <Row
                 label="Skrzynia"
-                value={o.gearbox ? (GEARBOX_PL[o.gearbox] ?? o.gearbox) : null}
+                value={gearboxSpec(o.gearbox)?.label}
+                Icon={gearboxSpec(o.gearbox)?.Icon}
               />
-              <Row label="Napęd" value={o.drive ? (DRIVE_PL[o.drive] ?? o.drive) : null} />
-              <Row label="Moc" value={o.powerHp ? `${o.powerHp} KM` : null} />
+              <Row label="Napęd" value={driveSpec(o.drive)?.label} Icon={Compass} />
+              <Row label="Moc" value={o.powerHp ? `${o.powerHp} KM` : null} Icon={Zap} />
               <Row
                 label="Pojemność"
                 value={o.engineCcm ? `${num.format(o.engineCcm)} cm³` : null}
+                Icon={Cylinder}
               />
-              <Row label="Nadwozie" value={o.body} />
-              <Row label="Kolor" value={o.color} />
-              <Row label="Miejsc" value={o.seats} />
+              <Row label="Nadwozie" value={o.body} Icon={bodySpec(o.body)?.Icon} />
+              <Row label="Kolor" value={o.color} Icon={Palette} />
+              <Row label="Miejsc" value={o.seats} Icon={Users} />
               <Row
                 label="Pierwsza rejestracja"
                 value={o.firstRegistrationAt ? day.format(o.firstRegistrationAt) : null}
+                Icon={CalendarClock}
               />
               <Row
                 label="VIN"
@@ -206,12 +251,106 @@ export default async function OfferPage({ params }: { params: Promise<{ id: stri
                   ) : null
                 }
               />
-              <Row label="Sprzedający" value={o.seller} />
-              <Row label="Lokalizacja" value={o.city} />
-              <Row label="Źródło" value={shortSource(o.sourceName)} />
-              <Row label="W bazie od" value={day.format(o.firstSeenAt)} />
+              <Row label="Sprzedający" value={o.seller} Icon={Store} />
+              <Row label="Lokalizacja" value={o.city} Icon={MapPin} />
+              <Row label="Źródło" value={shortSource(o.sourceName)} Icon={Building2} />
+              {/*
+                Ile dni oferta jest w obrocie. To jedyna liczba na tej stronie,
+                ktora mowi cos o SPRZEDAJACYM, a nie o aucie: im dluzej auto
+                stoi, tym wieksza dzwignia w negocjacji.
+              */}
+              <Row
+                label="W bazie od"
+                value={`${day.format(o.firstSeenAt)} · ${daysPl(
+                  Math.max(0, Math.round((Date.now() - o.firstSeenAt.getTime()) / 86_400_000)),
+                )}`}
+                Icon={History}
+              />
             </dl>
           </section>
+
+          {/*
+            Pozycja tego egzemplarza na tle rynku. To jest ta czesc strony,
+            ktorej NIE MA w ogloszeniu u zrodla: sprzedawca pokazuje swoja
+            cene, ale nie powie, ze piecdziesiat innych sztuk tego modelu
+            stoi taniej.
+          */}
+          {o.priceGross != null && o.offerKind !== "auction" && prices.length >= 6 && (
+            <section className="mt-6">
+              <h2 className="mb-2 flex items-center gap-2 text-lg font-semibold text-neutral-100">
+                <ChartColumn size={17} className="text-neutral-600" />
+                Ta oferta na tle rynku
+              </h2>
+              <div className="rounded-xl border border-[var(--color-line)] bg-[var(--color-panel)] p-4">
+                <p className="mb-4 text-[13px] leading-relaxed text-neutral-400">
+                  Rozkład cen {name} w całej bazie — {prices.length} ofert „kup teraz” z
+                  wszystkich źródeł. Zielona kreska to ta sztuka.
+                </p>
+                <PriceHistogram prices={prices} marker={o.priceGross} />
+
+                {sameYear && (
+                  <div className="mt-4 border-t border-[var(--color-line)] pt-3">
+                    <p className="text-[13px] leading-relaxed text-neutral-400">
+                      Wszystkie wersje rocznika <span className="text-neutral-200">{o.year}</span>{" "}
+                      mają medianę{" "}
+                      <span className="font-medium text-neutral-200">
+                        {pln.format(sameYear.medianPrice)}
+                      </span>{" "}
+                      przy {num.format(sameYear.total)} ofertach
+                      {sameYear.medianMileage != null && (
+                        <> i medianie przebiegu {num.format(sameYear.medianMileage)} km</>
+                      )}
+                      .{" "}
+                      {o.priceGross < sameYear.medianPrice ? (
+                        <span className="text-emerald-400">
+                          Ta sztuka jest o {pln.format(sameYear.medianPrice - o.priceGross)} tańsza
+                          od tej mediany.
+                        </span>
+                      ) : (
+                        <span className="text-neutral-500">
+                          Ta sztuka jest o {pln.format(o.priceGross - sameYear.medianPrice)} droższa
+                          od tej mediany.
+                        </span>
+                      )}
+                    </p>
+
+                    {/*
+                      Bez tego zdania strona sama sobie przeczy: plakietka mowi
+                      "37% pod rynkiem", a akapit wyzej "drozsza od mediany
+                      rocznika". Obie liczby sa poprawne, tylko licza co innego —
+                      plakietka porownuje z autami o tym samym przebiegu, paliwie
+                      i skrzyni, a mediana rocznika bierze WSZYSTKIE wersje,
+                      lacznie z najtansza odmiana nadwozia i silnika.
+                    */}
+                    {o.dealScore != null && o.marketPrice != null && (
+                      <p className="mt-2 text-[12px] leading-relaxed text-neutral-600">
+                        Mediana rocznika obejmuje wszystkie wersje, także tańsze nadwozia i
+                        słabsze silniki, więc bywa niższa od ceny konkretnego egzemplarza. Ocena
+                        okazji obok liczona jest z węższego koszyka: to samo paliwo, skrzynia i
+                        zbliżony przebieg.
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
+
+          {scatter.length >= 6 && (
+            <section className="mt-6">
+              <h2 className="mb-2 flex items-center gap-2 text-lg font-semibold text-neutral-100">
+                <Gauge size={17} className="text-neutral-600" />
+                Cena a przebieg w tym modelu
+              </h2>
+              <div className="rounded-xl border border-[var(--color-line)] bg-[var(--color-panel)] p-4">
+                <p className="mb-3 text-[13px] leading-relaxed text-neutral-400">
+                  Każdy punkt to jedna oferta {name}. Ta sztuka jest zaznaczona na zielono —
+                  jeśli leży pod linią trendu, jest tańsza, niż wynikałoby z jej przebiegu.
+                </p>
+                <MileagePrice points={scatter} highlight={o.id} />
+              </div>
+            </section>
+          )}
 
           {points.filter((h) => h.priceGross != null).length > 1 && (
             <section className="mt-6">
