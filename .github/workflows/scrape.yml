@@ -5,7 +5,12 @@ name: Zaciag ofert
 # nie ma. Dobowy przebieg kosztuje ~25 min z darmowego limitu 2000 min/mc.
 on:
   schedule:
-    - cron: "0 3 * * *" # 03:00 UTC = 04:00/05:00 w Polsce
+    # 03:37 UTC, nie 03:00. Rowna godzina to najbardziej obciazony moment
+    # w calym GitHub Actions — harmonogramy sa wtedy opozniane, a przy
+    # dostatecznym obciazeniu po prostu porzucane. Pierwszy slot o 03:00
+    # nie odpalil sie wcale, mimo ze workflow byl na main od poprzedniego
+    # wieczora. Nierowna minuta to zalecenie z dokumentacji GitHuba.
+    - cron: "37 3 * * *" # 03:37 UTC = 04:37/05:37 w Polsce
   workflow_dispatch: # reczne odpalenie z zakladki Actions
     inputs:
       limit:
