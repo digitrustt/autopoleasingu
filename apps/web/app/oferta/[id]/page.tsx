@@ -420,21 +420,76 @@ export default async function OfferPage({ params }: { params: Promise<{ id: stri
                   <Copy size={13} />
                   Ta sama sztuka gdzie indziej
                 </p>
-                <ul className="mt-2 flex flex-col gap-1.5">
-                  {o.twins.map((t) => (
-                    <li key={t.id} className="text-[13px]">
-                      <Link
-                        href={`/oferta/${t.id}`}
-                        className="flex items-baseline justify-between gap-2 text-neutral-400 transition-colors hover:text-accent"
-                      >
-                        <span className="truncate">{shortSource(t.sourceName)}</span>
-                        <span className="shrink-0 tabular-nums">
-                          {t.priceGross != null ? pln.format(t.priceGross) : "—"}
-                          {t.offerKind === "auction" && " (aukcja)"}
-                        </span>
-                      </Link>
-                    </li>
-                  ))}
+                <ul className="mt-2 flex flex-col gap-2">
+                  {o.twins.map((t) => {
+                    const diff = o.priceGross != null && t.priceGross != null
+                      ? t.priceGross - o.priceGross
+                      : null;
+                    return (
+                      <li key={t.id}>
+                        <Link
+                          href={`/oferta/${t.id}`}
+                          className="group flex items-center gap-2.5 rounded-lg border border-[var(--color-line)] bg-[var(--color-ink)] p-2 transition-colors hover:border-accent/40"
+                        >
+                          {/*
+                            Zdjecie jest tu potrzebne, bo bez niego lista dwoch
+                            zrodel z cenami wyglada jak tabelka i nie widac, ze
+                            po obu stronach stoi TO SAMO auto.
+                          */}
+                          <span className="h-12 w-16 shrink-0 overflow-hidden rounded-md bg-black/40">
+                            {t.thumbnailUrl ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={t.thumbnailUrl}
+                                alt={`${name} — ${shortSource(t.sourceName)}`}
+                                loading="lazy"
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <span className="flex h-full items-center justify-center text-neutral-700">
+                                <ImageOff size={14} />
+                              </span>
+                            )}
+                          </span>
+
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-[13px] text-neutral-300 transition-colors group-hover:text-accent">
+                              {shortSource(t.sourceName)}
+                            </span>
+                            <span className="block truncate text-[11px] text-neutral-600">
+                              {[
+                                t.mileageKm != null ? `${num.format(t.mileageKm)} km` : null,
+                                t.city,
+                              ]
+                                .filter(Boolean)
+                                .join(" · ") || "\u00a0"}
+                            </span>
+                          </span>
+
+                          <span className="shrink-0 text-right">
+                            <span className="block text-[13px] font-semibold tabular-nums text-neutral-100">
+                              {t.priceGross != null ? pln.format(t.priceGross) : "—"}
+                            </span>
+                            {t.offerKind === "auction" ? (
+                              <span className="block text-[11px] text-violet-300">licytacja</span>
+                            ) : (
+                              diff != null &&
+                              diff !== 0 && (
+                                <span
+                                  className={`block text-[11px] tabular-nums ${
+                                    diff < 0 ? "text-emerald-400" : "text-neutral-600"
+                                  }`}
+                                >
+                                  {diff < 0 ? "−" : "+"}
+                                  {pln.format(Math.abs(diff))}
+                                </span>
+                              )
+                            )}
+                          </span>
+                        </Link>
+                      </li>
+                    );
+                  })}
                 </ul>
                 {cheaperTwin && cheaperTwin.priceGross != null && o.priceGross != null && (
                   <p className="mt-2 text-[13px] text-emerald-400">
@@ -489,7 +544,17 @@ export default async function OfferPage({ params }: { params: Promise<{ id: stri
         <section className="mt-10">
           <h2 className="mb-3 text-lg font-semibold text-neutral-100">
             Podobne {name}
-            {o.year && <span className="text-neutral-500"> z lat {o.year - 2}–{o.year + 2}</span>}
+            {o.year && (
+              /*
+                Gorna granice przycinamy do przyszlego rocznika. Zapytanie
+                bierze +/- 2 lata, ale podpis "z lat 2023-2027" obiecywalby
+                egzemplarze, ktore jeszcze nie istnieja.
+              */
+              <span className="text-neutral-500">
+                {" "}
+                z lat {o.year - 2}–{Math.min(o.year + 2, new Date().getFullYear() + 1)}
+              </span>
+            )}
           </h2>
           <SimilarStrip rows={similar} />
         </section>

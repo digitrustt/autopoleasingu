@@ -124,15 +124,20 @@ export function MileagePrice({
         })}
       </svg>
 
-      <div className="mt-1 flex flex-wrap items-center justify-between gap-2 text-[11px] tabular-nums text-neutral-600">
+      {/*
+        Skala i podpis w dwoch wierszach. Przy szerokosci telefonu zdanie
+        o spadku ceny wciskalo sie miedzy dwie liczby i lamalo tak, ze gorna
+        granica przebiegu ladowala w osobnej linijce, bez zadnego kontekstu.
+      */}
+      <div className="mt-1 flex items-center justify-between text-[11px] tabular-nums text-neutral-600">
         <span>{num.format(xMin)} km</span>
-        <span className="text-neutral-500">
-          {per10k > 0
-            ? `średnio −${pln.format(per10k)} na każde 10 tys. km · ${n} ofert`
-            : `${n} ofert · zależność od przebiegu jest tu nieczytelna`}
-        </span>
         <span>{num.format(xMax)} km</span>
       </div>
+      <p className="mt-0.5 text-center text-[11px] text-neutral-500">
+        {per10k > 0
+          ? `średnio −${pln.format(per10k)} na każde 10 tys. km · ${n} ofert`
+          : `${n} ofert · zależność od przebiegu jest tu nieczytelna`}
+      </p>
     </div>
   );
 }

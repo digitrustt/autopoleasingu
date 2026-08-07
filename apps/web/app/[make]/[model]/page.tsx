@@ -1,5 +1,6 @@
 import { Crumbs } from "@/components/Crumbs";
 import { OfferCard } from "@/components/OfferCard";
+import { ModelGrid } from "@/components/ModelGrid";
 import { StatStrip } from "@/components/StatStrip";
 import { MileagePrice } from "@/components/charts/MileagePrice";
 import { PriceHistogram } from "@/components/charts/PriceHistogram";
@@ -9,7 +10,7 @@ import {
   getFuelBreakdown,
   getListings,
   getMakesWithCounts,
-  getModelsWithCounts,
+  getModelCards,
   getPrices,
   getScatter,
   getSegmentStats,
@@ -37,7 +38,7 @@ async function resolve(makeSlug: string, modelSlug: string) {
   const make = resolveSlug(makes.map((m) => m.make), makeSlug);
   if (!make) return null;
 
-  const models = await getModelsWithCounts(make);
+  const models = await getModelCards(make);
   const model = resolveSlug(models.map((m) => m.model), modelSlug);
   return model ? { make, model, models } : null;
 }
@@ -340,21 +341,15 @@ export default async function ModelPage({
       {siblings.length > 0 && (
         <section>
           <h2 className="mb-3 text-lg font-semibold text-neutral-100">Inne modele {make}</h2>
-          <ul className="flex flex-wrap gap-2">
-            {siblings.map((m) => (
-              <li key={m.model}>
-                <Link
-                  href={modelHref(make, m.model)}
-                  className="flex items-baseline gap-1.5 rounded-lg border border-[var(--color-line)] px-3 py-1.5 text-[13px] text-neutral-300 transition-colors hover:border-accent/70 hover:text-accent"
-                >
-                  {m.model}
-                  <span className="text-[11px] text-neutral-600">{num.format(m.total)}</span>
-                </Link>
-              </li>
-            ))}
-          </ul>
+          {/*
+            Kafelki ze zdjeciem, nie same nazwy. "Seria 5" albo "X4 xDrive20d"
+            nic nie mowi komus, kto wlasnie oglada X3 i zastanawia sie, co
+            jeszcze wchodzi w gre — a zdjecie odpowiada na to od razu.
+          */}
+          <ModelGrid make={make} models={siblings} />
         </section>
       )}
+
     </main>
   );
 }

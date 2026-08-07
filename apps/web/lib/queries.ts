@@ -742,6 +742,12 @@ export async function getListing(id: number) {
           offerKind: listings.offerKind,
           status: listings.status,
           url: listings.url,
+          // Zdjecie kazdego blizniaka: te same auto sfotografowane u dwoch
+          // sprzedawcow wyglada inaczej i to samo w sobie jest informacja
+          // (jeden ma zdjecie studyjne, drugi fotke z parkingu).
+          thumbnailUrl: listings.thumbnailUrl,
+          mileageKm: listings.mileageKm,
+          city: listings.city,
           sourceName: sources.name,
         })
         .from(listings)

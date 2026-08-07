@@ -28,11 +28,13 @@ export const revalidate = 3600;
  * Ile modeli dostaje kafelek ze zdjeciem.
  *
  * BMW ma w bazie 335 nazw modeli — wiekszosc to pojedyncze warianty zapisu
- * ("X3 20d", "X3 xDrive20d"). Kafelki dla wszystkich daloby strone wazaca
- * kilkanascie megabajtow zdjec, wiec reszta idzie na liste tekstowa nizej;
- * dla robota indeksujacego jeden i drugi link waza tyle samo.
+ * ("X3 20d", "X3 xDrive20d"). Kafelki dla wszystkich zrobilyby z tej strony
+ * scianę trzystu zdjec, po ktorej nie da sie przewijac, wiec ogon idzie na
+ * liste tekstowa nizej; dla robota indeksujacego jeden i drugi link waza tyle
+ * samo. Prog jest ustawiony tak, zeby zdjecie dostalo wszystko, co ma wiecej
+ * niz kilkanascie sztuk w bazie.
  */
-const CARDS = 24;
+const CARDS = 48;
 
 const pln = new Intl.NumberFormat("pl-PL", {
   style: "currency",
