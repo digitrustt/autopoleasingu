@@ -38,6 +38,31 @@ export default function Prywatnosc() {
         </p>
       </Section>
 
+      <Section title="Powiadomienia e-mail">
+        <p>
+          Jeśli zapiszesz się na powiadomienia o nowych ofertach, przechowujemy{" "}
+          <strong className="text-neutral-200">Twój adres e-mail i ustawione filtry</strong>{" "}
+          (marka, model, widełki cenowe i tak dalej). To jedyne dane osobowe, jakie w ogóle
+          zbieramy.
+        </p>
+        <p>
+          Zapis wymaga <strong className="text-neutral-200">potwierdzenia linkiem</strong> —
+          bez kliknięcia nie wyślemy ani jednej wiadomości. Dzięki temu nikt nie zapisze na
+          powiadomienia cudzego adresu.
+        </p>
+        <p>
+          Podstawą jest Twoja zgoda (art. 6 ust. 1 lit. a RODO). Możesz ją wycofać{" "}
+          <strong className="text-neutral-200">jednym kliknięciem w dowolnej wiadomości</strong> —
+          link do wypisania jest w każdej. Adresu nie sprzedajemy, nie przekazujemy nikomu
+          i nie używamy do niczego poza tymi powiadomieniami.
+        </p>
+        <p>
+          Maile wysyła w naszym imieniu Resend (podmiot przetwarzający). Dane przechowujemy tak
+          długo, jak istnieje subskrypcja; po wypisaniu zostaje sam znacznik rezygnacji, żeby
+          nie wysłać Ci nic przez pomyłkę.
+        </p>
+      </Section>
+
       <Section title="Co jednak powstaje technicznie">
         <p>
           Strona jest hostowana na Vercel. Jak każdy serwer, infrastruktura hostingowa zapisuje

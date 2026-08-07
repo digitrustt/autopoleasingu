@@ -2,6 +2,7 @@ import {
   boolean,
   index,
   integer,
+  jsonb,
   pgTable,
   real,
   serial,
@@ -190,4 +191,69 @@ export const events = pgTable(
     notifiedAt: timestamp("notified_at", { withTimezone: true }),
   },
   (t) => [index("events_created_idx").on(t.createdAt), index("events_kind_idx").on(t.kind)],
+);
+
+/**
+ * Subskrypcje alertow mailowych.
+ *
+ * DOUBLE OPT-IN nie jest tu ozdoba: bez potwierdzenia linkiem kazdy moglby
+ * zapisac cudzy adres na powiadomienia, a my wysylalibysmy je komus, kto o nic
+ * nie prosil. Dlatego `confirmedAt` jest puste do momentu klikniecia w mail,
+ * a wysylka bierze WYLACZNIE potwierdzone rekordy.
+ *
+ * Filtry trzymamy jako jsonb, bo to dokladnie ten sam ksztalt co filtry
+ * wyszukiwarki (marka, model, cena do, rocznik od, prog okazji...). Osobne
+ * kolumny na kazdy z nich znaczylyby migracje przy kazdym nowym filtrze.
+ */
+export const subscriptions = pgTable(
+  "subscriptions",
+  {
+    id: serial("id").primaryKey(),
+    email: text("email").notNull(),
+
+    /** Nazwa nadana przez uzytkownika, np. "BMW seria 3 do 120 tys.". */
+    label: text("label"),
+    /** Filtry w formacie query stringa wyszukiwarki — patrz apps/web/lib/queries.ts. */
+    filters: jsonb("filters").notNull().default({}),
+
+    /*
+     * Token sluzy i do potwierdzenia, i do wypisania. Jeden sekret zamiast
+     * dwoch, bo oba dzialaja tak samo: znasz token = jestes wlascicielem zapisu.
+     * Link wypisujacy MUSI byc w kazdym mailu — bez tego wysylka jest spamem.
+     */
+    token: text("token").notNull(),
+
+    confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
+    unsubscribedAt: timestamp("unsubscribed_at", { withTimezone: true }),
+
+    /** Znacznik ostatniej wysylki — zeby nie slac dwa razy tych samych ofert. */
+    lastSentAt: timestamp("last_sent_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("subscriptions_token_idx").on(t.token),
+    index("subscriptions_email_idx").on(t.email),
+  ],
+);
+
+/**
+ * Co juz komu wyslalismy — zabezpieczenie przed dublami.
+ *
+ * Bez tego kazda zmiana ceny albo ponowne uruchomienie przebiegu wysylalyby
+ * te sama oferte drugi raz, a nic tak szybko nie uczy ludzi wypisywania sie
+ * jak powtorki.
+ */
+export const alertsSent = pgTable(
+  "alerts_sent",
+  {
+    id: serial("id").primaryKey(),
+    subscriptionId: integer("subscription_id")
+      .notNull()
+      .references(() => subscriptions.id, { onDelete: "cascade" }),
+    listingId: integer("listing_id")
+      .notNull()
+      .references(() => listings.id, { onDelete: "cascade" }),
+    sentAt: timestamp("sent_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("alerts_sent_idx").on(t.subscriptionId, t.listingId)],
 );

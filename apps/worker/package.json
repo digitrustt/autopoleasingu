@@ -10,12 +10,14 @@
     "sniff": "NODE_EXTRA_CA_CERTS=../../scripts/certs/certum-dv-tls-g2-r39.pem tsx --env-file-if-exists=../../.env src/sniff.ts",
     "check": "NODE_EXTRA_CA_CERTS=../../scripts/certs/certum-dv-tls-g2-r39.pem tsx --env-file-if-exists=../../.env src/audit.ts",
     "revalue": "NODE_EXTRA_CA_CERTS=../../scripts/certs/certum-dv-tls-g2-r39.pem tsx --env-file-if-exists=../../.env src/revalue.ts",
-    "summary": "NODE_EXTRA_CA_CERTS=../../scripts/certs/certum-dv-tls-g2-r39.pem tsx --env-file-if-exists=../../.env src/summary.ts"
+    "summary": "NODE_EXTRA_CA_CERTS=../../scripts/certs/certum-dv-tls-g2-r39.pem tsx --env-file-if-exists=../../.env src/summary.ts",
+    "alerts": "NODE_EXTRA_CA_CERTS=../../scripts/certs/certum-dv-tls-g2-r39.pem tsx --env-file-if-exists=../../.env src/alerts.ts"
   },
   "dependencies": {
     "@auta/core": "workspace:*",
     "@auta/db": "workspace:*",
     "@auta/scrapers": "workspace:*",
-    "drizzle-orm": "^0.38.2"
+    "drizzle-orm": "^0.38.2",
+    "resend": "^6.18.1"
   }
 }

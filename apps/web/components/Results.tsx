@@ -1,3 +1,4 @@
+import { AlertSignup } from "@/components/AlertSignup";
 import { OfferCard } from "@/components/OfferCard";
 import { Pagination } from "@/components/Pagination";
 import { type Filters as F, PAGE_SIZE, countListings, getListings } from "@/lib/queries";
@@ -46,6 +47,9 @@ export async function Results({
 
   return (
     <>
+      {/* Formularz nad lista: uzytkownik wlasnie ustawil filtry i widzi wynik. */}
+      <AlertSignup filters={params} total={total} />
+
       <p className="mb-3 text-sm text-neutral-400">
         Znaleziono{" "}
         <span className="font-semibold text-neutral-200 tabular-nums">{num.format(total)}</span>{" "}

@@ -1,14 +1,16 @@
 /**
  * Logotyp — jedno zrodlo prawdy dla naglowka i stopki.
  *
- * Wczesniej byly to dwa osobne kawalki JSX o lekko roznych kolorach i pierwsza
- * zmiana w jednym rozjechala je wizualnie. Marka ma wygladac tak samo wszedzie,
- * wiec rozmiar jest parametrem, a kolory nie.
+ * KAZDY czlon ma WLASNY kolor, zaden nie dziedziczy po rodzicu. To nie jest
+ * nadgorliwosc: wczesniej "auto" bylo bez klasy, wiec w naglowku wychodzilo
+ * jasne, a w stopce (text-neutral-500) przygaszone — te same znaki, dwa rozne
+ * logotypy. Rozmiar zostaje parametrem, kolory nie.
  */
 export function Logo({ className = "" }: { className?: string }) {
   return (
     <span className={`font-bold tracking-tight ${className}`}>
-      auto<span className="text-accent">poleasingu</span>
+      <span className="text-neutral-100">auto</span>
+      <span className="text-accent">poleasingu</span>
       <span className="text-neutral-600">.pl</span>
     </span>
   );

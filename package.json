@@ -12,7 +12,8 @@
     "web": "pnpm --filter @auta/web dev",
     "build": "NEXT_DIST_DIR=.next-build pnpm --filter @auta/web build",
     "typecheck": "pnpm --filter @auta/web exec tsc --noEmit",
-    "revalue": "pnpm --filter @auta/worker revalue"
+    "revalue": "pnpm --filter @auta/worker revalue",
+    "alerts": "pnpm --filter @auta/worker alerts"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

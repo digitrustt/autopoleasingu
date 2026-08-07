@@ -65,8 +65,16 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: pnpm revalue
 
-      # Bez tego cichy zgon adaptera przechodzi niezauwazony: przebieg konczy sie
-      # sukcesem, tylko oferty przestaja dochodzic.
+      # Alerty PO wycenie — inaczej mail lecialby bez deal score, czyli bez tej
+      # jednej informacji, dla ktorej warto go otwierac.
+      - name: Powiadomienia e-mail
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          MAIL_FROM: ${{ secrets.MAIL_FROM }}
+          SITE_URL: https://autopoleasingu.pl
+        run: pnpm alerts
+
       # Bez tego cichy zgon adaptera przechodzi niezauwazony: przebieg konczy sie
       # sukcesem, tylko oferty przestaja dochodzic.
       - name: Podsumowanie
