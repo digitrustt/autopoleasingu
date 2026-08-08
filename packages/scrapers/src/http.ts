@@ -268,3 +268,25 @@ export function extractJsonLd(html: string): unknown[] {
   }
   return out;
 }
+
+
+/**
+ * Encje HTML w tekscie wyciagnietym regexpem z surowego HTML-a.
+ *
+ * Potrzebne wszedzie tam, gdzie z HTML-a wyjmujemy ADRES. Klasa znakow
+ * w rodzaju [^"'\s] chetnie polknie `&#39;`, bo zaden z tych piaciu znakow
+ * nie jest cudzyslowem ani bialym znakiem — i do bazy trafia adres
+ * `.../kia/cee&#39;d/2020/119151`, ktory u zrodla daje 404. Zaobserwowane
+ * na Kia cee'd u Renault Selection.
+ */
+export function decodeEntities(s: string): string {
+  return s
+    .replace(/&#(\d+);/g, (_, d) => String.fromCharCode(Number(d)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCharCode(Number.parseInt(h, 16)))
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    // &amp; na koncu, inaczej "&amp;#39;" rozwinelaby sie dwa razy.
+    .replace(/&amp;/g, "&");
+}

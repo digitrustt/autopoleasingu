@@ -65,7 +65,14 @@ jobs:
 
       # Wycena PO zaciagu — mediana musi widziec komplet danych, inaczej
       # skakalaby zaleznie od tego, ktore zrodla zdazyly wpasc.
+      # `always()` na wycenie i alertach jest KONIECZNE. Zaciag konczy sie
+      # kodem 1, gdy padnie chocby jedno zrodlo z dwudziestu szesciu — a to
+      # zdarza sie regularnie, bo czesc serwisow odbija adresy IP GitHuba
+      # chwilowym 403. Bez tego jeden taki 403 kasuje wycene CALEJ bazy
+      # i wysylke powiadomien, mimo ze 25 zrodel zaciagnelo sie poprawnie.
+      # Krok zaciagu nadal raportuje porazke, wiec sygnal nie ginie.
       - name: Wycena i deal score
+        if: '!cancelled()'
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: pnpm revalue
@@ -73,6 +80,7 @@ jobs:
       # Alerty PO wycenie — inaczej mail lecialby bez deal score, czyli bez tej
       # jednej informacji, dla ktorej warto go otwierac.
       - name: Powiadomienia e-mail
+        if: '!cancelled()'
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}

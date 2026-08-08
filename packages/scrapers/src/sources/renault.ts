@@ -8,7 +8,7 @@ import {
   parseVin,
   parseYear,
 } from "@auta/core";
-import { extractJsonLd, fetchText } from "../http";
+import { decodeEntities, extractJsonLd, fetchText } from "../http";
 import type { SourceAdapter } from "../types";
 
 const BASE = "https://uzywane.renault.pl";
@@ -98,7 +98,7 @@ export const renault: SourceAdapter = {
       for (const m of html.matchAll(/\/wyszukiwarkaszczegoly\/[^"'\s]+?\/(\d+)(?=["'\s])/g)) {
         const id = m[1];
         if (seen.has(id)) continue;
-        seen.set(id, { sourceId: "renault", externalId: id, url: `${BASE}${m[0]}` });
+        seen.set(id, { sourceId: "renault", externalId: id, url: `${BASE}${decodeEntities(m[0])}` });
         fresh++;
       }
 
