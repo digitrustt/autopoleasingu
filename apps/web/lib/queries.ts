@@ -1,10 +1,12 @@
 import { db, events, listingSnapshots, listings, sources } from "@auta/db";
 import { and, asc, desc, eq, gte, ilike, inArray, isNotNull, lte, or, sql } from "drizzle-orm";
+import { groupBySlug } from "@/lib/slug";
 
 export interface Filters {
   q?: string;
   make?: string;
-  model?: string;
+  /** Nazwa modelu albo komplet pisowni tego samego sluga. */
+  model?: string | string[];
   source?: string;
   priceMin?: number;
   priceMax?: number;
@@ -78,7 +80,7 @@ function buildWhere(f: Filters) {
     if (m) parts.push(m);
   }
   if (f.make) parts.push(eq(listings.make, f.make));
-  if (f.model) parts.push(eq(listings.model, f.model));
+  if (f.model) parts.push(modelMatches(f.model));
   if (f.source) parts.push(eq(listings.sourceId, f.source));
   /*
    * Przy filtrze ceny oferty bez ceny wypadaja same: `null <= x` daje w SQL
@@ -130,6 +132,17 @@ function buildWhere(f: Filters) {
   if (f.kind === "fixed" || f.kind === "auction") parts.push(eq(listings.offerKind, f.kind));
 
   return and(...parts);
+}
+
+/**
+ * Dopasowanie modelu: jedna nazwa albo KOMPLET pisowni tego samego sluga.
+ *
+ * Zrodla zapisuja model roznie ("XC60", "XC 60", "Xc-60"), a wszystkie te
+ * warianty mieszkaja pod jednym adresem `/volvo/xc-60`. Filtrowanie po
+ * rownosci pokazywaloby oferty tylko z jednej pisowni — patrz lib/slug.ts.
+ */
+function modelMatches(model: string | string[]) {
+  return Array.isArray(model) ? inArray(listings.model, model) : eq(listings.model, model);
 }
 
 export const PAGE_SIZE = 60;
@@ -572,9 +585,9 @@ export async function getModelsWithCounts(make: string) {
  * rynkowych nie ma czego szukac. Ta sama zasada rzadzi wycena i naglowkiem
  * strony glownej.
  */
-export async function getSegmentStats(make: string, model?: string) {
+export async function getSegmentStats(make: string, model?: string | string[]) {
   const scope = model
-    ? and(eq(listings.make, make), eq(listings.model, model))
+    ? and(eq(listings.make, make), modelMatches(model))
     : eq(listings.make, make);
 
   const [row] = await db
@@ -614,7 +627,7 @@ export async function getSegmentStats(make: string, model?: string) {
  * ile kosztuje ROCZNIK, a nie "model od 40 tys.". Zadne pojedyncze zrodlo
  * tego nie pokaze, bo zadne nie ma 26 kanalow naraz.
  */
-export async function getYearBreakdown(make: string, model: string) {
+export async function getYearBreakdown(make: string, model: string | string[]) {
   return db
     .select({
       year: listings.year,
@@ -632,7 +645,7 @@ export async function getYearBreakdown(make: string, model: string) {
       and(
         LIVE,
         eq(listings.make, make),
-        eq(listings.model, model),
+        modelMatches(model),
         eq(listings.offerKind, "fixed"),
         isNotNull(listings.year),
       ),
@@ -642,7 +655,7 @@ export async function getYearBreakdown(make: string, model: string) {
 }
 
 /** Rozbicie po paliwie — druga najczestsza os wyboru po roczniku. */
-export async function getFuelBreakdown(make: string, model: string) {
+export async function getFuelBreakdown(make: string, model: string | string[]) {
   return db
     .select({
       fuel: listings.fuel,
@@ -656,7 +669,7 @@ export async function getFuelBreakdown(make: string, model: string) {
       and(
         LIVE,
         eq(listings.make, make),
-        eq(listings.model, model),
+        modelMatches(model),
         eq(listings.offerKind, "fixed"),
         isNotNull(listings.fuel),
       ),
@@ -773,7 +786,7 @@ export type ListingDetail = NonNullable<Awaited<ReturnType<typeof getListing>>>;
 export async function getSimilar(row: {
   id: number;
   make: string;
-  model: string;
+  model: string | string[];
   year: number | null;
 }, limit = 8) {
   return db
@@ -797,7 +810,7 @@ export async function getSimilar(row: {
       and(
         LIVE,
         eq(listings.make, row.make),
-        eq(listings.model, row.model),
+        modelMatches(row.model),
         sql`${listings.id} <> ${row.id}`,
         ...(row.year ? [sql`abs(coalesce(${listings.year}, 0) - ${row.year}) <= 2`] : []),
       ),
@@ -822,7 +835,7 @@ export type SimilarRow = Awaited<ReturnType<typeof getSimilar>>[number];
  * mowi cokolwiek, czego nie ma w samej ofercie.
  */
 export async function getSitemapEntries() {
-  const [makes, models, vins, offers] = await Promise.all([
+  const [makes, models, vins] = await Promise.all([
     db
       .select({ make: listings.make, updated: sql<string>`max(${listings.lastSeenAt})` })
       .from(listings)
@@ -835,11 +848,14 @@ export async function getSitemapEntries() {
         make: listings.make,
         model: listings.model,
         updated: sql<string>`max(${listings.lastSeenAt})`,
+        // Do wyboru wariantu kanonicznego przy scalaniu pisowni w sitemap.ts.
+        total: sql<number>`count(*)::int`,
       })
       .from(listings)
       .where(eq(listings.status, "active"))
       .groupBy(listings.make, listings.model)
-      .having(sql`count(*) >= 3`),
+      .having(sql`count(*) >= 3`)
+      .orderBy(desc(sql`count(*)`)),
 
     db
       .select({ vin: listings.vin, updated: sql<string>`max(${listings.lastSeenAt})` })
@@ -848,13 +864,9 @@ export async function getSitemapEntries() {
       .groupBy(listings.vin)
       .having(sql`count(*) > 1`),
 
-    db
-      .select({ id: listings.id, updated: listings.lastSeenAt })
-      .from(listings)
-      .where(LIVE),
   ]);
 
-  return { makes, models, vins, offers };
+  return { makes, models, vins };
 }
 
 /* ────────────────────────────────────────────────────────────────────────────
@@ -914,7 +926,7 @@ export async function getModelCards(make: string) {
     order by count(*) desc
   `);
 
-  return (rows as unknown as Record<string, unknown>[]).map((r) => ({
+  const surowe = (rows as unknown as Record<string, unknown>[]).map((r) => ({
     model: String(r.model),
     total: Number(r.total),
     minPrice: r.min_price == null ? null : Number(r.min_price),
@@ -925,6 +937,41 @@ export async function getModelCards(make: string) {
     topFuel: (r.top_fuel as string | null) ?? null,
     topBody: (r.top_body as string | null) ?? null,
   }));
+
+  /*
+   * Scalanie pisowni tego samego modelu.
+   *
+   * SQL grupuje po surowej nazwie, wiec "XC60", "XC 60" i "Xc-60" wracaja jako
+   * trzy wiersze — a wszystkie trzy prowadza pod jeden adres `/volvo/xc-60`.
+   * Bez scalenia strona marki pokazywalaby ten sam kafelek kilka razy, a kazdy
+   * z ulamkiem ofert.
+   *
+   * Scalamy w JS, a nie w SQL, bo slug liczy `slugify` — powtorzenie tej samej
+   * normalizacji w Postgresie (diakrytyki, znaki specjalne) rozjechaloby sie
+   * z wersja w TypeScripcie przy pierwszej zmianie jednej z nich.
+   *
+   * MEDIANY NIE DA SIE SCALIC: mediana z median to nie mediana calosci.
+   * W grupach zlozonych podajemy wiec `null` zamiast liczby, ktora bylaby
+   * zmyslona. Suma sztuk i cena minimalna scalaja sie poprawnie.
+   */
+  return [...groupBySlug(surowe, (r) => r.model).values()].map((grupa) => {
+    const glowny = grupa[0];
+    if (grupa.length === 1) return glowny;
+
+    const ceny = grupa.map((g) => g.minPrice).filter((v): v is number => v != null);
+    const odRoku = grupa.map((g) => g.minYear).filter((v): v is number => v != null);
+    const doRoku = grupa.map((g) => g.maxYear).filter((v): v is number => v != null);
+
+    return {
+      ...glowny,
+      total: grupa.reduce((n, g) => n + g.total, 0),
+      minPrice: ceny.length > 0 ? Math.min(...ceny) : null,
+      medianPrice: null,
+      minYear: odRoku.length > 0 ? Math.min(...odRoku) : null,
+      maxYear: doRoku.length > 0 ? Math.max(...doRoku) : null,
+      thumbnail: grupa.find((g) => g.thumbnail)?.thumbnail ?? null,
+    };
+  });
 }
 
 export type ModelCard = Awaited<ReturnType<typeof getModelCards>>[number];
@@ -935,7 +982,7 @@ export type ModelCard = Awaited<ReturnType<typeof getModelCards>>[number];
  * Same aukcje pomijamy — cena aukcyjna to biezaca oferta w licytacji, wiec
  * na wykresie ceny rynkowej lezalaby duzo za nisko i psula caly obraz.
  */
-export async function getScatter(make: string, model: string) {
+export async function getScatter(make: string, model: string | string[]) {
   return db
     .select({
       id: listings.id,
@@ -948,7 +995,7 @@ export async function getScatter(make: string, model: string) {
       and(
         LIVE,
         eq(listings.make, make),
-        eq(listings.model, model),
+        modelMatches(model),
         eq(listings.offerKind, "fixed"),
         isNotNull(listings.mileageKm),
       ),
@@ -958,18 +1005,18 @@ export async function getScatter(make: string, model: string) {
 export type ScatterPoint = Awaited<ReturnType<typeof getScatter>>[number];
 
 /** Wszystkie ceny "kup teraz" jednego modelu — do histogramu rozkladu. */
-export async function getPrices(make: string, model: string): Promise<number[]> {
+export async function getPrices(make: string, model: string | string[]): Promise<number[]> {
   const rows = await db
     .select({ price: listings.priceGross })
     .from(listings)
     .where(
-      and(LIVE, eq(listings.make, make), eq(listings.model, model), eq(listings.offerKind, "fixed")),
+      and(LIVE, eq(listings.make, make), modelMatches(model), eq(listings.offerKind, "fixed")),
     );
   return rows.map((r) => r.price as number);
 }
 
 /** Nadwozia w segmencie — druga po paliwie os, wedlug ktorej ludzie wybieraja. */
-export async function getBodyBreakdown(make: string, model?: string) {
+export async function getBodyBreakdown(make: string, model?: string | string[]) {
   const rows = await db
     .select({
       /*
@@ -989,7 +1036,7 @@ export async function getBodyBreakdown(make: string, model?: string) {
       and(
         LIVE,
         eq(listings.make, make),
-        ...(model ? [eq(listings.model, model)] : []),
+        ...(model ? [modelMatches(model)] : []),
         eq(listings.offerKind, "fixed"),
         isNotNull(listings.body),
       ),

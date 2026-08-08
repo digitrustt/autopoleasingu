@@ -52,3 +52,56 @@ export function resolveSlug(values: string[], slug: string): string | null {
   const wanted = slug.toLowerCase();
   return values.find((v) => slugify(v) === wanted) ?? null;
 }
+
+/**
+ * WSZYSTKIE nazwy z bazy, ktore daja podany slug.
+ *
+ * Zrodla zapisuja ten sam model na kilka sposobow: w bazie stoi rownoczesnie
+ * "XC60", "Xc60", "XC 60", "Xc-60" i "XC-60" — piec nazw, jeden adres
+ * `/volvo/xc-60`. Dopoki strona modelu filtrowala po JEDNEJ nazwie, oferty
+ * z pozostalych pisowni byly niewidoczne: 6644 ofert w 118 takich grupach.
+ *
+ * Dlatego strona bierze komplet aliasow i filtruje po `in (...)`, a nie po
+ * rownosci. Do wyswietlenia sluzy `resolveSlug` — pierwszy z listy, czyli
+ * wariant o najwiekszej liczbie ofert.
+ */
+export function resolveAliases(values: string[], slug: string): string[] {
+  const wanted = modelKey(slug);
+  return values.filter((v) => modelKey(v) === wanted);
+}
+
+/**
+ * Klucz dopasowania modelu — slug BEZ separatorow.
+ *
+ * `slugify` daje "XC60" -> "xc60", ale "XC 60" -> "xc-60". To dwa rozne
+ * adresy dla jednego auta i tak tez wygladalo w serwisie: `/volvo/xc60`
+ * z 818 ofertami obok `/volvo/xc-60` z siedemnastoma. Zmierzone na calej
+ * bazie: 16 modeli rozbitych w ten sposob, lacznie 1937 ofert.
+ *
+ * Dla wyszukiwarki dwie chude strony zamiast jednej mocnej to strata
+ * podwojna — dziela miedzy siebie i tresc, i linki. Dopasowujemy wiec po
+ * kluczu bez myslnikow, a adresem kanonicznym zostaje wariant zapisu
+ * o najwiekszej liczbie ofert.
+ */
+export function modelKey(s: string): string {
+  return slugify(s).replace(/-/g, "");
+}
+
+/**
+ * Grupuje nazwy po slugu, zachowujac kolejnosc wejscia.
+ *
+ * Wejscie posortowane malejaco po liczbie ofert daje na wyjsciu grupy,
+ * w ktorych pierwszy element jest wariantem dominujacym — tym, ktory
+ * pokazujemy uzytkownikowi.
+ */
+export function groupBySlug<T>(items: T[], name: (item: T) => string): Map<string, T[]> {
+  const out = new Map<string, T[]>();
+  for (const it of items) {
+    // Kluczem jest modelKey, nie slug: "XC60" i "XC 60" to jeden model.
+    const k = modelKey(name(it));
+    const arr = out.get(k);
+    if (arr) arr.push(it);
+    else out.set(k, [it]);
+  }
+  return out;
+}

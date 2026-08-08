@@ -11,12 +11,13 @@ import {
   getListings,
   getMakesWithCounts,
   getModelCards,
+  getModelsWithCounts,
   getPrices,
   getScatter,
   getSegmentStats,
   getYearBreakdown,
 } from "@/lib/queries";
-import { makeHref, modelHref, resolveSlug, slugify } from "@/lib/slug";
+import { makeHref, modelHref, modelKey, resolveAliases, resolveSlug, slugify } from "@/lib/slug";
 import { bodySpec, fuelSpec } from "@/lib/spec";
 import { CalendarRange, Gauge, Layers, SlidersHorizontal, TrendingDown } from "lucide-react";
 import type { Metadata } from "next";
@@ -39,8 +40,41 @@ async function resolve(makeSlug: string, modelSlug: string) {
   if (!make) return null;
 
   const models = await getModelCards(make);
-  const model = resolveSlug(models.map((m) => m.model), modelSlug);
-  return model ? { make, model, models } : null;
+  /*
+   * Szukamy po kluczu bez separatorow, nie po dokladnym slugu. Inaczej
+   * `/volvo/xc-60` znajdowalby wariant "XC 60" i uznawal WLASNY adres za
+   * kanoniczny — czyli dwie strony jednego auta zostawalyby na zawsze.
+   * `getModelCards` zwraca warianty posortowane malejaco po liczbie ofert,
+   * wiec pierwszy pasujacy jest tym dominujacym.
+   */
+  const klucz = modelKey(modelSlug);
+  const model = models.find((m) => modelKey(m.model) === klucz)?.model;
+  if (!model) return null;
+
+  /*
+   * Do FILTROWANIA bierzemy komplet pisowni, nie samą nazwę z kafelka.
+   * `getModelCards` scala warianty, ale zwraca tylko nazwe dominujaca —
+   * a w bazie oferty siedza pod wszystkimi ("XC60", "XC 60", "Xc-60").
+   * Bez tego strona `/volvo/xc-60` pokazywala ulamek ofert.
+   */
+  const surowe = await getModelsWithCounts(make);
+  const aliasy = resolveAliases(surowe.map((m) => m.model), modelSlug);
+
+  /*
+   * Adres kanoniczny to pisownia o NAJWIEKSZEJ liczbie ofert — `getModelCards`
+   * zwraca warianty posortowane malejaco, wiec `model` juz nia jest.
+   *
+   * Wejscie pod innym slugiem tej samej grupy (`/volvo/xc-60` zamiast
+   * `/volvo/xc60`) renderuje te sama, scalona strone i wskazuje kanoniczny
+   * przez <link rel="canonical"> w generateMetadata. Przekierowania 308 tu
+   * NIE MA swiadomie: `permanentRedirect` w tej wersji Next nie ustawia
+   * statusu odpowiedzi — dokladnie tak samo jak `notFound()`, ktory zwraca
+   * 200 zamiast 404. Sprawdzone: strona wychodzila z kodem 200 i pustym
+   * naglowkiem Location. Canonical jest mechanizmem, ktorym Google i tak
+   * scala duplikaty, wiec zostaje jako jedyny — zamiast martwego wywolania,
+   * ktore wyglada, jakby dzialalo.
+   */
+  return { make, model, models, aliasy: aliasy.length > 0 ? aliasy : [model] };
 }
 
 export async function generateMetadata({
@@ -52,7 +86,7 @@ export async function generateMetadata({
   const found = await resolve(ms, mos);
   if (!found) return { title: "Nie znaleziono modelu" };
 
-  const stats = await getSegmentStats(found.make, found.model);
+  const stats = await getSegmentStats(found.make, found.aliasy);
   const name = `${found.make} ${found.model}`;
   const title = `${name} po leasingu — ${num.format(stats.total)} ofert${
     stats.minPrice ? ` od ${pln.format(stats.minPrice)}` : ""
@@ -79,17 +113,18 @@ export default async function ModelPage({
   const { make: ms, model: mos } = await params;
   const found = await resolve(ms, mos);
   if (!found) notFound();
-  const { make, model, models } = found;
+  const { make, model, models, aliasy } = found;
+
   const name = `${make} ${model}`;
 
   const [stats, years, fuels, bodies, prices, scatter, offers] = await Promise.all([
-    getSegmentStats(make, model),
-    getYearBreakdown(make, model),
-    getFuelBreakdown(make, model),
-    getBodyBreakdown(make, model),
-    getPrices(make, model),
-    getScatter(make, model),
-    getListings({ make, model, sort: "deal_desc" }, 1, 24),
+    getSegmentStats(make, aliasy),
+    getYearBreakdown(make, aliasy),
+    getFuelBreakdown(make, aliasy),
+    getBodyBreakdown(make, aliasy),
+    getPrices(make, aliasy),
+    getScatter(make, aliasy),
+    getListings({ make, model: aliasy, sort: "deal_desc" }, 1, 24),
   ]);
 
   if (stats.total === 0) notFound();

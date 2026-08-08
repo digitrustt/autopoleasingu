@@ -1,5 +1,5 @@
 import { getSitemapEntries } from "@/lib/queries";
-import { makeHref, modelHref } from "@/lib/slug";
+import { makeHref, modelHref, modelKey, slugify } from "@/lib/slug";
 import type { MetadataRoute } from "next";
 
 const BASE = "https://autopoleasingu.pl";
@@ -24,13 +24,26 @@ function when(v: string | Date | null): Date {
  * adresow, ktore znikna przy najblizszym przebiegu scrapera i zostawia po
  * sobie bledy 404 w indeksie.
  *
+ * POJEDYNCZE OFERTY CELOWO TU NIE WCHODZA, mimo ze jest ich najwiecej.
+ *
+ * Bylo ich 15 tys. na 16,7 tys. wszystkich adresow — i to one psuly cala
+ * mape. Oferta zyje krotko (w pierwszym tygodniu dzialania zniknelo 1288
+ * sztuk), wiec robot dostawal mape, w ktorej wiekszosc wpisow prowadzi do
+ * tresci juz nieaktualnej. Na domenie bez zadnego autorytetu budzet
+ * indeksowania idzie wtedy na oferty, ktore za tydzien nie beda istniec,
+ * zamiast na 664 strony modeli — jedyne, ktore maja szanse cokolwiek
+ * rankowac i ktore sie NIE zmieniaja.
+ *
+ * Oferty zostaja dostepne i podlinkowane z kazdej strony modelu, wiec robot
+ * i tak do nich dojdzie. Roznica jest taka, ze przestajemy je zglaszac jako
+ * priorytet.
+ *
  * Priorytety sa celowo rozne. Strony modeli sa najwazniejsze: to one
  * odpowiadaja na realne zapytania ("bmw x3 poleasingowy"), maja stabilna
- * tresc i nie znikaja z dnia na dzien. Pojedyncze oferty sa najnizej —
- * jest ich najwiecej, ale zyja srednio kilkanascie dni.
+ * tresc i nie znikaja z dnia na dzien.
  */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const { makes, models, vins, offers } = await getSitemapEntries();
+  const { makes, models, vins } = await getSitemapEntries();
 
   const statics: MetadataRoute.Sitemap = [
     { url: BASE, changeFrequency: "daily", priority: 1 },
@@ -50,8 +63,30 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.8,
     })),
 
-    ...models.map((m) => ({
-      url: `${BASE}${modelHref(m.make, m.model)}`,
+    /*
+     * Jeden adres na model, nie jeden na pisownie. W bazie ten sam model bywa
+     * zapisany na piec sposobow ("XC60", "XC 60", "Xc-60"); scalamy je kluczem
+     * bez separatorow, a do mapy trafia wariant o NAJWIEKSZEJ liczbie ofert —
+     * czyli ten, na ktory strona modelu przekierowuje pozostale. Zapytanie
+     * zwraca wiersze posortowane malejaco, wiec wygrywa pierwszy napotkany.
+     *
+     * `new Map(entries)` przy powtorzonym kluczu zostawia OSTATNI wpis, nie
+     * pierwszy — przy sortowaniu malejaco dawalo to wariant NAJMNIEJSZY.
+     * Stad jawne `if (!has)` zamiast konstruktora z tablicy: do mapy trafial
+     * `/volvo/xc-60` z jedenastoma ofertami zamiast `/volvo/xc60` z 814.
+     */
+    ...[
+      ...models
+        .reduce((acc, m) => {
+          const key = `${slugify(m.make)}/${modelKey(m.model)}`;
+          if (!acc.has(key)) {
+            acc.set(key, { href: modelHref(m.make, m.model), updated: m.updated });
+          }
+          return acc;
+        }, new Map<string, { href: string; updated: string }>())
+        .values(),
+    ].map((m) => ({
+      url: `${BASE}${m.href}`,
       lastModified: when(m.updated),
       changeFrequency: "daily" as const,
       priority: 0.9,
@@ -62,13 +97,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: when(v.updated),
       changeFrequency: "weekly" as const,
       priority: 0.6,
-    })),
-
-    ...offers.map((o) => ({
-      url: `${BASE}/oferta/${o.id}`,
-      lastModified: when(o.updated),
-      changeFrequency: "daily" as const,
-      priority: 0.5,
     })),
   ];
 }
