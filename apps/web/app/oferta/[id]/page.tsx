@@ -1,3 +1,5 @@
+import { BackButton } from "@/components/BackButton";
+import { CarImage } from "@/components/CarImage";
 import { Crumbs } from "@/components/Crumbs";
 import { DealBadge } from "@/components/DealBadge";
 import { OfferLink } from "@/components/OfferLink";
@@ -29,7 +31,6 @@ import {
   Gauge,
   Gavel,
   History,
-  ImageOff,
   MapPin,
   Palette,
   Store,
@@ -152,6 +153,30 @@ export default async function OfferPage({ params }: { params: Promise<{ id: stri
   // PriceHistory sam odsiewa punkty bez ceny — patrz components/PriceHistory.tsx.
   const points = o.history;
 
+  /*
+   * Szesc pol do skrotu w kolumnie decyzyjnej. Pomijamy puste, zeby nie
+   * zostawiac kratek z myslnikiem — lepiej pokazac cztery pewne dane niz
+   * szesc, z ktorych dwie sa dziura.
+   */
+  const szybkie = [
+    o.year ? { label: "Rocznik", value: String(o.year), Icon: Calendar } : null,
+    o.mileageKm != null
+      ? { label: "Przebieg", value: `${num.format(o.mileageKm)} km`, Icon: Gauge }
+      : null,
+    fuelSpec(o.fuel)
+      ? { label: "Paliwo", value: fuelSpec(o.fuel)?.label ?? "", Icon: fuelSpec(o.fuel)?.Icon ?? Gauge }
+      : null,
+    gearboxSpec(o.gearbox)
+      ? {
+          label: "Skrzynia",
+          value: gearboxSpec(o.gearbox)?.label ?? "",
+          Icon: gearboxSpec(o.gearbox)?.Icon ?? Gauge,
+        }
+      : null,
+    o.powerHp ? { label: "Moc", value: `${o.powerHp} KM`, Icon: Zap } : null,
+    o.city ? { label: "Lokalizacja", value: o.city, Icon: MapPin } : null,
+  ].filter((f): f is { label: string; value: string; Icon: typeof Gauge } => f != null);
+
   // Blizniak wart pokazania to taki, ktory jest TANSZY i ma porownywalna cene.
   const cheaperTwin = o.twins.find(
     (t) =>
@@ -163,6 +188,11 @@ export default async function OfferPage({ params }: { params: Promise<{ id: stri
 
   return (
     <main className="mx-auto max-w-[1100px] px-4 py-6">
+      <BackButton
+        fallbackHref={modelHref(o.make, o.model)}
+        fallbackLabel={`Wszystkie ${name}`}
+      />
+
       <Crumbs
         items={[
           { label: o.make, href: makeHref(o.make) },
@@ -184,47 +214,44 @@ export default async function OfferPage({ params }: { params: Promise<{ id: stri
         </p>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
-        <div className="min-w-0">
-          <h1 className="text-2xl font-bold tracking-tight text-neutral-100">
-            {name} {o.year && <span className="text-neutral-500">{o.year}</span>}
-          </h1>
-          {o.trim && <p className="mt-0.5 text-sm text-neutral-400">{o.trim}</p>}
+      {/*
+        `order` tylko na waskim ekranie. Przy jednej kolumnie cena ladowala
+        pod cala tabela danych technicznych — czyli najwazniejsza liczba na
+        stronie byla widoczna dopiero po przewinieciu ekranu w dol. Na lg
+        wracamy do kolejnosci zrodlowej, bo tam decyduje ona o tym, ktora
+        kolumna siatki jest ktora.
+      */}
+      {/*
+        Naglowek nad siatka, nie w kolumnie. Po przestawieniu kolejnosci na
+        telefonie tytul ladowal POD cena — czyli najpierw "82 800 zl", a dopiero
+        potem informacja, czego ta cena dotyczy. Nad siatka dziala dla obu
+        ukladow i zostaje jednym h1 na stronie.
+      */}
+      <h1 className="text-2xl font-bold tracking-tight text-neutral-100">
+        {name} {o.year && <span className="text-neutral-500">{o.year}</span>}
+      </h1>
+      {o.trim && <p className="mb-4 mt-0.5 text-sm text-neutral-400">{o.trim}</p>}
 
-          <div className="mt-4 overflow-hidden rounded-xl border border-[var(--color-line)] bg-black/40">
-            {o.thumbnailUrl ? (
-              // Hot-link do zrodla — swiadomie zwykly <img>, patrz next.config.ts
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={o.thumbnailUrl}
-                alt={`${name}${o.year ? ` ${o.year}` : ""}`}
-                className="aspect-[4/3] w-full object-cover"
-              />
-            ) : (
-              <div className="flex aspect-[4/3] flex-col items-center justify-center gap-1 text-neutral-700">
-                <ImageOff size={22} />
-                <span className="text-xs">brak zdjęcia</span>
-              </div>
-            )}
+      <div className="mt-4 grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="order-2 min-w-0 lg:order-none">
+          <div className="aspect-[4/3] overflow-hidden rounded-xl border border-[var(--color-line)] bg-black/40">
+            <CarImage
+              src={o.thumbnailUrl}
+              alt={`${name}${o.year ? ` ${o.year}` : ""}`}
+              priority
+              className="h-full w-full object-cover"
+            />
           </div>
 
           <section className="mt-6">
-            <h2 className="mb-2 text-lg font-semibold text-neutral-100">Dane pojazdu</h2>
+            {/*
+              Bez szesciu pol, ktore stoja juz w skrocie przy cenie. Powtorzone
+              w calosci wygladaly na desktopie jak blad — ta sama tabela dwa
+              razy obok siebie.
+            */}
+            <h2 className="mb-2 text-lg font-semibold text-neutral-100">Pozostałe dane</h2>
             <dl className="rounded-xl border border-[var(--color-line)] bg-[var(--color-panel)] px-4 py-1">
-              <Row label="Rocznik" value={o.year} Icon={Calendar} />
-              <Row
-                label="Przebieg"
-                value={o.mileageKm != null ? `${num.format(o.mileageKm)} km` : null}
-                Icon={Gauge}
-              />
-              <Row label="Paliwo" value={fuelSpec(o.fuel)?.label} Icon={fuelSpec(o.fuel)?.Icon} />
-              <Row
-                label="Skrzynia"
-                value={gearboxSpec(o.gearbox)?.label}
-                Icon={gearboxSpec(o.gearbox)?.Icon}
-              />
               <Row label="Napęd" value={driveSpec(o.drive)?.label} Icon={Compass} />
-              <Row label="Moc" value={o.powerHp ? `${o.powerHp} KM` : null} Icon={Zap} />
               <Row
                 label="Pojemność"
                 value={o.engineCcm ? `${num.format(o.engineCcm)} cm³` : null}
@@ -252,7 +279,6 @@ export default async function OfferPage({ params }: { params: Promise<{ id: stri
                 }
               />
               <Row label="Sprzedający" value={o.seller} Icon={Store} />
-              <Row label="Lokalizacja" value={o.city} Icon={MapPin} />
               <Row label="Źródło" value={shortSource(o.sourceName)} Icon={Building2} />
               {/*
                 Ile dni oferta jest w obrocie. To jedyna liczba na tej stronie,
@@ -363,7 +389,7 @@ export default async function OfferPage({ params }: { params: Promise<{ id: stri
         </div>
 
         {/* Kolumna decyzyjna: cena, ocena okazji i wyjscie do zrodla. */}
-        <aside className="lg:sticky lg:top-6 lg:self-start">
+        <aside className="order-1 lg:order-none lg:sticky lg:top-6 lg:self-start">
           <div className="rounded-xl border border-[var(--color-line)] bg-[var(--color-panel)] p-4">
             <p className="text-3xl font-bold tabular-nums text-neutral-100">
               {o.priceGross != null ? (
@@ -437,19 +463,11 @@ export default async function OfferPage({ params }: { params: Promise<{ id: stri
                             po obu stronach stoi TO SAMO auto.
                           */}
                           <span className="h-12 w-16 shrink-0 overflow-hidden rounded-md bg-black/40">
-                            {t.thumbnailUrl ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img
-                                src={t.thumbnailUrl}
-                                alt={`${name} — ${shortSource(t.sourceName)}`}
-                                loading="lazy"
-                                className="h-full w-full object-cover"
-                              />
-                            ) : (
-                              <span className="flex h-full items-center justify-center text-neutral-700">
-                                <ImageOff size={14} />
-                              </span>
-                            )}
+                            <CarImage
+                              src={t.thumbnailUrl}
+                              alt={`${name} — ${shortSource(t.sourceName)}`}
+                              className="h-full w-full object-cover"
+                            />
                           </span>
 
                           <span className="min-w-0 flex-1">
@@ -527,6 +545,28 @@ export default async function OfferPage({ params }: { params: Promise<{ id: stri
               Oferta i transakcja po stronie sprzedawcy. Nie pośredniczymy w sprzedaży.
             </p>
           </div>
+
+          {/*
+            Skrot najwazniejszych danych w kolumnie decyzyjnej.
+            Pelna tabela jest nizej, ale w calosci pod linia zalamania — a to
+            sa te szesc liczb, ktore czlowiek sprawdza ZANIM zdecyduje, czy
+            w ogole warto czytac dalej. Prawa kolumna i tak stala pusta.
+          */}
+          {szybkie.length > 0 && (
+            <dl className="mt-3 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-[var(--color-line)] bg-[var(--color-line)]">
+              {szybkie.map((f) => (
+                <div key={f.label} className="bg-[var(--color-panel)] px-3 py-2.5">
+                  <dt className="flex items-center gap-1.5 text-[11px] text-neutral-600">
+                    <f.Icon size={12} className="shrink-0" />
+                    {f.label}
+                  </dt>
+                  <dd className="mt-0.5 truncate text-[13px] font-semibold text-neutral-100">
+                    {f.value}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          )}
 
           <div className="mt-3 flex flex-wrap gap-2 text-[13px]">
             <Link

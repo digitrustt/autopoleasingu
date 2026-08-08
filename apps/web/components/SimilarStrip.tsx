@@ -1,7 +1,7 @@
+import { CarImage } from "@/components/CarImage";
 import { DealBadge } from "@/components/DealBadge";
 import { shortSource } from "@/lib/format";
 import type { SimilarRow } from "@/lib/queries";
-import { ImageOff } from "lucide-react";
 import Link from "next/link";
 
 const pln = new Intl.NumberFormat("pl-PL", {
@@ -29,19 +29,11 @@ export function SimilarStrip({ rows }: { rows: SimilarRow[] }) {
             className="group flex h-full flex-col overflow-hidden rounded-xl border border-[var(--color-line)] bg-[var(--color-panel)] transition-colors hover:border-accent/40"
           >
             <div className="relative aspect-[4/3] overflow-hidden bg-black/40">
-              {r.thumbnailUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={r.thumbnailUrl}
-                  alt={`${r.make} ${r.model}`}
-                  loading="lazy"
-                  className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.04]"
-                />
-              ) : (
-                <div className="flex h-full items-center justify-center text-neutral-700">
-                  <ImageOff size={18} />
-                </div>
-              )}
+              <CarImage
+                src={r.thumbnailUrl}
+                alt={`${r.make} ${r.model}`}
+                className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.04]"
+              />
               {r.dealScore != null && (
                 <span className="absolute left-2 top-2">
                   <DealBadge score={r.dealScore} compact />

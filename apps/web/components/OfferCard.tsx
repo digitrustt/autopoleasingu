@@ -1,3 +1,4 @@
+import { CarImage } from "@/components/CarImage";
 import { OfferLink } from "@/components/OfferLink";
 import { DealBadge } from "@/components/DealBadge";
 import { TwinLink } from "@/components/TwinLink";
@@ -92,21 +93,12 @@ export function OfferCard({ o, index = 0 }: { o: OfferRow; index?: number }) {
       className="card-in group flex flex-col overflow-hidden rounded-xl border border-[var(--color-line)] bg-[var(--color-panel)] transition duration-200 hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-lg hover:shadow-white/5"
     >
       <div className="relative aspect-[4/3] overflow-hidden bg-black/40">
-        {o.thumbnailUrl ? (
-          // Hot-link do zrodla — swiadomie zwykly <img>, patrz next.config.ts
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={o.thumbnailUrl}
-            alt={`${o.make} ${o.model}`}
-            loading="lazy"
-            className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.04]"
-          />
-        ) : (
-          <div className="flex h-full flex-col items-center justify-center gap-1 text-neutral-700">
-            <ImageOff size={20} />
-            <span className="text-xs">brak zdjęcia</span>
-          </div>
-        )}
+        <CarImage
+          src={o.thumbnailUrl}
+          alt={`${o.make} ${o.model}`}
+          priority={index < 6}
+          className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.04]"
+        />
 
         <div className="absolute left-2 top-2 flex flex-wrap gap-1.5">
           {isFresh(o.firstSeenAt) && (

@@ -1,7 +1,7 @@
+import { CarImage } from "@/components/CarImage";
 import type { ModelCard } from "@/lib/queries";
 import { modelHref } from "@/lib/slug";
 import { bodySpec, fuelSpec } from "@/lib/spec";
-import { ImageOff } from "lucide-react";
 import Link from "next/link";
 
 const pln = new Intl.NumberFormat("pl-PL", {
@@ -24,7 +24,7 @@ const num = new Intl.NumberFormat("pl-PL");
 export function ModelGrid({ make, models }: { make: string; models: ModelCard[] }) {
   return (
     <ul className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-3">
-      {models.map((m) => {
+      {models.map((m, i) => {
         const fuel = fuelSpec(m.topFuel);
         const body = bodySpec(m.topBody);
         return (
@@ -34,20 +34,13 @@ export function ModelGrid({ make, models }: { make: string; models: ModelCard[] 
               className="group flex h-full flex-col overflow-hidden rounded-xl border border-[var(--color-line)] bg-[var(--color-panel)] transition duration-200 hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-lg hover:shadow-white/5"
             >
               <div className="relative aspect-[16/10] overflow-hidden bg-black/40">
-                {m.thumbnail ? (
-                  // Hot-link do zrodla — swiadomie zwykly <img>, patrz next.config.ts
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={m.thumbnail}
-                    alt={`${make} ${m.model}`}
-                    loading="lazy"
-                    className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.04]"
-                  />
-                ) : (
-                  <div className="flex h-full items-center justify-center text-neutral-700">
-                    <ImageOff size={18} />
-                  </div>
-                )}
+                <CarImage
+                  src={m.thumbnail}
+                  alt={`${make} ${m.model}`}
+                  /* Pierwszy rzad ladujemy od razu — to on jest nad linia zalamania. */
+                  priority={i < 6}
+                  className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.04]"
+                />
                 <span className="absolute right-2 top-2 rounded-md bg-black/70 px-1.5 py-0.5 text-[11px] font-medium tabular-nums text-neutral-200">
                   {num.format(m.total)}
                 </span>
