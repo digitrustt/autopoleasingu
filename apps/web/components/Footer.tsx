@@ -18,6 +18,7 @@ import Link from "next/link";
 const LINKS = [
   { href: "/poleasingowe", label: "Miasta" },
   { href: "/porownaj", label: "Porównania" },
+  { href: "/vin", label: "Sprawdź VIN" },
   { href: "/zrodla", label: "Źródła" },
   { href: "/regulamin", label: "Regulamin" },
   { href: "/polityka-prywatnosci", label: "Prywatność" },

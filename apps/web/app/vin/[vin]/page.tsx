@@ -2,7 +2,8 @@ import { PriceHistory } from "@/components/PriceHistory";
 import { Valuation } from "@/components/Valuation";
 import { VehicleHistory } from "@/components/VehicleHistory";
 import { shortSource } from "@/lib/format";
-import { getVinHistory } from "@/lib/queries";
+import { VinSzukaj } from "@/components/VinSzukaj";
+import { getVinHistory, getWmiMake } from "@/lib/queries";
 import {
   ArrowLeft,
   ArrowUpRight,
@@ -53,10 +54,68 @@ function daysPl(n: number): string {
   return `${n} ${few ? "dni" : "dni"}`;
 }
 
+/** Wynik dla VIN-u, ktorego nie mamy — z tym, co mimo wszystko da sie powiedziec. */
+async function BrakVin({ numer }: { numer: string }) {
+  const marka = await getWmiMake(numer);
+
+  return (
+    <main className="mx-auto max-w-[760px] px-4 py-6">
+      <Link
+        href="/vin"
+        className="mb-6 inline-flex items-center gap-1.5 text-sm text-neutral-400 transition-colors hover:text-accent"
+      >
+        <ArrowLeft size={15} />
+        Sprawdź inny VIN
+      </Link>
+
+      <h1 className="font-mono text-xl font-bold tracking-tight text-neutral-100">{numer}</h1>
+      <p className="mb-5 mt-2 text-sm leading-relaxed text-neutral-400">
+        Tego auta nie ma w naszej bazie — nie jest w tej chwili wystawione w żadnym
+        z 26 śledzonych źródeł poleasingowych.
+        {marka && (
+          <>
+            {" "}
+            Z numeru wynika, że to <span className="text-neutral-200">{marka}</span>; producenta
+            rozpoznajemy po trzech pierwszych znakach, zestawiając je z blisko dwudziestoma
+            tysiącami numerów, które już mamy.
+          </>
+        )}
+      </p>
+
+      <div className="mb-6 rounded-xl border border-[var(--color-line)] bg-[var(--color-panel)] p-4">
+        <p className="text-[13px] leading-relaxed text-neutral-400">
+          Historii wypadkowej, przebiegu z odczytów i liczby właścicieli nie mamy i nie
+          udajemy, że mamy. Te dane są w{" "}
+          <a
+            href="https://historiapojazdu.gov.pl"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline decoration-dotted underline-offset-2 hover:text-accent"
+          >
+            historiapojazdu.gov.pl
+          </a>{" "}
+          — oficjalnie i bezpłatnie, potrzebny jest VIN, numer rejestracyjny i data pierwszej
+          rejestracji.
+        </p>
+      </div>
+
+      <VinSzukaj />
+    </main>
+  );
+}
+
 export default async function VinPage({ params }: { params: Promise<{ vin: string }> }) {
   const { vin } = await params;
-  const data = await getVinHistory(decodeURIComponent(vin).toUpperCase());
-  if (!data) notFound();
+  const numer = decodeURIComponent(vin).toUpperCase();
+  const data = await getVinHistory(numer);
+
+  /*
+   * Brak tego VIN-u w bazie NIE JEST bledem 404. Ludzie wklejaja tu numery
+   * z dokumentow aut, ktorych u nas nigdy nie bylo — i to jest normalny wynik,
+   * a nie pomylka. Zamiast pustej strony mowimy, czego sie dowiedzielismy
+   * (producent z WMI, o ile jest jednoznaczny) i gdzie szukac reszty.
+   */
+  if (!data) return <BrakVin numer={numer} />;
 
   // Dane pojazdu sa te same we wszystkich ofertach — bierzemy najbogatszy rekord.
   const spec =

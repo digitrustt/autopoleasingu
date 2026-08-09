@@ -52,6 +52,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE}/zrodla`, changeFrequency: "weekly", priority: 0.5 },
     { url: `${BASE}/poleasingowe`, changeFrequency: "daily", priority: 0.9 },
     { url: `${BASE}/porownaj`, changeFrequency: "weekly", priority: 0.8 },
+    { url: `${BASE}/vin`, changeFrequency: "weekly", priority: 0.6 },
     { url: `${BASE}/regulamin`, changeFrequency: "yearly", priority: 0.2 },
     { url: `${BASE}/polityka-prywatnosci`, changeFrequency: "yearly", priority: 0.2 },
     { url: `${BASE}/cookies`, changeFrequency: "yearly", priority: 0.2 },
