@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Zrodla, ktorych NIE DA SIE zaciagnac z GitHub Actions.
+
+  alphabet, vwfs i carefleet odrzucaja ruch z zakresow IP centrow danych:
+  na runnerze GitHuba zwracaja HTTP 403 albo zrywaja polaczenie, a z lacza
+  domowego odpowiadaja normalnie (226, 185 i 184 oferty w tescie). To ~590
+  aktywnych ofert, ktore bez tego przebiegu przestalyby sie odswiezac.
+  Obchodzenie blokady przez proxy odpada — to omijanie kontroli dostepu.
+
+  Chodzi o 05:15, czyli PO przebiegu w Actions (03:37 UTC), zeby wycena
+  widziala komplet danych z obu zrodel zasilania.
+
+  Instalacja:
+    cp scripts/com.auta.blocked.plist ~/Library/LaunchAgents/
+    launchctl load ~/Library/LaunchAgents/com.auta.blocked.plist
+
+  Podglad:     tail -f /tmp/auta-blocked.log
+  Zatrzymanie: launchctl unload ~/Library/LaunchAgents/com.auta.blocked.plist
+
+  StartCalendarInterval, nie StartInterval: przy uspionym Macu launchd odpali
+  zadanie raz zaraz po wybudzeniu, zamiast gubic je na cale doby.
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.auta.blocked</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Users/kuba/auta/scripts/scrape.sh</string>
+    <string>blocked</string>
+  </array>
+
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key>
+    <integer>5</integer>
+    <key>Minute</key>
+    <integer>15</integer>
+  </dict>
+
+  <key>StandardOutPath</key>
+  <string>/tmp/auta-blocked.log</string>
+  <key>StandardErrorPath</key>
+  <string>/tmp/auta-blocked.log</string>
+
+  <key>RunAtLoad</key>
+  <false/>
+</dict>
+</plist>

@@ -7,6 +7,7 @@
 #                       discover, nie detale: nowa oferta trafia na poczatek
 #                       kolejki detali, wiec maly limit w zupelnosci wystarcza.
 #   deep (raz na dobe)— odswiezenie cen wszystkich znanych ofert.
+#   blocked (raz/dobe)— TRZY zrodla, ktore odrzucaja ruch z centrow danych.
 #
 # Bez tego podzialu przebieg z limitem 250 na kazde z 26 zrodel to ~6,5 tys.
 # zadan (~2 h), a launchd probowalby go odpalac co 10 minut.
@@ -17,10 +18,19 @@ export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
 
 MODE="${1:-fast}"
 
+# Zrodla, ktore odrzucaja ruch z centrow danych.
+#
+# alphabet, vwfs i carefleet dzialaja z lacza domowego, ale z runnera GitHuba
+# zwracaja HTTP 403 albo zrywaja polaczenie — blokuja zakresy IP chmur, nie nas.
+# Obchodzenie tego przez proxy byloby omijaniem blokady, wiec zamiast tego te
+# trzy zaciagamy stad. Reszta 23 zrodel zostaje w Actions.
+BLOCKED_SOURCES="${BLOCKED_SOURCES:-alphabet vwfs carefleet}"
+
 case "$MODE" in
-  fast) LIMIT="${SCRAPE_LIMIT:-12}";    REFRESH="${REFRESH_AFTER:-24}" ;;
-  deep) LIMIT="${SCRAPE_LIMIT:-10000}"; REFRESH="${REFRESH_AFTER:-20}" ;;
-  *) echo "Uzycie: scrape.sh [fast|deep]" >&2; exit 1 ;;
+  fast)    LIMIT="${SCRAPE_LIMIT:-12}";    REFRESH="${REFRESH_AFTER:-24}" ;;
+  deep)    LIMIT="${SCRAPE_LIMIT:-10000}"; REFRESH="${REFRESH_AFTER:-20}" ;;
+  blocked) LIMIT="${SCRAPE_LIMIT:-400}";   REFRESH="${REFRESH_AFTER:-20}" ;;
+  *) echo "Uzycie: scrape.sh [fast|deep|blocked]" >&2; exit 1 ;;
 esac
 
 cd "$REPO"
@@ -47,7 +57,18 @@ fi
 echo $$ > "$LOCK/pid"
 trap 'rm -rf "$LOCK"' EXIT
 
-pnpm scrape --limit "$LIMIT" --refresh-after "$REFRESH"
+if [ "$MODE" = "blocked" ]; then
+  # Kazde zrodlo osobno, bo CLI przyjmuje jedno --source na raz. Padniecie
+  # jednego nie moze przerwac pozostalych ani pominac wyceny — stad `|| true`
+  # i wlasne liczenie bledow.
+  FAILED=0
+  for SRC in $BLOCKED_SOURCES; do
+    pnpm scrape --source "$SRC" --limit "$LIMIT" --refresh-after "$REFRESH" || FAILED=$((FAILED + 1))
+  done
+  [ "$FAILED" -gt 0 ] && echo "UWAGA: $FAILED z $(echo $BLOCKED_SOURCES | wc -w | tr -d ' ') zrodel nie przeszlo."
+else
+  pnpm scrape --limit "$LIMIT" --refresh-after "$REFRESH"
+fi
 
 # Wycena PO zaciagu, nie w jego trakcie: mediana musi widziec komplet danych,
 # inaczej skakalaby zaleznie od tego, ktore zrodla akurat zdazyly wpasc.

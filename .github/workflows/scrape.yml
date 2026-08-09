@@ -50,6 +50,10 @@ jobs:
       - name: Chromium dla Bravoauto
         run: pnpm --filter @auta/scrapers exec playwright install --with-deps chromium
 
+      # alphabet, vwfs i carefleet odrzucaja ruch z zakresow IP centrow danych
+      # (HTTP 403 albo zerwane polaczenie). Z lacza domowego dzialaja normalnie,
+      # wiec zaciaga je launchd na Macu — patrz scripts/com.auta.blocked.plist.
+      # Bez tego pominiecia krok konczyl sie bledem przy kazdym przebiegu.
       - name: Zaciag
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
