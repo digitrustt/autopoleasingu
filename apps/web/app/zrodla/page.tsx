@@ -106,16 +106,32 @@ export default async function SourcesPage() {
                   className="border-b border-[var(--color-line)] last:border-0 transition-colors hover:bg-white/[0.02]"
                 >
                   <td className="px-4 py-2.5">
-                    <a
-                      href={s.baseUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 font-medium transition-colors hover:text-accent"
-                      title={s.name}
-                    >
-                      {shortSource(s.name)}
-                      <ExternalLink size={12} className="text-neutral-600" />
-                    </a>
+                    {/*
+                      Nazwa prowadzi teraz do WLASNEJ strony leasingodawcy,
+                      a nie od razu na zewnatrz. Bez tego 26 podstron
+                      `/leasingodawca/...` nie mialoby zadnego linku
+                      prowadzacego, a strona odlinkowana praktycznie nie
+                      istnieje dla wyszukiwarki. Wyjscie do zrodla zostaje
+                      obok, jako osobna ikona.
+                    */}
+                    <span className="flex items-center gap-1.5">
+                      <Link
+                        href={`/leasingodawca/${s.id}`}
+                        className="font-medium transition-colors hover:text-accent"
+                        title={s.name}
+                      >
+                        {shortSource(s.name)}
+                      </Link>
+                      <a
+                        href={s.baseUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-neutral-600 transition-colors hover:text-accent"
+                        aria-label={`Strona ${s.name}`}
+                      >
+                        <ExternalLink size={12} />
+                      </a>
+                    </span>
                     <p className="text-[11px] text-neutral-600">{s.id}</p>
                   </td>
                   <td className={`px-4 py-2.5 ${TONE[h.tone]}`}>

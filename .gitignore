@@ -10,3 +10,6 @@ fixtures/*.html
 
 .next-build/
 .vercel
+
+# Robocze listy fraz do Planera slow kluczowych — nie naleza do repo.
+/seo/

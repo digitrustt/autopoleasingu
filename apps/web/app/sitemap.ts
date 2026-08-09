@@ -1,3 +1,4 @@
+import { PARY } from "@/lib/pary";
 import { getSitemapEntries } from "@/lib/queries";
 import { makeHref, modelHref, modelKey, slugify } from "@/lib/slug";
 import type { MetadataRoute } from "next";
@@ -43,11 +44,13 @@ function when(v: string | Date | null): Date {
  * tresc i nie znikaja z dnia na dzien.
  */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const { makes, models, vins } = await getSitemapEntries();
+  const { makes, models, vins, cities, srcs } = await getSitemapEntries();
 
   const statics: MetadataRoute.Sitemap = [
     { url: BASE, changeFrequency: "daily", priority: 1 },
     { url: `${BASE}/zrodla`, changeFrequency: "weekly", priority: 0.5 },
+    { url: `${BASE}/poleasingowe`, changeFrequency: "daily", priority: 0.9 },
+    { url: `${BASE}/porownaj`, changeFrequency: "weekly", priority: 0.8 },
     { url: `${BASE}/regulamin`, changeFrequency: "yearly", priority: 0.2 },
     { url: `${BASE}/polityka-prywatnosci`, changeFrequency: "yearly", priority: 0.2 },
     { url: `${BASE}/cookies`, changeFrequency: "yearly", priority: 0.2 },
@@ -90,6 +93,51 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: when(m.updated),
       changeFrequency: "daily" as const,
       priority: 0.9,
+    })),
+
+    /*
+     * Miasta maja najwyzszy priorytet po stronie glownej. Zmierzone w Planerze
+     * slow kluczowych: "samochody poleasingowe warszawa" i "auta poleasingowe
+     * warszawa" to po 1–10 tys. wyszukiwan miesiecznie, podczas gdy porownania
+     * modeli mieszcza sie w 10–100. Warianty zapisu tej samej nazwy scalamy
+     * kluczem slugu, tak jak przy modelach.
+     */
+    ...[
+      ...cities
+        .reduce((acc, c) => {
+          const key = slugify(c.city ?? "");
+          if (key && !acc.has(key)) acc.set(key, { key, updated: c.updated });
+          return acc;
+        }, new Map<string, { key: string; updated: string }>())
+        .values(),
+    ].map((c) => ({
+      url: `${BASE}/poleasingowe/${c.key}`,
+      lastModified: when(c.updated),
+      changeFrequency: "daily" as const,
+      priority: 0.9,
+    })),
+
+    /*
+     * Leasingodawcy. "poleasingowe pko" to 1–10 tys. wyszukiwan miesiecznie
+     * przy NISKIEJ konkurencji reklamowej — najlepszy stosunek wolumenu do
+     * trudnosci w calym zestawie, stad priorytet rowny miastom.
+     */
+    ...srcs.map((s) => ({
+      url: `${BASE}/leasingodawca/${s.id}`,
+      lastModified: when(s.updated),
+      changeFrequency: "daily" as const,
+      priority: 0.9,
+    })),
+
+    /*
+     * Porownania modeli. Nizej niz miasta i leasingodawcy, bo zmierzony
+     * wolumen fraz typu "bmw x3 czy audi q5" to 10–100 wyszukiwan miesiecznie
+     * wobec 1–10 tys. dla "samochody poleasingowe warszawa".
+     */
+    ...PARY.map((p) => ({
+      url: `${BASE}/porownaj/${p.slug}`,
+      changeFrequency: "weekly" as const,
+      priority: p.obustronna ? 0.7 : 0.6,
     })),
 
     ...vins.map((v) => ({

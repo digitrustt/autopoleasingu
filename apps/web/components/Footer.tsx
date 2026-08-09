@@ -16,6 +16,8 @@ import Link from "next/link";
  * rzecz, ktora ma tu cokolwiek robic.
  */
 const LINKS = [
+  { href: "/poleasingowe", label: "Miasta" },
+  { href: "/porownaj", label: "Porównania" },
   { href: "/zrodla", label: "Źródła" },
   { href: "/regulamin", label: "Regulamin" },
   { href: "/polityka-prywatnosci", label: "Prywatność" },

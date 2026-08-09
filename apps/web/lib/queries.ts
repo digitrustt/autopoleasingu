@@ -18,6 +18,8 @@ export interface Filters {
   gearbox?: string;
   body?: string;
   sort?: string;
+  /** Miasto albo komplet wariantow zapisu tej samej nazwy. */
+  city?: string | string[];
   /** "fixed" = kup teraz, "auction" = licytacja. Pusty = jedno i drugie. */
   kind?: string;
   /** "1" = pokaz wylacznie sztuki wystawione tez gdzie indziej (ten sam VIN). */
@@ -96,6 +98,7 @@ function buildWhere(f: Filters) {
   if (f.fuel) parts.push(eq(listings.fuel, f.fuel));
   if (f.gearbox) parts.push(eq(listings.gearbox, f.gearbox));
   if (f.body) parts.push(ilike(listings.body, `%${f.body}%`));
+  if (f.city) parts.push(cityMatches(f.city));
   if (f.withPrice === "1") parts.push(isNotNull(listings.priceGross));
 
   /*
@@ -835,7 +838,7 @@ export type SimilarRow = Awaited<ReturnType<typeof getSimilar>>[number];
  * mowi cokolwiek, czego nie ma w samej ofercie.
  */
 export async function getSitemapEntries() {
-  const [makes, models, vins] = await Promise.all([
+  const [makes, models, vins, cities, srcs] = await Promise.all([
     db
       .select({ make: listings.make, updated: sql<string>`max(${listings.lastSeenAt})` })
       .from(listings)
@@ -864,9 +867,23 @@ export async function getSitemapEntries() {
       .groupBy(listings.vin)
       .having(sql`count(*) > 1`),
 
+    db
+      .select({ city: listings.city, updated: sql<string>`max(${listings.lastSeenAt})` })
+      .from(listings)
+      .where(and(eq(listings.status, "active"), isNotNull(listings.city)))
+      .groupBy(listings.city)
+      .having(sql`count(*) >= 30`)
+      .orderBy(desc(sql`count(*)`)),
+
+    db
+      .select({ id: listings.sourceId, updated: sql<string>`max(${listings.lastSeenAt})` })
+      .from(listings)
+      .where(eq(listings.status, "active"))
+      .groupBy(listings.sourceId)
+      .having(sql`count(*) >= 10`),
   ]);
 
-  return { makes, models, vins };
+  return { makes, models, vins, cities, srcs };
 }
 
 /* ────────────────────────────────────────────────────────────────────────────
@@ -1045,4 +1062,187 @@ export async function getBodyBreakdown(make: string, model?: string | string[]) 
     .orderBy(desc(sql`count(*)`))
     .limit(8);
   return rows;
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+ * Strony miast — /poleasingowe/[miasto]
+ *
+ * Powstaly, bo zapytania lokalne maja w tej kategorii NAJWIEKSZY wolumen
+ * z wszystkiego, co zmierzylismy: "samochody poleasingowe warszawa" i "auta
+ * poleasingowe warszawa" siedza w przedziale 1–10 tys. wyszukiwan miesiecznie,
+ * podczas gdy porownania modeli ("bmw x3 czy audi q5") miesci sie w 10–100.
+ * Miasto ma juz kazda oferta — 83% bazy — wiec dane byly, brakowalo stron.
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+/**
+ * Miasta z liczba ofert.
+ *
+ * Zwracamy surowe nazwy z bazy; scalanie wariantow zapisu ("Warszawa" obok
+ * "warszawa") robi `groupBySlug` po stronie wywolujacej — ta sama zasada
+ * co przy modelach, z tego samego powodu: normalizacja musi byc jedna
+ * i liczona tym samym kodem.
+ */
+export async function getCitiesWithCounts(minOffers = 30) {
+  return db
+    .select({
+      city: listings.city,
+      total: sql<number>`count(*)::int`,
+      medianPrice: sql<number | null>`percentile_cont(0.5) within group (
+        order by ${listings.priceGross}
+      ) filter (where ${listings.offerKind} = 'fixed')::int`,
+      minPrice: sql<number | null>`min(${listings.priceGross}) filter (
+        where ${listings.offerKind} = 'fixed'
+      )::int`,
+    })
+    .from(listings)
+    .where(and(eq(listings.status, "active"), isNotNull(listings.city)))
+    .groupBy(listings.city)
+    .having(sql`count(*) >= ${minOffers}`)
+    .orderBy(desc(sql`count(*)`));
+}
+
+export type CityRow = Awaited<ReturnType<typeof getCitiesWithCounts>>[number];
+
+/** Miasto moze byc zapisane na kilka sposobow — stad lista, nie jedna nazwa. */
+function cityMatches(city: string | string[]) {
+  return Array.isArray(city) ? inArray(listings.city, city) : eq(listings.city, city);
+}
+
+/** Liczby na naglowek strony miasta. */
+export async function getCityStats(city: string | string[]) {
+  const [row] = await db
+    .select({
+      total: sql<number>`count(*)::int`,
+      withPrice: sql<number>`count(*) filter (where ${listings.priceGross} is not null)::int`,
+      newToday: sql<number>`count(*) filter (
+        where ${listings.firstSeenAt} > now() - interval '24 hours'
+      )::int`,
+      deals: sql<number>`count(*) filter (where ${listings.dealScore} >= 0.1)::int`,
+      sources: sql<number>`count(distinct ${listings.sourceId})::int`,
+      makes: sql<number>`count(distinct ${listings.make})::int`,
+      minPrice: sql<number | null>`min(${listings.priceGross}) filter (
+        where ${listings.offerKind} = 'fixed'
+      )::int`,
+      medianPrice: sql<number | null>`percentile_cont(0.5) within group (
+        order by ${listings.priceGross}
+      ) filter (where ${listings.offerKind} = 'fixed')::int`,
+    })
+    .from(listings)
+    .where(and(eq(listings.status, "active"), cityMatches(city)));
+  return row;
+}
+
+/** Marki dostepne w miescie — glowna nawigacja i linkowanie do stron marek. */
+export async function getCityMakes(city: string | string[], limit = 24) {
+  return db
+    .select({
+      make: listings.make,
+      total: sql<number>`count(*)::int`,
+      minPrice: sql<number | null>`min(${listings.priceGross}) filter (
+        where ${listings.offerKind} = 'fixed'
+      )::int`,
+    })
+    .from(listings)
+    .where(and(eq(listings.status, "active"), cityMatches(city)))
+    .groupBy(listings.make)
+    .orderBy(desc(sql`count(*)`))
+    .limit(limit);
+}
+
+/** Kto realnie wystawia auta w tym miescie — konkret, ktorego nie ma nigdzie indziej. */
+export async function getCitySellers(city: string | string[], limit = 10) {
+  return db
+    .select({
+      sourceName: sources.name,
+      total: sql<number>`count(*)::int`,
+    })
+    .from(listings)
+    .innerJoin(sources, eq(sources.id, listings.sourceId))
+    .where(and(eq(listings.status, "active"), cityMatches(city)))
+    .groupBy(sources.name)
+    .orderBy(desc(sql`count(*)`))
+    .limit(limit);
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+ * Strony leasingodawcow — /leasingodawca/[id]
+ *
+ * "poleasingowe pko" to 1–10 tys. wyszukiwan miesiecznie przy NISKIEJ
+ * konkurencji reklamowej — najlepszy stosunek wolumenu do trudnosci, jaki
+ * znalezlismy. Strona /zrodla istniala od dawna, ale jako jedna tabela
+ * zdrowia adapterow: nie dawalo sie z niej wejsc w konkretnego leasingodawce.
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+/** Wszystko o jednym zrodle — naglowek strony leasingodawcy. */
+export async function getSourceStats(sourceId: string) {
+  const [row] = await db
+    .select({
+      id: sources.id,
+      name: sources.name,
+      baseUrl: sources.baseUrl,
+      total: sql<number>`count(*) filter (where ${listings.status} = 'active')::int`,
+      withPrice: sql<number>`count(*) filter (
+        where ${listings.status} = 'active' and ${listings.priceGross} is not null
+      )::int`,
+      newToday: sql<number>`count(*) filter (
+        where ${listings.status} = 'active'
+          and ${listings.firstSeenAt} > now() - interval '24 hours'
+      )::int`,
+      deals: sql<number>`count(*) filter (
+        where ${listings.status} = 'active' and ${listings.dealScore} >= 0.1
+      )::int`,
+      makes: sql<number>`count(distinct ${listings.make}) filter (
+        where ${listings.status} = 'active'
+      )::int`,
+      cities: sql<number>`count(distinct ${listings.city}) filter (
+        where ${listings.status} = 'active'
+      )::int`,
+      minPrice: sql<number | null>`min(${listings.priceGross}) filter (
+        where ${listings.status} = 'active' and ${listings.offerKind} = 'fixed'
+      )::int`,
+      medianPrice: sql<number | null>`percentile_cont(0.5) within group (
+        order by ${listings.priceGross}
+      ) filter (where ${listings.status} = 'active' and ${listings.offerKind} = 'fixed')::int`,
+      auctions: sql<number>`count(*) filter (
+        where ${listings.status} = 'active' and ${listings.offerKind} = 'auction'
+      )::int`,
+    })
+    .from(sources)
+    .leftJoin(listings, eq(listings.sourceId, sources.id))
+    .where(eq(sources.id, sourceId))
+    .groupBy(sources.id, sources.name, sources.baseUrl);
+  return row ?? null;
+}
+
+/** Marki u jednego leasingodawcy — linkowanie do stron marek. */
+export async function getSourceMakes(sourceId: string, limit = 24) {
+  return db
+    .select({
+      make: listings.make,
+      total: sql<number>`count(*)::int`,
+      minPrice: sql<number | null>`min(${listings.priceGross}) filter (
+        where ${listings.offerKind} = 'fixed'
+      )::int`,
+    })
+    .from(listings)
+    .where(and(eq(listings.status, "active"), eq(listings.sourceId, sourceId)))
+    .groupBy(listings.make)
+    .orderBy(desc(sql`count(*)`))
+    .limit(limit);
+}
+
+/** Miasta, w ktorych ten leasingodawca ma auta — linkowanie do stron miast. */
+export async function getSourceCities(sourceId: string, limit = 16) {
+  return db
+    .select({
+      city: listings.city,
+      total: sql<number>`count(*)::int`,
+    })
+    .from(listings)
+    .where(
+      and(eq(listings.status, "active"), eq(listings.sourceId, sourceId), isNotNull(listings.city)),
+    )
+    .groupBy(listings.city)
+    .orderBy(desc(sql`count(*)`))
+    .limit(limit);
 }

@@ -25,8 +25,14 @@ export interface YearBar {
  * wiec skladaja sie z tekstu, ktory ma byc zaznaczalny i czytany przez
  * czytniki ekranu. SVG wymagaloby recznego pozycjonowania kazdego napisu.
  */
-export function YearBars({ rows }: { rows: YearBar[] }) {
-  const max = Math.max(...rows.map((r) => r.medianPrice));
+export function YearBars({ rows, skala }: { rows: YearBar[]; skala?: number }) {
+  /*
+   * `skala` pozwala narzucic WSPOLNE maksimum dwóm wykresom stojacym obok
+   * siebie. Bez tego kazda kolumna na stronie porownania skalowala sie wlasnym
+   * maksimum i slupek za 122 400 zl wygladal tak samo jak slupek za 143 600 zl
+   * — czyli wykres, ktorego jedynym zadaniem jest porownanie, klamal.
+   */
+  const max = skala ?? Math.max(...rows.map((r) => r.medianPrice));
   if (!Number.isFinite(max) || max <= 0) return null;
 
   // Od najstarszego, zeby utrata wartosci czytala sie z lewa na prawo w czasie.
