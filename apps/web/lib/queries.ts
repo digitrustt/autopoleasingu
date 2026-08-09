@@ -20,6 +20,15 @@ export interface Filters {
   sort?: string;
   /** Miasto albo komplet wariantow zapisu tej samej nazwy. */
   city?: string | string[];
+  /**
+   * Grupa nadwozia ("suv", "kombi"), nie surowa wartosc z bazy.
+   *
+   * Zrodla pisza nadwozie wolnym tekstem — 90 wariantow, w tym "Kombi",
+   * "Combi", "Touring" i "Variant" oznaczajace to samo. Filtr `body` szuka
+   * przez ilike jednego ciagu i przez to gubi polowe; `bodyGroup` dopasowuje
+   * cala rodzine wyrazeniem regularnym. Patrz BODY_GROUPS.
+   */
+  bodyGroup?: string;
   /** "fixed" = kup teraz, "auction" = licytacja. Pusty = jedno i drugie. */
   kind?: string;
   /** "1" = pokaz wylacznie sztuki wystawione tez gdzie indziej (ten sam VIN). */
@@ -69,6 +78,23 @@ const ORDER = {
   deal_desc: sql`${listings.dealScore} desc nulls last`,
 } as const;
 
+/**
+ * Rodziny nadwozi — jedno wyrazenie na kazda.
+ *
+ * Te same wzorce co w lib/spec.tsx po stronie ikon, ale tutaj musza byc
+ * w SQL-u, bo filtrowanie dzieje sie w bazie. Zmiana w jednym miejscu
+ * wymaga zmiany w drugim — dlatego oba komentarze na siebie wskazuja.
+ */
+export const BODY_GROUPS: Record<string, string> = {
+  suv: "suv|sav|terenow|crossover",
+  kombi: "kombi|combi|estate|touring|variant",
+  sedan: "sedan|limuzyn",
+  hatchback: "hatch|kompakt",
+  van: "van|bus|minivan",
+  coupe: "coupe|cabrio|roadster",
+  dostawcze: "dostawcz|furgon|pick",
+};
+
 function buildWhere(f: Filters) {
   const parts = [eq(listings.status, "active")];
 
@@ -98,6 +124,9 @@ function buildWhere(f: Filters) {
   if (f.fuel) parts.push(eq(listings.fuel, f.fuel));
   if (f.gearbox) parts.push(eq(listings.gearbox, f.gearbox));
   if (f.body) parts.push(ilike(listings.body, `%${f.body}%`));
+  if (f.bodyGroup && BODY_GROUPS[f.bodyGroup]) {
+    parts.push(sql`${listings.body} ~* ${BODY_GROUPS[f.bodyGroup]}`);
+  }
   if (f.city) parts.push(cityMatches(f.city));
   if (f.withPrice === "1") parts.push(isNotNull(listings.priceGross));
 
@@ -1242,6 +1271,69 @@ export async function getSourceCities(sourceId: string, limit = 16) {
     .where(
       and(eq(listings.status, "active"), eq(listings.sourceId, sourceId), isNotNull(listings.city)),
     )
+    .groupBy(listings.city)
+    .orderBy(desc(sql`count(*)`))
+    .limit(limit);
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+ * Strony filtrow — /poleasingowe/suv, /poleasingowe/do-50-tys
+ *
+ * Google podpowiada "auto poleasingowe do 50 tys", "poleasingowe suv",
+ * "poleasingowe hybrydy" — czyli ludzie szukaja wprost tymi kategoriami.
+ * Do tej pory odpowiadalismy na to wylacznie parametrami w adresie, ktorych
+ * wyszukiwarka nie indeksuje.
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+/** Naglowek dowolnej strony filtra — liczby liczone tym samym WHERE co lista. */
+export async function getFilterStats(f: Filters) {
+  const [row] = await db
+    .select({
+      total: sql<number>`count(*)::int`,
+      newToday: sql<number>`count(*) filter (
+        where ${listings.firstSeenAt} > now() - interval '24 hours'
+      )::int`,
+      deals: sql<number>`count(*) filter (where ${listings.dealScore} >= 0.1)::int`,
+      sources: sql<number>`count(distinct ${listings.sourceId})::int`,
+      makes: sql<number>`count(distinct ${listings.make})::int`,
+      minPrice: sql<number | null>`min(${listings.priceGross}) filter (
+        where ${listings.offerKind} = 'fixed'
+      )::int`,
+      medianPrice: sql<number | null>`percentile_cont(0.5) within group (
+        order by ${listings.priceGross}
+      ) filter (where ${listings.offerKind} = 'fixed')::int`,
+      medianMileage: sql<number | null>`percentile_cont(0.5) within group (
+        order by ${listings.mileageKm}
+      )::int`,
+    })
+    .from(listings)
+    .where(buildWhere(f));
+  return row;
+}
+
+/** Marki w obrebie filtra — linkowanie do stron marek. */
+export async function getFilterMakes(f: Filters, limit = 24) {
+  return db
+    .select({
+      make: listings.make,
+      total: sql<number>`count(*)::int`,
+      minPrice: sql<number | null>`min(${listings.priceGross}) filter (
+        where ${listings.offerKind} = 'fixed'
+      )::int`,
+    })
+    .from(listings)
+    .where(buildWhere(f))
+    .groupBy(listings.make)
+    .orderBy(desc(sql`count(*)`))
+    .limit(limit);
+}
+
+/** Miasta w obrebie filtra — linkowanie do stron miast. */
+export async function getFilterCities(f: Filters, limit = 16) {
+  return db
+    .select({ city: listings.city, total: sql<number>`count(*)::int` })
+    .from(listings)
+    .where(and(buildWhere(f), isNotNull(listings.city)))
     .groupBy(listings.city)
     .orderBy(desc(sql`count(*)`))
     .limit(limit);

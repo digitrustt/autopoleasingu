@@ -1,3 +1,4 @@
+import { KATEGORIE } from "@/lib/filtry";
 import { PARY } from "@/lib/pary";
 import { getSitemapEntries } from "@/lib/queries";
 import { makeHref, modelHref, modelKey, slugify } from "@/lib/slug";
@@ -91,6 +92,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ].map((m) => ({
       url: `${BASE}${m.href}`,
       lastModified: when(m.updated),
+      changeFrequency: "daily" as const,
+      priority: 0.9,
+    })),
+
+    /*
+     * Kategorie: progi cenowe, nadwozia, paliwa. Kazda odpowiada frazie,
+     * ktora Google podpowiada ("auto poleasingowe do 50 tys", "poleasingowe
+     * suv"), a wczesniej serwis odpowiadal na nie wylacznie parametrami
+     * w adresie, ktorych wyszukiwarka nie indeksuje.
+     */
+    ...KATEGORIE.map((k) => ({
+      url: `${BASE}/poleasingowe/${k.slug}`,
       changeFrequency: "daily" as const,
       priority: 0.9,
     })),

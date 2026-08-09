@@ -1,5 +1,6 @@
 import { Crumbs } from "@/components/Crumbs";
 import { StatStrip } from "@/components/StatStrip";
+import { GRUPY } from "@/lib/filtry";
 import { getCitiesWithCounts, getStats } from "@/lib/queries";
 import { groupBySlug, slugify } from "@/lib/slug";
 import { MapPin } from "lucide-react";
@@ -49,7 +50,7 @@ export default async function CitiesPage() {
 
       <h1 className="flex flex-wrap items-center gap-2 text-2xl font-bold tracking-tight text-neutral-100">
         <MapPin size={22} className="text-neutral-600" />
-        Samochody poleasingowe według miast
+        Samochody poleasingowe — kategorie i miasta
       </h1>
       <p className="mb-5 mt-1 max-w-[70ch] text-sm leading-relaxed text-neutral-400">
         Auta poleasingowe w {grupy.length} miastach, w których stoi co najmniej trzydzieści
@@ -67,6 +68,31 @@ export default async function CitiesPage() {
         ]}
       />
 
+      {/*
+        Kategorie NAD miastami, bo frazy typu "auto poleasingowe do 50 tys"
+        i "poleasingowe suv" sa grubsze niz pojedyncze miasto poza Warszawa.
+      */}
+      {GRUPY.map((g) => (
+        <section key={g.tytul} className="mb-5">
+          <h2 className="mb-2 text-[13px] uppercase tracking-wide text-neutral-600">{g.tytul}</h2>
+          <ul className="flex flex-wrap gap-2">
+            {g.pozycje.map((k) => (
+              <li key={k.slug}>
+                <Link
+                  href={`/poleasingowe/${k.slug}`}
+                  className="rounded-lg border border-[var(--color-line)] bg-[var(--color-panel)] px-3 py-2 text-[13px] text-neutral-200 transition-colors hover:border-accent/70 hover:text-accent"
+                >
+                  {k.nazwa}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
+
+      <h2 className="mb-3 mt-8 text-lg font-semibold text-neutral-100">
+        Według miasta ({grupy.length})
+      </h2>
       <ul className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-2">
         {grupy.map((m) => (
           <li key={m.city}>

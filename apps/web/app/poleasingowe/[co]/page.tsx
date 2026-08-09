@@ -6,10 +6,13 @@ import {
   getCityMakes,
   getCitySellers,
   getCityStats,
+  getFilterStats,
   getListings,
 } from "@/lib/queries";
 import { shortSource } from "@/lib/format";
 import { groupBySlug, makeHref, resolveAliases, slugify } from "@/lib/slug";
+import { KategoriaWidok } from "@/components/KategoriaWidok";
+import { znajdzKategorie } from "@/lib/filtry";
 import { Building2, MapPin, SlidersHorizontal, TrendingDown } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -49,9 +52,32 @@ async function resolve(slug: string) {
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ miasto: string }>;
+  params: Promise<{ co: string }>;
 }): Promise<Metadata> {
-  const found = await resolve((await params).miasto);
+  const { co } = await params;
+
+  /*
+   * Kategoria przed miastem. Oba typy stron dziela adres /poleasingowe/…,
+   * bo tak wygladaja zapytania ("poleasingowe suv" i "poleasingowe warszawa").
+   * Kolejnosc jest bezpieczna: zaden filtr nie nazywa sie jak polskie miasto.
+   */
+  const k = znajdzKategorie(co);
+  if (k) {
+    const stats = await getFilterStats(k.filtry);
+    const title = `${k.h1} — ${num.format(stats.total)} ofert`;
+    const description =
+      `${k.opis} ${num.format(stats.total)} ofert z ${stats.sources} źródeł` +
+      (stats.minPrice ? `, ceny od ${pln.format(stats.minPrice)}` : "") +
+      ", aktualizowane codziennie.";
+    return {
+      title,
+      description,
+      alternates: { canonical: `/poleasingowe/${k.slug}` },
+      openGraph: { title, description, type: "website" },
+    };
+  }
+
+  const found = await resolve(co);
   if (!found) return { title: "Nie znaleziono miasta" };
 
   const stats = await getCityStats(found.warianty);
@@ -70,8 +96,14 @@ export async function generateMetadata({
   };
 }
 
-export default async function CityPage({ params }: { params: Promise<{ miasto: string }> }) {
-  const found = await resolve((await params).miasto);
+export default async function PoleasingowePage({ params }: { params: Promise<{ co: string }> }) {
+  const { co } = await params;
+
+  // Kategoria przed miastem — patrz komentarz w generateMetadata.
+  const k = znajdzKategorie(co);
+  if (k) return <KategoriaWidok k={k} />;
+
+  const found = await resolve(co);
   if (!found) notFound();
   const { miasto, warianty, wszystkie } = found;
 
