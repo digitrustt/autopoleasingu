@@ -20,7 +20,18 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: "*",
       allow: "/",
-      disallow: ["/api/", "/alerty/"],
+      /*
+       * `/oferta/` jest zablokowana CELOWO, mimo ze to 22 tysiace stron.
+       *
+       * Nie ma ich w mapie strony, bo oferta zyje krotko i nie ma wartosci
+       * wyszukiwarkowej — sluzy czlowiekowi, ktory juz jest na stronie.
+       * Robot i tak po nich chodzil, bo sa podlinkowane wewnetrznie:
+       * zmierzone na produkcji, 22% wszystkich zadan szlo na `/oferta/*`,
+       * kazde z pelnym renderowaniem z bazy. To wlasnie ten ruch dobijal
+       * limity i powodowal, ze co osme wejscie na strone glowna wisialo
+       * kilkadziesiat sekund.
+       */
+      disallow: ["/api/", "/alerty/", "/oferta/"],
     },
     sitemap: "https://autopoleasingu.pl/sitemap.xml",
   };

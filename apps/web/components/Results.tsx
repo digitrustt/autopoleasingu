@@ -2,6 +2,7 @@ import { AlertSignup } from "@/components/AlertSignup";
 import { OfferCard } from "@/components/OfferCard";
 import { Pagination } from "@/components/Pagination";
 import { type Filters as F, PAGE_SIZE, countListings, getListings } from "@/lib/queries";
+import { unstable_cache } from "next/cache";
 import { DatabaseZap, SearchX } from "lucide-react";
 import Link from "next/link";
 
@@ -13,6 +14,26 @@ import Link from "next/link";
  * w page.tsx, kazda zmiana filtra wygaszalaby cala strone razem z formularzem —
  * i przez chwile nie byloby widac, co sie wlasciwie filtruje.
  */
+/*
+ * Wyniki trzymane w cache na piec minut, kluczowane filtrami.
+ *
+ * Strona glowna nie ma cache'u calej strony, bo zalezy od parametrow
+ * wyszukiwania — a to znaczylo, ze KAZDE wejscie renderowalo sie od zera
+ * z bazy. Zmierzone na produkcji: 46% wszystkich zadan to strona glowna,
+ * w ogromnej wiekszosci bez zadnego filtra, czyli to samo zapytanie liczone
+ * w kolko. Cache na poziomie danych, a nie strony, zalatwia to bez psucia
+ * filtrowania: kazdy zestaw filtrow ma wlasny wpis.
+ *
+ * Piec minut, a nie doba, bo tu liczy sie swiezosc — oferty poleasingowe
+ * schodza szybko. Znacznik pozwala workerowi skasowac to zaraz po zaciagu.
+ */
+const pobierz = unstable_cache(
+  async (filters: F, page: number) =>
+    Promise.all([getListings(filters, page), countListings(filters)]),
+  ["oferty"],
+  { revalidate: 300, tags: ["oferty"] },
+);
+
 export async function Results({
   filters,
   page,
@@ -32,7 +53,7 @@ export async function Results({
   let offers: Awaited<ReturnType<typeof getListings>>;
   let total: number;
   try {
-    [offers, total] = await Promise.all([getListings(filters, page), countListings(filters)]);
+    [offers, total] = await pobierz(filters, page);
   } catch (err) {
     console.error("lista ofert: baza niedostepna —", err);
     return (

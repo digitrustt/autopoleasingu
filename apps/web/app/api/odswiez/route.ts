@@ -1,4 +1,4 @@
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { type NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -38,6 +38,8 @@ export async function POST(req: NextRequest) {
    * zmianie. `layout` uniewaznia cale drzewo pod korzeniem.
    */
   revalidatePath("/", "layout");
+  // Wyniki listy siedza w osobnym cache'u danych — patrz components/Results.tsx.
+  revalidateTag("oferty");
 
   return NextResponse.json({ ok: true, at: new Date().toISOString() });
 }
