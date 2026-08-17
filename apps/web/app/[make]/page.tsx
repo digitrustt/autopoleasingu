@@ -17,12 +17,15 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 /*
- * Dane zmieniaja sie raz na dobe (zaciag chodzi o 3:00), a te strony ma
- * odwiedzac robot indeksujacy — kilkanascie tysiecy adresow. Renderowanie
- * kazdego z nich od nowa przy kazdym wejsciu obcialoby baze bez powodu,
- * wiec trzymamy wynik przez godzine.
+ * Odswiezanie RAZ NA DOBE, nie co godzine.
+ *
+ * Zaciag chodzi o 03:37, wiec czesciej nie ma czego przeliczac. Przy 1913
+ * stronach i robocie indeksujacym, ktory po nich chodzi, godzinny odswiez
+ * oznaczal dwadziescia cztery razy wiecej zapytan, niz wynika ze zmian
+ * w danych — i to on przekroczyl limit transferu Neona, zdejmujac caly
+ * serwis na trzy dni.
  */
-export const revalidate = 3600;
+export const revalidate = 86_400;
 
 /**
  * Ile modeli dostaje kafelek ze zdjeciem.

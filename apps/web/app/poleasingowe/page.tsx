@@ -7,7 +7,16 @@ import { MapPin } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
-export const revalidate = 3600;
+/*
+ * Odswiezanie RAZ NA DOBE, nie co godzine.
+ *
+ * Zaciag chodzi o 03:37, wiec czesciej nie ma czego przeliczac. Przy 1913
+ * stronach i robocie indeksujacym, ktory po nich chodzi, godzinny odswiez
+ * oznaczal dwadziescia cztery razy wiecej zapytan, niz wynika ze zmian
+ * w danych — i to on przekroczyl limit transferu Neona, zdejmujac caly
+ * serwis na trzy dni.
+ */
+export const revalidate = 86_400;
 
 const pln = new Intl.NumberFormat("pl-PL", {
   style: "currency",

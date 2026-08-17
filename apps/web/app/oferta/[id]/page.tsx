@@ -10,7 +10,8 @@ import { PriceHistogram } from "@/components/charts/PriceHistogram";
 import { shortSource } from "@/lib/format";
 import {
   getListing,
-  getPrices,
+  countCheaperThan,
+  getPriceHistogram,
   getScatter,
   getSimilar,
   getYearBreakdown,
@@ -43,10 +44,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 /*
- * Krotszy odswiez niz na stronach marki: tu liczy sie cena i to, czy oferta
- * jeszcze zyje, a jedno i drugie zmienia sie w ciagu doby.
+ * Szesc godzin. Bylo pietnascie minut, co przy 22 tysiacach stron ofert bylo
+ * najagresywniejszym ustawieniem w calym serwisie — a i tak nie moglo wykryc
+ * zmiany szybciej niz zaciag, ktory chodzi raz na dobe. Krocej niz na stronach
+ * marki, bo tu liczy sie cena i to, czy oferta jeszcze zyje.
  */
-export const revalidate = 900;
+export const revalidate = 21_600;
 
 const pln = new Intl.NumberFormat("pl-PL", {
   style: "currency",
@@ -138,11 +141,13 @@ export default async function OfferPage({ params }: { params: Promise<{ id: stri
    * odrozniaja te strone od skopiowanego ogloszenia: pokazuja, gdzie ta
    * konkretna sztuka stoi wsrod pozostalych.
    */
-  const [similar, prices, scatter, years] = await Promise.all([
+  const [similar, histogram, scatter, years, tanszych] = await Promise.all([
     getSimilar(o),
-    getPrices(o.make, o.model),
+    getPriceHistogram(o.make, o.model),
     getScatter(o.make, o.model),
     getYearBreakdown(o.make, o.model),
+    // Licznik tanszych ofert osobnym zapytaniem — patrz countCheaperThan.
+    o.priceGross != null ? countCheaperThan(o.make, o.model, o.priceGross) : Promise.resolve(0),
   ]);
 
   const sameYear = o.year ? years.find((y) => y.year === o.year) : undefined;
@@ -301,7 +306,7 @@ export default async function OfferPage({ params }: { params: Promise<{ id: stri
             cene, ale nie powie, ze piecdziesiat innych sztuk tego modelu
             stoi taniej.
           */}
-          {o.priceGross != null && o.offerKind !== "auction" && prices.length >= 6 && (
+          {o.priceGross != null && o.offerKind !== "auction" && histogram.counts.length > 0 && (
             <section className="mt-6">
               <h2 className="mb-2 flex items-center gap-2 text-lg font-semibold text-neutral-100">
                 <ChartColumn size={17} className="text-neutral-600" />
@@ -309,10 +314,10 @@ export default async function OfferPage({ params }: { params: Promise<{ id: stri
               </h2>
               <div className="rounded-xl border border-[var(--color-line)] bg-[var(--color-panel)] p-4">
                 <p className="mb-4 text-[13px] leading-relaxed text-neutral-400">
-                  Rozkład cen {name} w całej bazie — {prices.length} ofert „kup teraz” z
+                  Rozkład cen {name} w całej bazie — {num.format(histogram.total)} ofert „kup teraz” z
                   wszystkich źródeł. Zielona kreska to ta sztuka.
                 </p>
-                <PriceHistogram prices={prices} marker={o.priceGross} />
+                <PriceHistogram dane={histogram} marker={o.priceGross} cheaper={tanszych} />
 
                 {sameYear && (
                   <div className="mt-4 border-t border-[var(--color-line)] pt-3">
@@ -362,7 +367,7 @@ export default async function OfferPage({ params }: { params: Promise<{ id: stri
             </section>
           )}
 
-          {scatter.length >= 6 && (
+          {scatter.n >= 6 && (
             <section className="mt-6">
               <h2 className="mb-2 flex items-center gap-2 text-lg font-semibold text-neutral-100">
                 <Gauge size={17} className="text-neutral-600" />
@@ -373,7 +378,7 @@ export default async function OfferPage({ params }: { params: Promise<{ id: stri
                   Każdy punkt to jedna oferta {name}. Ta sztuka jest zaznaczona na zielono —
                   jeśli leży pod linią trendu, jest tańsza, niż wynikałoby z jej przebiegu.
                 </p>
-                <MileagePrice points={scatter} highlight={o.id} />
+                <MileagePrice dane={scatter} highlight={o.id} />
               </div>
             </section>
           )}

@@ -1023,19 +1023,140 @@ export async function getModelCards(make: string) {
 export type ModelCard = Awaited<ReturnType<typeof getModelCards>>[number];
 
 /**
- * Punkty do wykresu cena/przebieg.
+ * Dane do wykresu cena/przebieg.
  *
- * Same aukcje pomijamy — cena aukcyjna to biezaca oferta w licytacji, wiec
- * na wykresie ceny rynkowej lezalaby duzo za nisko i psula caly obraz.
+ * Regresja, zakresy i licznik licza sie W BAZIE — `regr_slope` i
+ * `regr_intercept` sa wbudowanymi agregatami Postgresa, wiec nie ma powodu
+ * przesylac tysiaca wierszy, zeby policzyc dwie liczby w JavaScripcie.
+ *
+ * Same punkty do narysowania chmury przycinamy do `limit`. Przy Toyocie
+ * Corolli bylo ich 1250 na kazde wejscie na strone; na wykresie o szerokosci
+ * 600 pikseli i tak nakladaja sie na siebie, a linia trendu liczona jest
+ * z CALOSCI, nie z probki — wiec obraz pozostaje uczciwy.
+ *
+ * Same aukcje pomijamy: cena aukcyjna to biezaca oferta w licytacji, wiec na
+ * wykresie ceny rynkowej lezalaby duzo za nisko i psula caly obraz.
  */
-export async function getScatter(make: string, model: string | string[]) {
-  return db
+export async function getScatter(make: string, model: string | string[], limit = 400) {
+  const where = and(
+    LIVE,
+    eq(listings.make, make),
+    modelMatches(model),
+    eq(listings.offerKind, "fixed"),
+    isNotNull(listings.mileageKm),
+  );
+
+  const [agg] = await db
+    .select({
+      n: sql<number>`count(*)::int`,
+      slope: sql<number | null>`regr_slope(${listings.priceGross}, ${listings.mileageKm})`,
+      intercept: sql<number | null>`regr_intercept(${listings.priceGross}, ${listings.mileageKm})`,
+      xMin: sql<number | null>`min(${listings.mileageKm})::int`,
+      xMax: sql<number | null>`max(${listings.mileageKm})::int`,
+      yMin: sql<number | null>`min(${listings.priceGross})::int`,
+      yMax: sql<number | null>`max(${listings.priceGross})::int`,
+    })
+    .from(listings)
+    .where(where);
+
+  const points = await db
     .select({
       id: listings.id,
       mileageKm: listings.mileageKm,
       priceGross: listings.priceGross,
-      year: listings.year,
     })
+    .from(listings)
+    .where(where)
+    .limit(limit);
+
+  return {
+    points,
+    n: agg?.n ?? 0,
+    slope: agg?.slope ?? null,
+    intercept: agg?.intercept ?? null,
+    xMin: agg?.xMin ?? null,
+    xMax: agg?.xMax ?? null,
+    yMin: agg?.yMin ?? null,
+    yMax: agg?.yMax ?? null,
+  };
+}
+
+export type ScatterData = Awaited<ReturnType<typeof getScatter>>;
+
+
+/**
+ * Histogram cen — kubelki liczone W BAZIE, nie po stronie aplikacji.
+ *
+ * Wczesniej ta funkcja zwracala WSZYSTKIE ceny modelu i histogram powstawal
+ * w JavaScripcie. Przy Toyocie Corolli to 1250 wierszy przez siec na kazde
+ * wejscie na strone — a wynikiem jest szesnascie liczb. Przy 1913 stronach
+ * odswiezanych przez robota indeksujacego wystarczylo to, zeby przekroczyc
+ * limit transferu Neona i zdjac caly serwis.
+ *
+ * `width_bucket` robi to samo w Postgresie i odsyla tyle, ile trzeba.
+ */
+export async function getPriceHistogram(make: string, model: string | string[], bins = 16) {
+  const where = and(
+    LIVE,
+    eq(listings.make, make),
+    modelMatches(model),
+    eq(listings.offerKind, "fixed"),
+  );
+
+  const [zakres] = await db
+    .select({
+      min: sql<number | null>`min(${listings.priceGross})::int`,
+      max: sql<number | null>`max(${listings.priceGross})::int`,
+      total: sql<number>`count(*)::int`,
+    })
+    .from(listings)
+    .where(where);
+
+  // Ponizej szesciu ofert histogram i tak sie nie rysuje — patrz komponent.
+  if (!zakres?.min || !zakres.max || zakres.max === zakres.min || zakres.total < 6) {
+    return { min: zakres?.min ?? 0, max: zakres?.max ?? 0, total: zakres?.total ?? 0, counts: [] };
+  }
+
+  const rows = await db
+    .select({
+      kubelek: sql<number>`width_bucket(
+        ${listings.priceGross}, ${zakres.min}, ${zakres.max}, ${bins}
+      )`,
+      n: sql<number>`count(*)::int`,
+    })
+    .from(listings)
+    .where(where)
+    .groupBy(sql`1`);
+
+  /*
+   * width_bucket zwraca 1..bins dla wartosci w zakresie i bins+1 dokladnie dla
+   * maksimum (bo gorna granica jest wylaczna). Domykamy je do ostatniego
+   * kubelka, inaczej najdrozsza oferta wypadalaby z wykresu.
+   */
+  const counts = new Array<number>(bins).fill(0);
+  for (const r of rows) {
+    const i = Math.min(bins, Math.max(1, Number(r.kubelek))) - 1;
+    counts[i] += r.n;
+  }
+
+  return { min: zakres.min, max: zakres.max, total: zakres.total, counts };
+}
+
+export type PriceHistogramData = Awaited<ReturnType<typeof getPriceHistogram>>;
+
+/**
+ * Ile ofert jest tansze od podanej ceny — do znacznika na histogramie.
+ *
+ * Osobne, tanie zapytanie zamiast sciagania wszystkich cen tylko po to, zeby
+ * je policzyc w JavaScripcie.
+ */
+export async function countCheaperThan(
+  make: string,
+  model: string | string[],
+  price: number,
+): Promise<number> {
+  const [row] = await db
+    .select({ n: sql<number>`count(*)::int` })
     .from(listings)
     .where(
       and(
@@ -1043,22 +1164,10 @@ export async function getScatter(make: string, model: string | string[]) {
         eq(listings.make, make),
         modelMatches(model),
         eq(listings.offerKind, "fixed"),
-        isNotNull(listings.mileageKm),
+        lte(listings.priceGross, price),
       ),
     );
-}
-
-export type ScatterPoint = Awaited<ReturnType<typeof getScatter>>[number];
-
-/** Wszystkie ceny "kup teraz" jednego modelu — do histogramu rozkladu. */
-export async function getPrices(make: string, model: string | string[]): Promise<number[]> {
-  const rows = await db
-    .select({ price: listings.priceGross })
-    .from(listings)
-    .where(
-      and(LIVE, eq(listings.make, make), modelMatches(model), eq(listings.offerKind, "fixed")),
-    );
-  return rows.map((r) => r.price as number);
+  return row?.n ?? 0;
 }
 
 /** Nadwozia w segmencie — druga po paliwie os, wedlug ktorej ludzie wybieraja. */

@@ -9,6 +9,8 @@ function short(v: number): string {
   return `${Math.round(v / 1000)} tys.`;
 }
 
+import type { PriceHistogramData } from "@/lib/queries";
+
 /**
  * Rozklad cen w segmencie, opcjonalnie ze znacznikiem jednej oferty.
  *
@@ -21,44 +23,28 @@ function short(v: number): string {
  * konkretnej oferty: gdzie TO auto stoi wsrod pozostalych.
  */
 export function PriceHistogram({
-  prices,
+  dane,
   marker,
+  cheaper,
   markerLabel = "ta oferta",
 }: {
-  prices: number[];
+  /* Kubelki policzone w bazie — patrz getPriceHistogram. */
+  dane: PriceHistogramData;
   /** Cena wyrozniona pionowa kreska. */
   marker?: number | null;
+  /** Ile ofert jest tanszych od `marker` — liczone osobnym zapytaniem. */
+  cheaper?: number | null;
   markerLabel?: string;
 }) {
-  if (prices.length < 6) return null;
+  const { min, max, total, counts } = dane;
+  if (counts.length === 0 || total < 6 || max === min) return null;
 
-  const min = Math.min(...prices);
-  const max = Math.max(...prices);
-  if (max === min) return null;
-
-  /*
-   * Liczba przedzialow rosnie z liczba ofert, ale nie powyzej 16 — przy
-   * wiekszej liczbie slupki robia sie wezsze od odstepu miedzy nimi i wykres
-   * zamienia sie w grzebien, z ktorego nic nie widac.
-   */
-  const bins = Math.min(16, Math.max(6, Math.round(Math.sqrt(prices.length))));
+  const bins = counts.length;
   const width = (max - min) / bins;
-
-  const counts = new Array<number>(bins).fill(0);
-  for (const p of prices) {
-    // Ostatnia probka (p === max) wpadlaby do nieistniejacego przedzialu.
-    const i = Math.min(bins - 1, Math.floor((p - min) / width));
-    counts[i]++;
-  }
   const peak = Math.max(...counts);
 
   const markerPct =
-    marker != null && marker >= min && marker <= max
-      ? ((marker - min) / (max - min)) * 100
-      : null;
-
-  // Ile ofert jest tanszych — konkretna liczba obok wykresu.
-  const cheaper = marker != null ? prices.filter((p) => p < marker).length : null;
+    marker != null && marker >= min && marker <= max ? ((marker - min) / (max - min)) * 100 : null;
 
   return (
     <div>
@@ -93,14 +79,14 @@ export function PriceHistogram({
       */}
       <div className="mt-1.5 flex items-center justify-between text-[11px] tabular-nums text-neutral-600">
         <span>{short(min)}</span>
-        {marker == null && <span>{prices.length} ofert</span>}
+        {marker == null && <span>{total} ofert</span>}
         <span>{short(max)}</span>
       </div>
 
       {marker != null && cheaper != null && (
         <p className="mt-1 text-center text-[11px] text-emerald-400">
           {markerLabel}: {pln.format(marker)} — tańsza od{" "}
-          {Math.round(((prices.length - cheaper) / prices.length) * 100)}% ofert
+          {Math.round(((total - cheaper) / total) * 100)}% ofert
         </p>
       )}
     </div>

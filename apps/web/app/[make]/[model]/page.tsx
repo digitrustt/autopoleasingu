@@ -12,7 +12,7 @@ import {
   getMakesWithCounts,
   getModelCards,
   getModelsWithCounts,
-  getPrices,
+  getPriceHistogram,
   getScatter,
   getSegmentStats,
   getYearBreakdown,
@@ -24,7 +24,16 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-export const revalidate = 3600;
+/*
+ * Odswiezanie RAZ NA DOBE, nie co godzine.
+ *
+ * Zaciag chodzi o 03:37, wiec czesciej nie ma czego przeliczac. Przy 1913
+ * stronach i robocie indeksujacym, ktory po nich chodzi, godzinny odswiez
+ * oznaczal dwadziescia cztery razy wiecej zapytan, niz wynika ze zmian
+ * w danych — i to on przekroczyl limit transferu Neona, zdejmujac caly
+ * serwis na trzy dni.
+ */
+export const revalidate = 86_400;
 
 const pln = new Intl.NumberFormat("pl-PL", {
   style: "currency",
@@ -117,12 +126,12 @@ export default async function ModelPage({
 
   const name = `${make} ${model}`;
 
-  const [stats, years, fuels, bodies, prices, scatter, offers] = await Promise.all([
+  const [stats, years, fuels, bodies, histogram, scatter, offers] = await Promise.all([
     getSegmentStats(make, aliasy),
     getYearBreakdown(make, aliasy),
     getFuelBreakdown(make, aliasy),
     getBodyBreakdown(make, aliasy),
-    getPrices(make, aliasy),
+    getPriceHistogram(make, aliasy),
     getScatter(make, aliasy),
     getListings({ make, model: aliasy, sort: "deal_desc" }, 1, 24),
   ]);
@@ -253,20 +262,20 @@ export default async function ModelPage({
         </section>
       )}
 
-      {(prices.length >= 6 || scatter.length >= 6) && (
+      {(histogram.counts.length > 0 || scatter.n >= 6) && (
         <section className="mb-8 grid gap-4 lg:grid-cols-2">
-          {prices.length >= 6 && (
+          {histogram.counts.length > 0 && (
             <div className="rounded-xl border border-[var(--color-line)] bg-[var(--color-panel)] p-4">
               <h2 className="text-lg font-semibold text-neutral-100">Rozkład cen</h2>
               <p className="mb-4 text-[13px] leading-relaxed text-neutral-500">
                 Sama mediana nie mówi, czy rynek jest jednolity. Tu widać, czy oferty skupiają
                 się wokół jednej ceny, czy rozpadają na dwie grupy.
               </p>
-              <PriceHistogram prices={prices} />
+              <PriceHistogram dane={histogram} />
             </div>
           )}
 
-          {scatter.length >= 6 && (
+          {scatter.n >= 6 && (
             <div className="rounded-xl border border-[var(--color-line)] bg-[var(--color-panel)] p-4">
               <h2 className="flex items-center gap-2 text-lg font-semibold text-neutral-100">
                 <Gauge size={17} className="text-neutral-600" />
@@ -276,7 +285,7 @@ export default async function ModelPage({
                 Ile realnie kosztuje każde dziesięć tysięcy kilometrów na tym modelu — czyli czy
                 opłaca się dopłacić za mniejszy przebieg.
               </p>
-              <MileagePrice points={scatter} />
+              <MileagePrice dane={scatter} />
             </div>
           )}
         </section>

@@ -5,7 +5,8 @@ import { resolveSlug } from "@/lib/slug";
 export const size = OG_SIZE;
 export const contentType = OG_TYPE;
 export const alt = "Oferty poleasingowe";
-export const revalidate = 3600;
+// Raz na dobe — obrazek powstaje z danych, ktore zmieniaja sie raz na dobe.
+export const revalidate = 86_400;
 
 const pln = new Intl.NumberFormat("pl-PL", {
   style: "currency", currency: "PLN", maximumFractionDigits: 0,

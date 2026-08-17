@@ -1,3 +1,4 @@
+import { BazaNiedostepna } from "@/components/BazaNiedostepna";
 import { Filters } from "@/components/Filters";
 import { Logo } from "@/components/Logo";
 import { Radar } from "@/components/Radar";
@@ -58,13 +59,30 @@ export default async function Page({ searchParams }: { searchParams: Promise<Sea
    * niezmienne miedzy filtrami. Ciezkie zapytanie o oferty siedzi w <Results>,
    * ponizej granicy Suspense.
    */
-  const [makes, models, sourceList, stats] = await Promise.all([
-    getMakes(),
-    // Lista modeli zalezy od wybranej marki — bez niej byloby tysiac pozycji.
-    getModels(current.make),
-    getSources(),
-    getStats(),
-  ]);
+  /*
+   * Awaria bazy nie moze wygladac jak awaria calego serwisu.
+   *
+   * Ta strona zalezy od parametrow wyszukiwania, wiec nie ma cache'a — gdy
+   * Neon odcial transfer za przekroczenie limitu, zwracala goly blad 500,
+   * podczas gdy strony z `revalidate` spokojnie serwowaly ostatnia dobra
+   * wersje. Lapiemy wiec blad i pokazujemy komunikat zamiast zrzutu wyjatku.
+   */
+  let makes: string[];
+  let models: string[];
+  let sourceList: Awaited<ReturnType<typeof getSources>>;
+  let stats: Awaited<ReturnType<typeof getStats>>;
+  try {
+    [makes, models, sourceList, stats] = await Promise.all([
+      getMakes(),
+      // Lista modeli zalezy od wybranej marki — bez niej byloby tysiac pozycji.
+      getModels(current.make),
+      getSources(),
+      getStats(),
+    ]);
+  } catch (err) {
+    console.error("strona glowna: baza niedostepna —", err);
+    return <BazaNiedostepna />;
+  }
 
   const pln = new Intl.NumberFormat("pl-PL", {
     style: "currency",

@@ -5,12 +5,7 @@ const pln = new Intl.NumberFormat("pl-PL", {
 });
 const num = new Intl.NumberFormat("pl-PL");
 
-export interface Point {
-  id: number;
-  mileageKm: number | null;
-  priceGross: number | null;
-  year: number | null;
-}
+import type { ScatterData } from "@/lib/queries";
 
 const W = 600;
 const H = 260;
@@ -25,30 +20,29 @@ const PAD = { left: 8, right: 8, top: 10, bottom: 8 };
  * ofert poleasingowych — czy doplacic za mniejszy przebieg, czy wziac
  * tanszy egzemplarz i przejechac te kilometry samemu.
  *
- * Linia to zwykla regresja liniowa metoda najmniejszych kwadratow. Przy tej
- * liczbie punktow (kilkadziesiat) cokolwiek bardziej wyrafinowanego udawaloby
- * precyzje, ktorej w danych nie ma.
+ * Linia to zwykla regresja liniowa metoda najmniejszych kwadratow, ale liczona
+ * W BAZIE (`regr_slope`, `regr_intercept`) i z CALOSCI danych. Punkty do
+ * narysowania chmury sa przyciete — przy 1250 ofertach i tak nakladaja sie na
+ * siebie na szerokosci 600 pikseli, a przesylanie ich wszystkich potrafilo
+ * przekroczyc limit transferu bazy.
  */
 export function MileagePrice({
-  points,
+  dane,
   highlight,
 }: {
-  points: Point[];
+  dane: ScatterData;
   /** Id oferty, ktora ma byc wyrozniona — uzywane na stronie oferty. */
   highlight?: number;
 }) {
+  const { points, n, slope, intercept, xMin, xMax, yMin, yMax } = dane;
+  if (n < 6 || xMin == null || xMax == null || yMin == null || yMax == null) return null;
+
   const pts = points.filter(
-    (p): p is Point & { mileageKm: number; priceGross: number } =>
+    (p): p is { id: number; mileageKm: number; priceGross: number } =>
       p.mileageKm != null && p.priceGross != null,
   );
-  if (pts.length < 6) return null;
+  if (pts.length === 0) return null;
 
-  const xs = pts.map((p) => p.mileageKm);
-  const ys = pts.map((p) => p.priceGross);
-  const xMin = Math.min(...xs);
-  const xMax = Math.max(...xs);
-  const yMin = Math.min(...ys);
-  const yMax = Math.max(...ys);
   // Zerowy zakres (wszystkie auta o tym samym przebiegu) dzielilby przez zero.
   const xSpan = xMax - xMin || 1;
   const ySpan = yMax - yMin || 1;
@@ -58,20 +52,9 @@ export function MileagePrice({
   const sx = (v: number) => PAD.left + ((v - xMin) / xSpan) * innerW;
   const sy = (v: number) => PAD.top + innerH - ((v - yMin) / ySpan) * innerH;
 
-  // Regresja liniowa: y = a + b·x.
-  const n = pts.length;
-  const mx = xs.reduce((s, v) => s + v, 0) / n;
-  const my = ys.reduce((s, v) => s + v, 0) / n;
-  let sxy = 0;
-  let sxx = 0;
-  for (let i = 0; i < n; i++) {
-    sxy += (xs[i] - mx) * (ys[i] - my);
-    sxx += (xs[i] - mx) ** 2;
-  }
-  const b = sxx === 0 ? 0 : sxy / sxx;
-  const a = my - b * mx;
   // Spadek na 10 tys. km — jedyna liczba, ktora ktokolwiek z tego wyniesie.
-  const per10k = -b * 10_000;
+  const per10k = slope != null ? -slope * 10_000 : 0;
+  const linia = slope != null && intercept != null;
 
   return (
     <div>
@@ -96,12 +79,12 @@ export function MileagePrice({
           />
         ))}
 
-        {b !== 0 && (
+        {linia && (
           <line
             x1={sx(xMin)}
-            y1={sy(a + b * xMin)}
+            y1={sy((intercept as number) + (slope as number) * xMin)}
             x2={sx(xMax)}
-            y2={sy(a + b * xMax)}
+            y2={sy((intercept as number) + (slope as number) * xMax)}
             stroke="#8b95a1"
             strokeWidth={1.5}
             strokeDasharray="5 4"
@@ -124,11 +107,6 @@ export function MileagePrice({
         })}
       </svg>
 
-      {/*
-        Skala i podpis w dwoch wierszach. Przy szerokosci telefonu zdanie
-        o spadku ceny wciskalo sie miedzy dwie liczby i lamalo tak, ze gorna
-        granica przebiegu ladowala w osobnej linijce, bez zadnego kontekstu.
-      */}
       <div className="mt-1 flex items-center justify-between text-[11px] tabular-nums text-neutral-600">
         <span>{num.format(xMin)} km</span>
         <span>{num.format(xMax)} km</span>
