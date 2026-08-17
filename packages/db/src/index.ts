@@ -29,14 +29,24 @@ const transakcyjny = url.includes(":6543");
 
 export const client = postgres(url, {
   /*
-   * Male pule sa tu celowe. Nie chodzi o wydajnosc pojedynczego zapytania,
-   * tylko o to, ile polaczen serwis potrafi otworzyc naraz — a przy
-   * renderowaniu na zadanie jest to trudne do przewidzenia.
+   * JEDNO polaczenie na instancje, nie trzy.
+   *
+   * Funkcja na Vercelu obsluguje jedno zadanie naraz, wiec wieksza pula nie
+   * przyspiesza niczego — a mnozy sie przez liczbe rownoczesnych instancji
+   * i wyczerpuje pooler. Zmierzone na produkcji przy puli 3: pierwsze dwa
+   * wejscia wisialy po czterdziesci sekund i konczyly sie pusta strona,
+   * kolejne szly w 1,5 s. Klasyczne wyczerpanie puli przy zimnym starcie.
    */
-  max: Number(process.env.DB_POOL_MAX ?? 3),
+  max: Number(process.env.DB_POOL_MAX ?? 1),
   prepare: !transakcyjny,
   connect_timeout: 10,
   idle_timeout: 20,
+  /*
+   * Zapytanie, ktore utknelo, ma polec, a nie wisiec do limitu funkcji.
+   * Bez tego uzytkownik zostawal z animacja ladowania w nieskonczonosc,
+   * bo obsluga bledu nigdy sie nie uruchamiala.
+   */
+  connection: { statement_timeout: 15_000 },
 });
 export const db = drizzle(client, { schema });
 
