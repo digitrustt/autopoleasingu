@@ -2,7 +2,7 @@ import { AlertSignup } from "@/components/AlertSignup";
 import { OfferCard } from "@/components/OfferCard";
 import { Pagination } from "@/components/Pagination";
 import { type Filters as F, PAGE_SIZE, countListings, getListings } from "@/lib/queries";
-import { SearchX } from "lucide-react";
+import { DatabaseZap, SearchX } from "lucide-react";
 import Link from "next/link";
 
 /**
@@ -22,10 +22,27 @@ export async function Results({
   page: number;
   params: Record<string, string | undefined>;
 }) {
-  const [offers, total] = await Promise.all([
-    getListings(filters, page),
-    countListings(filters),
-  ]);
+  /*
+   * Awaria bazy ma dac komunikat, a nie wieczny radar.
+   *
+   * Ten komponent siedzi pod granica Suspense, wiec gdy rzuci bledem, ktorego
+   * nikt nie lapie, uzytkownik zostaje z animacja ladowania na zawsze —
+   * dokladnie to widac bylo, gdy Neon odcial transfer.
+   */
+  let offers: Awaited<ReturnType<typeof getListings>>;
+  let total: number;
+  try {
+    [offers, total] = await Promise.all([getListings(filters, page), countListings(filters)]);
+  } catch (err) {
+    console.error("lista ofert: baza niedostepna —", err);
+    return (
+      <p className="flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm text-amber-200">
+        <DatabaseZap size={16} className="shrink-0" />
+        Nie możemy teraz odczytać bazy ofert. To awaria po naszej stronie — spróbuj za kilka
+        minut.
+      </p>
+    );
+  }
 
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const num = new Intl.NumberFormat("pl-PL");
