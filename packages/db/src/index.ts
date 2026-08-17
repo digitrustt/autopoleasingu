@@ -29,13 +29,16 @@ const transakcyjny = url.includes(":6543");
 
 export const client = postgres(url, {
   /*
-   * JEDNO polaczenie na instancje, nie trzy.
+   * Piec polaczen, nie jedno.
    *
-   * Funkcja na Vercelu obsluguje jedno zadanie naraz, wiec wieksza pula nie
-   * przyspiesza niczego — a mnozy sie przez liczbe rownoczesnych instancji
-   * i wyczerpuje pooler. Zmierzone na produkcji przy puli 3: pierwsze dwa
-   * wejscia wisialy po czterdziesci sekund i konczyly sie pusta strona,
-   * kolejne szly w 1,5 s. Klasyczne wyczerpanie puli przy zimnym starcie.
+   * Probowalem jednego, zeby oszczedzac pooler — i to byl blad. Gdy jedno
+   * polaczenie sie zepsuje, cala instancja funkcji jest martwa i KAZDE kolejne
+   * zadanie na niej wisi do limitu. Objawialo sie to idealnie naprzemiennym
+   * wzorcem: co drugie wejscie szlo w sekunde, co drugie ubijalo sie na
+   * limicie funkcji.
+   *
+   * Pooler Supabase w trybie transakcyjnym udzwignie to bez problemu:
+   * zmierzone, dwunastu rownoczesnych klientow odpowiada w 1,2 s.
    */
   /*
    * Wyjatek na czas budowania. Next prerenderuje wtedy wiele stron ROWNOCZESNIE
@@ -46,7 +49,7 @@ export const client = postgres(url, {
    */
   max: Number(
     process.env.DB_POOL_MAX ??
-      (process.env.NEXT_PHASE === "phase-production-build" ? 8 : 1),
+      (process.env.NEXT_PHASE === "phase-production-build" ? 8 : 5),
   ),
   prepare: !transakcyjny,
   connect_timeout: 10,
