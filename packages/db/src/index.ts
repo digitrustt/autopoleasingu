@@ -50,7 +50,18 @@ export const client = postgres(url, {
   ),
   prepare: !transakcyjny,
   connect_timeout: 10,
-  idle_timeout: 20,
+  /*
+   * Polaczenie oddajemy poolerowi po DWOCH sekundach bezczynnosci, nie po
+   * dwudziestu.
+   *
+   * Na Vercelu instancje funkcji zyja dlugo po obsluzeniu zadania, a kazda
+   * trzymala wlasne polaczenie. Przy kilkunastu instancjach naraz wyczerpywalo
+   * to limit klientow poolera Supabase i kolejne zadania nie dostawaly juz
+   * polaczenia — objawialo sie to tym, ze pierwsze wejscie szlo w sekunde,
+   * a nastepne wisialy do limitu czasu.
+   */
+  idle_timeout: 2,
+  max_lifetime: 60,
   /*
    * Zapytanie, ktore utknelo, ma polec, a nie wisiec do limitu funkcji.
    * Bez tego uzytkownik zostawal z animacja ladowania w nieskonczonosc,
