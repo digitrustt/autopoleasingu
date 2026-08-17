@@ -37,7 +37,17 @@ export const client = postgres(url, {
    * wejscia wisialy po czterdziesci sekund i konczyly sie pusta strona,
    * kolejne szly w 1,5 s. Klasyczne wyczerpanie puli przy zimnym starcie.
    */
-  max: Number(process.env.DB_POOL_MAX ?? 1),
+  /*
+   * Wyjatek na czas budowania. Next prerenderuje wtedy wiele stron ROWNOCZESNIE
+   * w jednym procesie, wiec pula jednego polaczenia ustawia je wszystkie
+   * w kolejce — `/vin` przekraczal przez to limit 60 s na strone i wywracal
+   * caly build. W czasie dzialania zostaje jedno polaczenie, bo tam kazda
+   * instancja funkcji obsluguje jedno zadanie naraz.
+   */
+  max: Number(
+    process.env.DB_POOL_MAX ??
+      (process.env.NEXT_PHASE === "phase-production-build" ? 8 : 1),
+  ),
   prepare: !transakcyjny,
   connect_timeout: 10,
   idle_timeout: 20,
