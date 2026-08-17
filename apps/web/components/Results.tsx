@@ -32,16 +32,7 @@ export async function Results({
   let offers: Awaited<ReturnType<typeof getListings>>;
   let total: number;
   try {
-    /*
-     * Osiem sekund i koniec. Bez tego zatkane zapytanie trzymalo funkcje az do
-     * jej limitu, a uzytkownik ogladal radar przez czterdziesci piec sekund.
-     */
-    [offers, total] = await Promise.race([
-      Promise.all([getListings(filters, page), countListings(filters)]),
-      new Promise<never>((_, odrzuc) =>
-        setTimeout(() => odrzuc(new Error("baza nie odpowiedziala w 8 s")), 8000),
-      ),
-    ]);
+    [offers, total] = await Promise.all([getListings(filters, page), countListings(filters)]);
   } catch (err) {
     console.error("lista ofert: baza niedostepna —", err);
     return (

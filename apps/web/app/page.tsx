@@ -77,34 +77,18 @@ export default async function Page({ searchParams }: { searchParams: Promise<Sea
    * podczas gdy strony z `revalidate` spokojnie serwowaly ostatnia dobra
    * wersje. Lapiemy wiec blad i pokazujemy komunikat zamiast zrzutu wyjatku.
    */
-  /*
-   * Wlasny limit czasu na zapytania — 8 sekund.
-   *
-   * `connect_timeout` w kliencie nie pomagal, bo polaczenie bylo nawiazywane,
-   * a zapytanie i tak nie wracalo. Bez tego wyscigu uzytkownik zostawal
-   * z animacja ladowania az do limitu funkcji. Lepiej pokazac komunikat po
-   * osmiu sekundach niz nie pokazac nic po czterdziestu pieciu.
-   */
-  const limit = <T,>(p: Promise<T>): Promise<T> =>
-    Promise.race([
-      p,
-      new Promise<never>((_, odrzuc) =>
-        setTimeout(() => odrzuc(new Error("baza nie odpowiedziala w 8 s")), 8000),
-      ),
-    ]);
-
   let makes: string[];
   let models: string[];
   let sourceList: Awaited<ReturnType<typeof getSources>>;
   let stats: Awaited<ReturnType<typeof getStats>>;
   try {
-    [makes, models, sourceList, stats] = await limit(Promise.all([
+    [makes, models, sourceList, stats] = await Promise.all([
       getMakes(),
       // Lista modeli zalezy od wybranej marki — bez niej byloby tysiac pozycji.
       getModels(current.make),
       getSources(),
       getStats(),
-    ]));
+    ]);
   } catch (err) {
     console.error("strona glowna: baza niedostepna —", err);
     return <BazaNiedostepna />;
