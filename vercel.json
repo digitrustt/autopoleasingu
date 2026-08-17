@@ -1,0 +1,15 @@
+// dub1 = Dublin, ten sam region co baza (Supabase eu-west-1).
+// 
+// Domyslnie funkcje chodzily w iad1 (Waszyngton), a baza stoi w Irlandii — kazde
+// z siedmiu zapytan strony glownej lecialo wiec przez Atlantyk i wracalo. Przy
+// zimnym starcie dochodzi do tego nawiazanie polaczenia TLS i uwierzytelnienie
+// w poolerze na tej samej trasie.
+// 
+// Bliskosc bazy wygrywa tu z bliskoscia uzytkownika: zapytan jest kilka na
+// render, a odpowiedz HTML leci do Polski raz.
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "regions": [
+    "dub1"
+  ]
+}
