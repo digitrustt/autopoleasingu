@@ -58,6 +58,10 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           SCRAPER_CONTACT: ${{ secrets.SCRAPER_CONTACT }}
+          # Te trzy odrzucaja ruch z IP centrow danych — zaciaga je launchd
+          # na Macu. Bez tego pominiecia vwfs zwracal 403 i wywracal caly
+          # przebieg na czerwono, mimo ze 25 pozostalych konczylo sie sukcesem.
+          SKIP_SOURCES: alphabet,vwfs,carefleet
           # leasyGROUP serwuje niepelny lancuch TLS — patrz apps/worker/package.json
           NODE_EXTRA_CA_CERTS: ${{ github.workspace }}/scripts/certs/certum-dv-tls-g2-r39.pem
         run: |
@@ -94,6 +98,16 @@ jobs:
 
       # Bez tego cichy zgon adaptera przechodzi niezauwazony: przebieg konczy sie
       # sukcesem, tylko oferty przestaja dochodzic.
+      # Cache stron trzyma sie dobe, ale liczonej od pierwszego wejscia, nie od
+      # zaciagu — bez tego kroku strona odwiedzona wieczorem pokazywalaby dane
+      # sprzed doby, mimo ze scraper chodzil nad ranem.
+      - name: Odswiez cache strony
+        if: always()
+        run: |
+          curl -sS -X POST https://autopoleasingu.pl/api/odswiez \
+            -H "Authorization: Bearer ${{ secrets.REVALIDATE_SECRET }}" \
+            --max-time 60 || echo "nie udalo sie odswiezyc cache"
+
       - name: Podsumowanie
         if: always()
         env:

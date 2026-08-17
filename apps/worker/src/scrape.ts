@@ -20,7 +20,30 @@ const detailLimit = Number(arg("limit") ?? 300);
 const refreshAfterHours = Number(arg("refresh-after") ?? 24);
 const dryRun = has("dry-run");
 
-const selected = only ? adapters.filter((a) => a.id === only) : adapters;
+/*
+ * Zrodla do pominiecia, np. SKIP_SOURCES="vwfs,alphabet,carefleet".
+ *
+ * alphabet, vwfs i carefleet odrzucaja ruch z zakresow IP centrow danych:
+ * z runnera GitHuba zwracaja HTTP 403 albo zrywaja polaczenie, a z lacza
+ * domowego odpowiadaja normalnie. Zaciaga je launchd na Macu (patrz
+ * scripts/com.auta.blocked.plist), ale dotad NADAL byly odpalane rowniez
+ * w Actions — i wywracaly tam caly przebieg na czerwono, mimo ze pozostale
+ * 25 zrodel konczylo sie sukcesem.
+ */
+const skip = new Set(
+  (process.env.SKIP_SOURCES ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean),
+);
+
+const selected = only
+  ? adapters.filter((a) => a.id === only)
+  : adapters.filter((a) => !skip.has(a.id));
+
+if (skip.size > 0 && !only) {
+  console.log(`Pomijam ${skip.size} zrodel: ${[...skip].join(", ")}`);
+}
 if (selected.length === 0) {
   console.error(`Nie znam zrodla "${only}". Dostepne: ${adapters.map((a) => a.id).join(", ")}`);
   process.exit(1);
