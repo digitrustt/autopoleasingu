@@ -2,7 +2,13 @@ name: Zaciag ofert
 
 # Raz dziennie. Auto to nie buty — nikt nie kupuje go w 10 minut, wiec cykl
 # dziesieciominutowy z pierwotnego planu byl rozwiazaniem problemu, ktorego
-# nie ma. Dobowy przebieg kosztuje ~25 min z darmowego limitu 2000 min/mc.
+# nie ma.
+#
+# KOSZT, ZMIERZONY PO FAKCIE: nie ~25 minut, jak tu wczesniej stalo, tylko
+# 42 minuty srednio i do 66 w szczycie. Przy prywatnym repo zjadlo to 855
+# z 2000 darmowych minut w czternascie dni i limit padl. Repo jest teraz
+# publiczne, wiec minuty sa nielimitowane — ale przebieg i tak zostal
+# skrocony, bo przez caly ten czas wali w 26 cudzych serwisow.
 on:
   schedule:
     # 03:37 UTC, nie 03:00. Rowna godzina to najbardziej obciazony moment
@@ -15,7 +21,7 @@ on:
     inputs:
       limit:
         description: "Ile detali na zrodlo"
-        default: "150"
+        default: "60"
       source:
         description: "Tylko jedno zrodlo (puste = wszystkie)"
         default: ""
@@ -28,8 +34,9 @@ concurrency:
 jobs:
   scrape:
     runs-on: ubuntu-latest
-    # Pelny przelot to ~25 min; limit z zapasem na wolniejsze zrodla.
-    timeout-minutes: 90
+    # Zmierzone: 42 min srednio przy limicie 150, ~25 min przy 60.
+    # Zapas na wolniejsze zrodla, ale nie na zawieszony przebieg.
+    timeout-minutes: 60
 
     steps:
       - uses: actions/checkout@v4
@@ -66,9 +73,15 @@ jobs:
           NODE_EXTRA_CA_CERTS: ${{ github.workspace }}/scripts/certs/certum-dv-tls-g2-r39.pem
         run: |
           if [ -n "${{ inputs.source }}" ]; then
-            pnpm scrape --source "${{ inputs.source }}" --limit "${{ inputs.limit || 150 }}"
+            pnpm scrape --source "${{ inputs.source }}" --limit "${{ inputs.limit || 60 }}"
           else
-            pnpm scrape --limit "${{ inputs.limit || 150 }}" --refresh-after 20
+            # 60 detali na zrodlo, nie 150.
+            #
+            # Nowe oferty i tak ida na POCZATEK kolejki detali, wiec ich
+            # wykrywanie nie cierpi — schodzi wylacznie tempo odswiezania cen
+            # w ofertach, ktore stoja juz od kilku dni. Za to przebieg trwa
+            # o polowe krocej i o polowe mniej dobijamy sie do zrodel.
+            pnpm scrape --limit "${{ inputs.limit || 60 }}" --refresh-after 20
           fi
 
       # Wycena PO zaciagu — mediana musi widziec komplet danych, inaczej
