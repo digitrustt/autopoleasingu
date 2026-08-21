@@ -20,6 +20,7 @@ const LINKS = [
   { href: "/porownaj", label: "Porównania" },
   { href: "/vin", label: "Sprawdź VIN" },
   { href: "/dane", label: "Dane rynkowe" },
+  { href: "/analizy/ten-sam-vin-dwie-ceny", label: "Ten sam VIN, dwie ceny" },
   { href: "/zrodla", label: "Źródła" },
   { href: "/regulamin", label: "Regulamin" },
   { href: "/polityka-prywatnosci", label: "Prywatność" },

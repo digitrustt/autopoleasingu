@@ -54,6 +54,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE}/porownaj`, changeFrequency: "weekly", priority: 0.8 },
     { url: `${BASE}/vin`, changeFrequency: "weekly", priority: 0.6 },
     { url: `${BASE}/dane`, changeFrequency: "daily", priority: 0.8 },
+    {
+      url: `${BASE}/analizy/ten-sam-vin-dwie-ceny`,
+      changeFrequency: "daily",
+      priority: 0.8,
+    },
     { url: `${BASE}/regulamin`, changeFrequency: "yearly", priority: 0.2 },
     { url: `${BASE}/polityka-prywatnosci`, changeFrequency: "yearly", priority: 0.2 },
     { url: `${BASE}/cookies`, changeFrequency: "yearly", priority: 0.2 },

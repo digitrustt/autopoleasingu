@@ -1555,3 +1555,41 @@ export async function getVinSpread() {
     );
   return row;
 }
+
+/**
+ * Najwieksze rozjazdy cen tego samego egzemplarza — z konkretami.
+ *
+ * `getVinSpread` daje same liczby zbiorcze; ta funkcja daje auta, ktore da sie
+ * kliknac i sprawdzic. To jest roznica miedzy "twierdzimy, ze rozjazdy istnieja"
+ * a "oto osiem sztuk, otworz obie oferty i zobacz sam".
+ */
+export async function getTopSpreads(limit = 10) {
+  const rows = await db.execute(sql`
+    select
+      min(vin)                                       as vin,
+      min(make || ' ' || model)                      as auto,
+      min(year)                                      as rok,
+      min(price_gross)::int                          as taniej,
+      max(price_gross)::int                          as drozej,
+      (max(price_gross) - min(price_gross))::int     as roznica,
+      count(distinct source_id)::int                 as zrodel
+    from listings
+    where status = 'active' and vin is not null
+      and price_gross is not null and offer_kind = 'fixed'
+    group by vin
+    having count(distinct source_id) > 1
+       and max(price_gross) > min(price_gross)
+    order by max(price_gross) - min(price_gross) desc
+    limit ${limit}
+  `);
+
+  return (rows as unknown as Record<string, unknown>[]).map((r) => ({
+    vin: String(r.vin),
+    auto: String(r.auto),
+    rok: r.rok == null ? null : Number(r.rok),
+    taniej: Number(r.taniej),
+    drozej: Number(r.drozej),
+    roznica: Number(r.roznica),
+    zrodel: Number(r.zrodel),
+  }));
+}
