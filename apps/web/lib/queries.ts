@@ -1475,3 +1475,83 @@ export async function getWmiMake(vin: string): Promise<string | null> {
   const suma = rows.reduce((n, r) => n + r.n, 0);
   return rows[0].n / suma > 0.95 ? rows[0].make : null;
 }
+
+/* ────────────────────────────────────────────────────────────────────────────
+ * Dane rynkowe — /dane
+ *
+ * Liczby o CALYM rynku poleasingowym, nie o pojedynczej marce. Powstalo, bo
+ * to jest jedyna rzecz w tym serwisie, ktora ma wartosc jako CYTAT: mediana
+ * ceny, utrata wartosci po roczniku, rozjazdy cen tego samego egzemplarza.
+ * Dziennikarz albo model jezykowy potrzebuje jednej liczby ze zrodlem, a nie
+ * wyszukiwarki z filtrami.
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+/** Mediana ceny i przebiegu dla calego rynku, po roczniku. */
+export async function getMarketByYear() {
+  return db
+    .select({
+      year: listings.year,
+      total: sql<number>`count(*)::int`,
+      medianPrice: sql<number>`percentile_cont(0.5) within group (
+        order by ${listings.priceGross}
+      )::int`,
+      medianMileage: sql<number | null>`percentile_cont(0.5) within group (
+        order by ${listings.mileageKm}
+      )::int`,
+    })
+    .from(listings)
+    .where(and(LIVE, eq(listings.offerKind, "fixed"), isNotNull(listings.year)))
+    .groupBy(listings.year)
+    .having(sql`count(*) >= 20`)
+    .orderBy(desc(listings.year));
+}
+
+/** Mediana ceny wedlug paliwa — dla calego rynku. */
+export async function getMarketByFuel() {
+  return db
+    .select({
+      fuel: listings.fuel,
+      total: sql<number>`count(*)::int`,
+      medianPrice: sql<number>`percentile_cont(0.5) within group (
+        order by ${listings.priceGross}
+      )::int`,
+      medianYear: sql<number | null>`percentile_cont(0.5) within group (
+        order by ${listings.year}
+      )::int`,
+    })
+    .from(listings)
+    .where(and(LIVE, eq(listings.offerKind, "fixed"), isNotNull(listings.fuel)))
+    .groupBy(listings.fuel)
+    .having(sql`count(*) >= 50`)
+    .orderBy(desc(sql`count(*)`));
+}
+
+/**
+ * Rozjazdy cen tego samego egzemplarza — najmocniejsza liczba w tej bazie.
+ *
+ * Liczone WYLACZNIE miedzy ofertami "kup teraz" i tylko wtedy, gdy ten sam VIN
+ * wystepuje u ROZNYCH zrodel. Cena aukcyjna jeszcze urosnie, wiec zestawianie
+ * jej z cena zakupu dawaloby roznice, ktora zniknie do konca licytacji.
+ */
+export async function getVinSpread() {
+  const [row] = await db
+    .select({
+      par: sql<number>`count(*)::int`,
+      ponad10k: sql<number>`count(*) filter (where roz >= 10000)::int`,
+      max: sql<number | null>`max(roz)::int`,
+      mediana: sql<number | null>`percentile_cont(0.5) within group (order by roz)::int`,
+      suma: sql<number | null>`sum(roz)::bigint`,
+    })
+    .from(
+      sql`(
+        select max(${listings.priceGross}) - min(${listings.priceGross}) as roz
+        from ${listings}
+        where ${listings.status} = 'active' and ${listings.vin} is not null
+          and ${listings.priceGross} is not null and ${listings.offerKind} = 'fixed'
+        group by ${listings.vin}
+        having count(distinct ${listings.sourceId}) > 1
+           and max(${listings.priceGross}) > min(${listings.priceGross})
+      ) as pary`,
+    );
+  return row;
+}

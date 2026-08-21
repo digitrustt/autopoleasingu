@@ -19,6 +19,7 @@ const LINKS = [
   { href: "/poleasingowe", label: "Miasta" },
   { href: "/porownaj", label: "Porównania" },
   { href: "/vin", label: "Sprawdź VIN" },
+  { href: "/dane", label: "Dane rynkowe" },
   { href: "/zrodla", label: "Źródła" },
   { href: "/regulamin", label: "Regulamin" },
   { href: "/polityka-prywatnosci", label: "Prywatność" },
