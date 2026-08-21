@@ -1,4 +1,4 @@
-import { getMakesWithCounts, getSitemapEntries, getStats } from "@/lib/queries";
+import { getMakesWithCounts, getStats } from "@/lib/queries";
 import { makeHref } from "@/lib/slug";
 
 export const revalidate = 86_400;
@@ -22,11 +22,15 @@ const BASE = "https://autopoleasingu.pl";
  * `[make]` — czyli crawler dostawal smieci zamiast 404.
  */
 export async function GET() {
-  const [stats, makes, mapa] = await Promise.all([
-    getStats(),
-    getMakesWithCounts(),
-    getSitemapEntries(),
-  ]);
+  /*
+   * Tylko dwa lekkie zapytania.
+   *
+   * Wczesniej bylo tu rowniez `getSitemapEntries()` — piec agregacji po calej
+   * tabeli — zeby podac liczbe stron marek, modeli i miast. Przy budowaniu na
+   * Vercelu przekraczalo to serwerowy `statement_timeout` i wywracalo caly
+   * deploy. Te liczby byly ozdoba, a nie informacja, wiec ich nie ma.
+   */
+  const [stats, makes] = await Promise.all([getStats(), getMakesWithCounts()]);
 
   const topMarki = makes
     .slice(0, 12)
@@ -48,7 +52,7 @@ Dane odswiezane codziennie.
 - Zrodel: 26
 - Mediana ceny (tylko oferty "kup teraz", bez licytacji): ${num.format(stats.medianPrice)} zl
 - Nowych ofert w ostatniej dobie: ${num.format(stats.newToday)}
-- Stron marek: ${mapa.makes.length}, modeli: ${mapa.models.length}, miast: ${mapa.cities.length}
+- Marek w bazie: ${makes.length}
 
 ## Czego ten serwis NIE ma
 
@@ -70,8 +74,10 @@ przebiegu, paliwa i skrzyni — nie wzgledem sredniej calego modelu.
 
 ## Glowne sekcje
 
+- [Dane rynkowe](${BASE}/dane): mediana cen po roczniku i paliwie, metodologia
+
 - [Wszystkie oferty](${BASE}/): wyszukiwarka z filtrami
-- [Kategorie i miasta](${BASE}/poleasingowe): progi cenowe, nadwozia, paliwa, ${mapa.cities.length} miast
+- [Kategorie i miasta](${BASE}/poleasingowe): progi cenowe, nadwozia, paliwa, miasta
 - [Porownania modeli](${BASE}/porownaj): ceny dwoch modeli obok siebie
 - [Zrodla](${BASE}/zrodla): lista 26 zrodel ze stanem kazdego
 - [Sprawdzenie VIN](${BASE}/vin): czy ten sam egzemplarz stoi gdzies taniej
