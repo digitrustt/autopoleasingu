@@ -121,6 +121,15 @@ jobs:
             -H "Authorization: Bearer ${{ secrets.REVALIDATE_SECRET }}" \
             --max-time 60 || echo "nie udalo sie odswiezyc cache"
 
+      # Bing i Yandex indeksuja zgloszony adres w ciagu godzin, zamiast czekac
+      # az robot sam wroci. Wyszukiwarka ChatGPT korzysta z indeksu Bing, wiec
+      # to najkrotsza droga do tego, zeby modele widzialy nowe strony.
+      - name: IndexNow
+        if: always()
+        env:
+          INDEXNOW_KEY: ${{ secrets.INDEXNOW_KEY }}
+        run: pnpm --filter @auta/worker indexnow || echo "indexnow nie przeszlo"
+
       - name: Podsumowanie
         if: always()
         env:
