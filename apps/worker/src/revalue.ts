@@ -112,12 +112,25 @@ async function main() {
    * Czyscimy najpierw wszystko: oferta, ktora wypadla z koszyka (bo zmienil sie
    * przebieg albo koszyk schudl ponizej progu), musi stracic ocene, a nie
    * zostac ze starym wynikiem w nieskonczonosc.
+   *
+   * ALE TYLKO OFERTY AKTYWNE.
+   *
+   * Wczesniej czyscilo to wszystko bez wyjatku, a ocene dostawaly wylacznie
+   * oferty aktywne — wiec kazda znikajaca oferta gubila swoj deal score
+   * dokladnie w chwili, w ktorej stawal sie on informacja. Skutek byl taki, ze
+   * ze zniknietych ofert ANI JEDNA nie miala oceny: 0 na 5186. Przez to nie
+   * dalo sie odpowiedziec na najwazniejsze pytanie w tym projekcie — czy auta
+   * oznaczone jako okazje faktycznie schodza szybciej od reszty rynku.
+   *
+   * Ostatnia ocena zniknietej oferty zostaje wiec zamrozona i sluzy juz tylko
+   * do pomiaru trafnosci wyceny, nie do wyswietlania.
    */
   await db.execute(sql`
     update listings
        set market_price = null, deal_score = null,
            deal_samples = null, deal_from_sold = false
-     where deal_score is not null or market_price is not null
+     where status = 'active'
+       and (deal_score is not null or market_price is not null)
   `);
 
   const updated = await db.execute(sql`
