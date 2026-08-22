@@ -1,7 +1,17 @@
 import { getMakesWithCounts, getStats } from "@/lib/queries";
 import { makeHref } from "@/lib/slug";
 
-export const revalidate = 86_400;
+/*
+ * Renderowane NA ZADANIE, nie przy buildzie.
+ *
+ * Trasa bez parametrow i z `revalidate` jest przez Next prerenderowana podczas
+ * budowania — a wtedy kilkanascie stron liczy agregacje rownoczesnie przez
+ * jedno polaczenie poolera i przekracza jego limit czasu zapytania. Podnoszenie
+ * `statement_timeout` po stronie serwera nie pomoglo, bo Supavisor narzuca
+ * wlasny. Ten plik i tak jest cache'owany przez CDN naglowkiem nizej, wiec
+ * renderowanie na zadanie nic nie kosztuje.
+ */
+export const dynamic = "force-dynamic";
 
 const num = new Intl.NumberFormat("pl-PL");
 const BASE = "https://autopoleasingu.pl";

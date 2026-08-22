@@ -5,7 +5,13 @@ import { Copy } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
-export const revalidate = 86_400;
+/*
+ * Renderowane na zadanie, nie przy buildzie: te strony licza agregacje po calej
+ * tabeli, a przy prerenderowaniu kilkunastu naraz przekraczaly limit czasu
+ * zapytania w poolerze i wywracaly caly deploy. Pierwszy odwiedzajacy placi za
+ * jedno przeliczenie, kolejni dostaja odpowiedz z cache'u brzegowego.
+ */
+export const dynamic = "force-dynamic";
 
 const pln = new Intl.NumberFormat("pl-PL", {
   style: "currency", currency: "PLN", maximumFractionDigits: 0,
