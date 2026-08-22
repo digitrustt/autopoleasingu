@@ -99,7 +99,60 @@ const pozostale: Kategoria[] = [
   },
 ];
 
-export const KATEGORIE: Kategoria[] = [...cenowe, ...nadwozia, ...paliwa, ...pozostale];
+/*
+ * Prog cenowy skrzyzowany z cecha — "do 50 tys. automat", "do 80 tys. SUV".
+ *
+ * Google podpowiada nie samo "auto do 50 tys", tylko wlasnie te krzyzowki:
+ * automat, suv, benzyna. Sa one CELOWO ograniczone do dwoch wymiarow i do par,
+ * ktore maja w bazie co najmniej kilkadziesiat ofert — pelna krzyzowka marka
+ * razy nadwozie razy prog dalaby tysiace stron po kilka ofert, czyli dokladnie
+ * te strony przelotowe, za ktore Google karze cala domene.
+ */
+const KRZYZOWKI: Kategoria[] = [
+  { prog: 50, cecha: "hatchback", nazwa: "hatchback" },
+  { prog: 50, cecha: "kombi", nazwa: "kombi" },
+  { prog: 50, cecha: "automat", nazwa: "automat" },
+  { prog: 60, cecha: "hatchback", nazwa: "hatchback" },
+  { prog: 60, cecha: "kombi", nazwa: "kombi" },
+  { prog: 60, cecha: "sedan", nazwa: "sedan" },
+  { prog: 60, cecha: "automat", nazwa: "automat" },
+  { prog: 80, cecha: "hatchback", nazwa: "hatchback" },
+  { prog: 80, cecha: "kombi", nazwa: "kombi" },
+  { prog: 80, cecha: "suv", nazwa: "SUV" },
+  { prog: 80, cecha: "sedan", nazwa: "sedan" },
+  { prog: 80, cecha: "automat", nazwa: "automat" },
+  { prog: 80, cecha: "benzyna", nazwa: "benzyna" },
+  { prog: 100, cecha: "suv", nazwa: "SUV" },
+  { prog: 100, cecha: "kombi", nazwa: "kombi" },
+  { prog: 100, cecha: "hatchback", nazwa: "hatchback" },
+  { prog: 100, cecha: "sedan", nazwa: "sedan" },
+  { prog: 100, cecha: "automat", nazwa: "automat" },
+  { prog: 150, cecha: "suv", nazwa: "SUV" },
+  { prog: 150, cecha: "automat", nazwa: "automat" },
+].map(({ prog, cecha, nazwa }) => {
+  const filtry: Filters = { priceMax: prog * 1000, withPrice: "1", kind: "fixed" };
+  if (cecha === "automat") filtry.gearbox = "automatic";
+  else if (cecha === "benzyna") filtry.fuel = "petrol";
+  else filtry.bodyGroup = cecha;
+
+  return {
+    slug: `do-${prog}-tys-${cecha}`,
+    nazwa: `do ${prog} tys. — ${nazwa}`,
+    h1: `Samochody poleasingowe do ${prog} tys. zł — ${nazwa}`,
+    opis:
+      `Auta poleasingowe w cenie do ${prog} 000 zł, wyłącznie ${nazwa}. Ceny „kup teraz”, ` +
+      "bez licytacji.",
+    filtry,
+  };
+});
+
+export const KATEGORIE: Kategoria[] = [
+  ...cenowe,
+  ...nadwozia,
+  ...paliwa,
+  ...pozostale,
+  ...KRZYZOWKI,
+];
 
 const WEDLUG_SLUGA = new Map(KATEGORIE.map((k) => [k.slug, k]));
 
@@ -109,6 +162,7 @@ export function znajdzKategorie(slug: string): Kategoria | null {
 
 export const GRUPY: { tytul: string; pozycje: Kategoria[] }[] = [
   { tytul: "Według ceny", pozycje: cenowe },
+  { tytul: "Cena i nadwozie", pozycje: KRZYZOWKI },
   { tytul: "Według nadwozia", pozycje: nadwozia },
   { tytul: "Według paliwa", pozycje: paliwa },
   { tytul: "Pozostałe", pozycje: pozostale },

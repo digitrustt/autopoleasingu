@@ -59,6 +59,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "daily",
       priority: 0.8,
     },
+    {
+      url: `${BASE}/analizy/utrata-wartosci`,
+      changeFrequency: "weekly",
+      priority: 0.8,
+    },
     { url: `${BASE}/regulamin`, changeFrequency: "yearly", priority: 0.2 },
     { url: `${BASE}/polityka-prywatnosci`, changeFrequency: "yearly", priority: 0.2 },
     { url: `${BASE}/cookies`, changeFrequency: "yearly", priority: 0.2 },

@@ -1492,6 +1492,8 @@ export async function getMarketByYear() {
     .select({
       year: listings.year,
       total: sql<number>`count(*)::int`,
+      // Wykres YearBars oczekuje rowniez ceny minimalnej — patrz komponent.
+      minPrice: sql<number>`min(${listings.priceGross})::int`,
       medianPrice: sql<number>`percentile_cont(0.5) within group (
         order by ${listings.priceGross}
       )::int`,
