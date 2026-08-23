@@ -49,7 +49,14 @@ import { notFound } from "next/navigation";
  * zmiany szybciej niz zaciag, ktory chodzi raz na dobe. Krocej niz na stronach
  * marki, bo tu liczy sie cena i to, czy oferta jeszcze zyje.
  */
-export const revalidate = 21_600;
+/*
+ * Doba, nie szesc godzin. Odkad robot znow moze chodzic po ofertach (patrz
+ * robots.ts), liczba renderow decyduje o obciazeniu bazy: 23 tys. ofert razy
+ * cztery przeliczenia na dobe to sto tysiecy renderow, razy jedno — dwadziescia
+ * trzy tysiace, czyli okolo szesnastu na minute. W ofercie i tak zmienia sie
+ * wylacznie cena, a te wychwytuje odswiez po zaciagu (api/odswiez).
+ */
+export const revalidate = 86_400;
 
 const pln = new Intl.NumberFormat("pl-PL", {
   style: "currency",
