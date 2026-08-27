@@ -11,6 +11,14 @@ const ALLOWED = [
   "q", "make", "model", "source", "priceMin", "priceMax",
   "yearMin", "yearMax", "mileageMax", "powerMin",
   "fuel", "gearbox", "body", "kind", "dealMin",
+  /*
+   * `city` i `bodyGroup` doszly razem z paskami zapisu na stronach miast
+   * i kategorii. Bez nich zapis "powiadom o ofertach w Krakowie" przechodzil
+   * walidacje, ale zapisywal sie BEZ filtra — czyli jako ogolny newsletter,
+   * mimo obietnicy zlozonej na stronie. Obie kolumny obsluguje whereFor
+   * z lib/queries, wiec worker dopasowuje je tak samo jak wyszukiwarka.
+   */
+  "city", "bodyGroup",
 ] as const;
 
 /**

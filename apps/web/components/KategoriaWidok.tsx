@@ -1,4 +1,5 @@
 import { Crumbs } from "@/components/Crumbs";
+import { ZapisPasek } from "@/components/ZapisPasek";
 import { OfferCard } from "@/components/OfferCard";
 import { StatStrip } from "@/components/StatStrip";
 import { GRUPY, type Kategoria } from "@/lib/filtry";
@@ -162,6 +163,18 @@ export async function KategoriaWidok({ k }: { k: Kategoria }) {
           </ul>
         </section>
       ))}
+
+      <ZapisPasek
+        typ="kategoria"
+        tytul={`Powiadomić o nowych — ${k.nazwa}?`}
+        opis={`${k.opis} Gdy dojdą nowe, dostaniesz maila raz dziennie.`}
+        label={k.nazwa}
+        filters={Object.fromEntries(
+          Object.entries(k.filtry)
+            .filter(([, v]) => v != null && v !== "")
+            .map(([key, v]) => [key, String(v)]),
+        )}
+      />
     </main>
   );
 }

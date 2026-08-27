@@ -1,4 +1,5 @@
 import { Crumbs } from "@/components/Crumbs";
+import { ZapisPasek } from "@/components/ZapisPasek";
 import { OfferCard } from "@/components/OfferCard";
 import { ModelGrid } from "@/components/ModelGrid";
 import { StatStrip } from "@/components/StatStrip";
@@ -394,6 +395,16 @@ export default async function ModelPage({
         </section>
       )}
 
+      <ZapisPasek
+        typ="model"
+        tytul={`Powiadomić o nowych ${make} ${model}?`}
+        opis={
+          `Sprawdzamy 26 źródeł codziennie. Gdy pojawi się nowy ${make} ${model} — ` +
+          "albo któryś z obecnych stanieje — dostaniesz maila."
+        }
+        label={`${make} ${model}`}
+        filters={{ make, model }}
+      />
     </main>
   );
 }

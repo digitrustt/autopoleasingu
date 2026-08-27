@@ -1,3 +1,4 @@
+import { BODY_GROUPS } from "@auta/core";
 import { db, events, listingSnapshots, listings, sources } from "@auta/db";
 import { and, asc, desc, eq, gte, ilike, inArray, isNotNull, lte, or, sql } from "drizzle-orm";
 import { groupBySlug } from "@/lib/slug";
@@ -85,15 +86,8 @@ const ORDER = {
  * w SQL-u, bo filtrowanie dzieje sie w bazie. Zmiana w jednym miejscu
  * wymaga zmiany w drugim — dlatego oba komentarze na siebie wskazuja.
  */
-export const BODY_GROUPS: Record<string, string> = {
-  suv: "suv|sav|terenow|crossover",
-  kombi: "kombi|combi|estate|touring|variant",
-  sedan: "sedan|limuzyn",
-  hatchback: "hatch|kompakt",
-  van: "van|bus|minivan",
-  coupe: "coupe|cabrio|roadster",
-  dostawcze: "dostawcz|furgon|pick",
-};
+// Definicja siedzi w @auta/core — korzysta z niej takze worker (alerts.ts).
+export { BODY_GROUPS };
 
 function buildWhere(f: Filters) {
   const parts = [eq(listings.status, "active")];

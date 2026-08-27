@@ -1,4 +1,5 @@
 import { Crumbs } from "@/components/Crumbs";
+import { ZapisPasek } from "@/components/ZapisPasek";
 import { OfferCard } from "@/components/OfferCard";
 import { StatStrip } from "@/components/StatStrip";
 import {
@@ -250,6 +251,22 @@ export default async function PoleasingowePage({ params }: { params: Promise<{ c
           </ul>
         </section>
       )}
+
+      {/*
+        Miasto jest filtrem jak kazdy inny — zapis lapie nowe oferty wylacznie
+        stad. Dla kogos, kto nie pojedzie po auto na drugi koniec kraju, to
+        jedyna wersja powiadomien, ktora ma sens.
+      */}
+      <ZapisPasek
+        typ="miasto"
+        tytul={`Powiadomić o nowych ofertach — ${miasto}?`}
+        opis={
+          `Auta poleasingowe wystawione w mieście ${miasto}, ze wszystkich 26 źródeł naraz. ` +
+          "Jeden mail dziennie, tylko gdy coś doszło."
+        }
+        label={`Poleasingowe ${miasto}`}
+        filters={{ city: miasto }}
+      />
     </main>
   );
 }

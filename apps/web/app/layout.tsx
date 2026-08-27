@@ -1,6 +1,7 @@
 import { Analytics } from "@/components/Analytics";
 import { CookieConsent } from "@/components/CookieConsent";
 import { Footer } from "@/components/Footer";
+import { ZapisPopup } from "@/components/ZapisPopup";
 import type { Metadata } from "next";
 import "./globals.css";
 
@@ -24,6 +25,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Footer />
         {/* Oba nic nie robia bez zgody — patrz lib/consent.ts. */}
         <CookieConsent />
+        {/* Nie pokazuje sie, dopoki wisi baner zgody — patrz ZapisPopup. */}
+        <ZapisPopup />
         <Analytics />
       </body>
     </html>

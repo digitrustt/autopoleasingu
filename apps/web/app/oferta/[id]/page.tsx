@@ -1,6 +1,7 @@
 import { BackButton } from "@/components/BackButton";
 import { CarImage } from "@/components/CarImage";
 import { Crumbs } from "@/components/Crumbs";
+import { ZapisPasek } from "@/components/ZapisPasek";
 import { DealBadge } from "@/components/DealBadge";
 import { OfferLink } from "@/components/OfferLink";
 import { PriceHistory } from "@/components/PriceHistory";
@@ -611,6 +612,22 @@ export default async function OfferPage({ params }: { params: Promise<{ id: stri
           <SimilarStrip rows={similar} />
         </section>
       )}
+
+      {/*
+        Zapis zawezony do tego modelu. Ktos, kto doczytal oferte do konca,
+        wie juz czego szuka — obietnica "powiadomimy o kolejnych TAKICH"
+        jest wtedy konkretna, a nie ogolnikowa jak w stopce.
+      */}
+      <ZapisPasek
+        typ="oferta"
+        tytul={`Powiadomić o kolejnych ${name}?`}
+        opis={
+          `Gdy w którymkolwiek z 26 źródeł pojawi się ${name}, dostaniesz maila. ` +
+          "Jedna wiadomość dziennie, tylko gdy faktycznie coś doszło."
+        }
+        label={name}
+        filters={{ make: o.make, ...(o.model ? { model: o.model } : {}) }}
+      />
     </main>
   );
 }

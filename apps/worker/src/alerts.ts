@@ -11,7 +11,7 @@
  * najszybsza droga do wypisania sie i do zgloszen spamu, ktore psuja reputacje
  * domeny nadawcy.
  */
-import { type AlertOffer, newOffers } from "@auta/core";
+import { BODY_GROUPS, type AlertOffer, newOffers } from "@auta/core";
 import { alertsSent, client, db, listings, sources, subscriptions } from "@auta/db";
 import { and, desc, eq, gte, ilike, isNotNull, isNull, lte, notInArray, sql } from "drizzle-orm";
 
@@ -38,6 +38,17 @@ function whereFor(f: Filters) {
   if (f.gearbox) parts.push(eq(listings.gearbox, f.gearbox));
   if (f.body) parts.push(ilike(listings.body, `%${f.body}%`));
   if (f.kind === "fixed" || f.kind === "auction") parts.push(eq(listings.offerKind, f.kind));
+
+  /*
+   * `city` i `bodyGroup` doszly razem z paskami zapisu na stronach miast
+   * i kategorii. Bez nich subskrypcja "poleasingowe Krakow" przechodzila
+   * walidacje, ale TU nie zawezala niczego — czlowiek dostawalby oferty
+   * z calej Polski mimo obietnicy zlozonej na stronie zapisu.
+   */
+  if (f.city) parts.push(eq(listings.city, f.city));
+  if (f.bodyGroup && BODY_GROUPS[f.bodyGroup]) {
+    parts.push(sql`${listings.body} ~* ${BODY_GROUPS[f.bodyGroup]}`);
+  }
 
   const n = (v?: string) => (v && Number.isFinite(Number(v)) ? Number(v) : null);
   const priceMin = n(f.priceMin);
