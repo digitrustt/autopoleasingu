@@ -77,6 +77,33 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  /*
+   * Ten sam adres z tym samym zestawem filtrow = jeden zapis, nie dwa.
+   *
+   * Zdarzone naprawde: jedna osoba zapisala sie 6.09 o 11:24 z nakladki i o 17:08
+   * ze stopki, oba razy bez filtrow. Powstaly dwa identyczne wiersze, a worker
+   * iteruje po wierszach — nazajutrz poszlyby DWA identyczne maile. Limit pieciu
+   * zapisow tego nie lapal, bo pilnuje liczby, nie powtorzen.
+   *
+   * Odpowiadamy tak samo jak przy nowym zapisie: cisza o tym, ze adres juz
+   * istnieje, jest tu celowa (patrz komentarz na gorze) — inaczej formularz
+   * staje sie narzedziem do sprawdzania, kto jest zapisany.
+   */
+  const [{ duplikat }] = await db
+    .select({ duplikat: sql<number>`count(*)::int` })
+    .from(subscriptions)
+    .where(
+      and(
+        eq(subscriptions.email, email),
+        isNull(subscriptions.unsubscribedAt),
+        // jsonb porownuje sie wprost i nie zalezy od kolejnosci kluczy.
+        sql`${subscriptions.filters} = ${JSON.stringify(filters)}::jsonb`,
+      ),
+    );
+  if (duplikat > 0) {
+    return NextResponse.json({ ok: true, duplikat: true });
+  }
+
   const token = randomBytes(24).toString("base64url");
   await db.insert(subscriptions).values({ email, label, filters, token });
 
