@@ -30,9 +30,12 @@ import { ArrowUpRight, Landmark } from "lucide-react";
 export function FinansowanieBlok({
   ofertaId,
   cena,
+  nazwa,
 }: {
   ofertaId: number;
   cena: number | null;
+  /** "BMW Seria 3" — nazwa TEGO auta, nie ogolnik. Patrz komentarz nizej. */
+  nazwa: string;
 }) {
   const bazowy = process.env.NEXT_PUBLIC_AFILIACJA_KREDYT;
   // Bez skonfigurowanego linku nie renderujemy nic — lepiej brak sekcji niz martwy odnosnik.
@@ -47,7 +50,7 @@ export function FinansowanieBlok({
   const href = `${bazowy}${bazowy.includes("?") ? "&" : "?"}etykieta_=oferta-${ofertaId}`;
 
   return (
-    <div className="mt-3 rounded-lg border border-[var(--color-line)] bg-[var(--color-ink)] p-3">
+    <div className="mt-3 rounded-lg border border-neutral-700 bg-[var(--color-ink)] p-3">
       <a
         href={href}
         target="_blank"
@@ -58,23 +61,32 @@ export function FinansowanieBlok({
          */
         rel="sponsored noopener noreferrer"
         onClick={() => track("finansowanie_klik", { oferta: ofertaId, cena })}
-        className="flex items-center justify-between gap-2 text-[13px] font-medium text-neutral-200 transition-colors hover:text-accent"
+        className="group flex items-center justify-between gap-3"
       >
-        <span className="flex items-center gap-2">
-          <Landmark size={15} className="shrink-0 text-neutral-500" />
-          Kredyt na samochód — sprawdź warunki
+        <span className="min-w-0">
+          {/*
+            Nazwa TEGO auta, nie "kredyt samochodowy". Czlowiek patrzy wlasnie na
+            ten egzemplarz i zdecydowal sie na niego — komunikat o "finansowaniu
+            samochodu" w ogolnosci mija sie z tym, o czym mysli.
+          */}
+          <span className="flex items-center gap-2 text-[13px] font-medium text-neutral-100">
+            <Landmark size={15} className="shrink-0 text-neutral-400" />
+            <span className="truncate">Sfinansuj to {nazwa}</span>
+          </span>
+          {/*
+            "Rata" bez ZADNEJ liczby. Obowiazek podania RRSO i reprezentatywnego
+            przykladu uruchamiaja dane o KOSZCIE kredytu — sama zachęta do
+            sprawdzenia go ich nie zawiera. Zadnej kwoty tu nigdy nie wstawiac.
+          */}
+          <span className="mt-0.5 block text-[12px] text-neutral-500">
+            Sprawdź swoją ratę online · <span className="text-neutral-600">link partnerski</span>
+          </span>
         </span>
-        <ArrowUpRight size={14} className="shrink-0 text-neutral-500" />
+        <ArrowUpRight
+          size={16}
+          className="shrink-0 text-neutral-500 transition-colors group-hover:text-accent"
+        />
       </a>
-      {/*
-        Oznaczenie musi byc czytelne, a nie szara szostka w rogu. Zdanie o braku
-        wplywu na wyniki jest zobowiazaniem: zaden partner nie moze zmieniac
-        kolejnosci ofert ani wyceny. Bezstronnosc jest tu jedynym realnym aktywem.
-      */}
-      <p className="mt-1.5 text-[11px] leading-relaxed text-neutral-600">
-        Link partnerski — dostajemy prowizję, dla Ciebie bez zmiany ceny. Nie wpływa na to,
-        które oferty pokazujemy ani jak liczymy ceny rynkowe.
-      </p>
     </div>
   );
 }

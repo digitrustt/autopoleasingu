@@ -561,7 +561,7 @@ export default async function OfferPage({ params }: { params: Promise<{ id: stri
 
             {/* Tylko przy zywej ofercie z cena — patrz FinansowanieBlok. */}
             {!gone && o.priceGross != null && (
-              <FinansowanieBlok ofertaId={o.id} cena={o.priceGross} />
+              <FinansowanieBlok ofertaId={o.id} cena={o.priceGross} nazwa={name} />
             )}
           </div>
 
