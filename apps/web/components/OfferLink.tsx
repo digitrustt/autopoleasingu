@@ -1,6 +1,7 @@
 "use client";
 
 import { track } from "@/components/Analytics";
+import { adresWyjscia } from "@/lib/wyjscie";
 import Link from "next/link";
 
 /**
@@ -23,6 +24,7 @@ export function OfferLink({
   href,
   offer,
   external = false,
+  sourceId = null,
   className,
   style,
   children,
@@ -31,6 +33,8 @@ export function OfferLink({
   offer: Record<string, unknown>;
   /** true = wyjscie do sprzedawcy w nowej karcie. */
   external?: boolean;
+  /** Potrzebne, bo jedno zrodlo nie znosi parametrow — patrz lib/wyjscie.ts. */
+  sourceId?: string | null;
   className?: string;
   style?: React.CSSProperties;
   children: React.ReactNode;
@@ -40,9 +44,13 @@ export function OfferLink({
   if (external) {
     return (
       <a
-        href={href}
+        href={adresWyjscia(href, sourceId)}
         target="_blank"
-        rel="noopener noreferrer"
+        /*
+         * `noopener` zostaje dla bezpieczenstwa, `noreferrer` NIE — to on
+         * ukrywal przed sprzedawca, ze ruch przyszedl od nas.
+         */
+        rel="noopener"
         className={className}
         style={style}
         onClick={onClick}

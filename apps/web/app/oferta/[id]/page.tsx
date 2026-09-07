@@ -539,6 +539,7 @@ export default async function OfferPage({ params }: { params: Promise<{ id: stri
             <OfferLink
               href={o.url}
               external
+              sourceId={o.sourceId}
               offer={{
                 id: o.id,
                 make: o.make,
