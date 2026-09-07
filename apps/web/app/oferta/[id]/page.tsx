@@ -1,6 +1,7 @@
 import { BackButton } from "@/components/BackButton";
 import { CarImage } from "@/components/CarImage";
 import { Crumbs } from "@/components/Crumbs";
+import { FinansowanieBlok } from "@/components/FinansowanieBlok";
 import { ZapisPasek } from "@/components/ZapisPasek";
 import { DealBadge } from "@/components/DealBadge";
 import { OfferLink } from "@/components/OfferLink";
@@ -557,6 +558,11 @@ export default async function OfferPage({ params }: { params: Promise<{ id: stri
             <p className="mt-2 text-[11px] leading-relaxed text-neutral-600">
               Oferta i transakcja po stronie sprzedawcy. Nie pośredniczymy w sprzedaży.
             </p>
+
+            {/* Tylko przy zywej ofercie z cena — patrz FinansowanieBlok. */}
+            {!gone && o.priceGross != null && (
+              <FinansowanieBlok ofertaId={o.id} cena={o.priceGross} />
+            )}
           </div>
 
           {/*
