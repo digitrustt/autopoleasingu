@@ -5,6 +5,7 @@ export const metadata: Metadata = {
   title: "Polityka prywatności — autopoleasingu.pl",
   description:
     "Jakie dane zbieramy, na jakiej podstawie i jak to wyłączyć. Bez zgody nie zbieramy nic.",
+  alternates: { canonical: "/polityka-prywatnosci" },
 };
 
 export default function Prywatnosc() {

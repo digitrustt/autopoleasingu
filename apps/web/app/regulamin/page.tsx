@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Regulamin — autopoleasingu.pl",
   description: "Zasady korzystania z porównywarki ofert aut poleasingowych.",
+  alternates: { canonical: "/regulamin" },
 };
 
 export default function Regulamin() {

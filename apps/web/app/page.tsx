@@ -5,8 +5,28 @@ import { Radar } from "@/components/Radar";
 import { Results } from "@/components/Results";
 import { getMakes, getModels, getSources, getStats } from "@/lib/queries";
 import { Activity } from "lucide-react";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
+
+/**
+ * Adres kanoniczny strony glownej.
+ *
+ * Musi tu byc z dwoch powodow. Po pierwsze, do niedawna www i domena bez www
+ * oddawaly ta sama tresc pod dwoma adresami i Search Console pokazywal je jako
+ * DWA osobne wiersze, dzielace miedzy siebie klikniecia (7 i 5) i wyswietlenia
+ * (111 i 103). Przekierowanie zalatwia to u zrodla (patrz next.config), a ten
+ * znacznik jest drugim zabezpieczeniem.
+ *
+ * Po drugie, i wazniejsze na dluzsza mete: ta strona przyjmuje filtry
+ * w parametrach (?make=BMW&priceMax=50000), a kombinacji sa tysiace. Bez
+ * kanonicznego adresu kazda z nich jest dla wyszukiwarki osobna strona
+ * o niemal identycznej tresci. Frazy filtrowane obsluguja strony kategorii
+ * (/poleasingowe/...), ktore maja wlasna, unikalna tresc.
+ */
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+};
 
 // Dane zmieniaja sie co przebieg scrapera — nie cache'ujemy strony.
 export const dynamic = "force-dynamic";

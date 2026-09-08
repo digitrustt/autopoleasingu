@@ -6,6 +6,7 @@ export const metadata: Metadata = {
   title: "Cookies i analityka — autopoleasingu.pl",
   description:
     "Jakie dane zbieramy przez analitykę, po co i jak to wyłączyć. Bez zgody nie zapisujemy nic.",
+  alternates: { canonical: "/cookies" },
 };
 
 export default function Cookies() {

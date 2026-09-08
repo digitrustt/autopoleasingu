@@ -1,9 +1,14 @@
 import { shortSource } from "@/lib/format";
 import { getSourceHealth } from "@/lib/queries";
 import { ArrowLeft, CircleAlert, CircleCheck, CircleSlash, ExternalLink } from "lucide-react";
+import type { Metadata } from "next";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  alternates: { canonical: "/zrodla" },
+};
 
 const num = new Intl.NumberFormat("pl-PL");
 const when = new Intl.DateTimeFormat("pl-PL", {
