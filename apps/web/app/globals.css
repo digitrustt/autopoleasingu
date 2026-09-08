@@ -13,6 +13,23 @@
    */
   --color-accent: #f2f5f9;
   --color-accent-soft: #8b95a1;
+
+  /*
+   * Kolory wykresow.
+   *
+   * Reszta interfejsu jest bezbarwna, zeby kolor niosl wylacznie informacje
+   * (zielony = nowa, bursztyn = przecena, fiolet = aukcja). Wykres jest
+   * jedynym miejscem, gdzie kolor JEST informacja — to on odroznia dane od
+   * tla i od siatki — wiec dostaje wlasny odcien.
+   *
+   * Niebieski nie koliduje z zadnym z trzech znaczen powyzej. Sprawdzony
+   * walidatorem palety na tle --color-panel: pasmo jasnosci, prog nasycenia
+   * i kontrast >= 3:1 wzgledem powierzchni. Wczesniej slupki mialy kolor
+   * neutral-700/60, ktory na tym tle byl praktycznie niewidoczny.
+   */
+  --chart-1: #3987e5;
+  --chart-1-dim: #2a5f9e;
+  --chart-grid: #1e242b;
 }
 
 html {

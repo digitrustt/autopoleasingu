@@ -41,19 +41,33 @@ export function YearBars({ rows, skala }: { rows: YearBar[]; skala?: number }) {
   return (
     <ol className="flex flex-col gap-1.5">
       {ordered.map((r) => (
-        <li key={r.year} className="flex items-center gap-3">
+        <li key={r.year} className="group flex items-center gap-3">
           <span className="w-11 shrink-0 text-right text-[13px] tabular-nums text-neutral-500">
             {r.year}
           </span>
 
           <span className="relative h-7 min-w-0 flex-1 overflow-hidden rounded-md bg-[var(--color-ink)]">
+            {/*
+              Wypelnienie w kolorze danych, nie w neutral-700/60. Tamten odcien
+              na tle --color-ink byl praktycznie niewidoczny — slupek istnial,
+              ale nie dalo sie odczytac, gdzie sie konczy, czyli wykres nie
+              pokazywal niczego. Zaokraglony tylko koniec danych, podstawa
+              prosta: dlugosc ma sie czytac od jednej linii bazowej.
+            */}
             <span
-              className="absolute inset-y-0 left-0 rounded-md bg-neutral-700/60"
+              className="absolute inset-y-0 left-0 rounded-r-[4px] bg-[var(--chart-1-dim)] transition-colors group-hover:bg-[var(--chart-1)]"
               style={{ width: `${Math.max(4, (r.medianPrice / max) * 100)}%` }}
             />
             {/*
               Cena stoi NA slupku, nie za nim: przy najkrotszym slupku etykieta
               za nim wypadala na srodek pustego pola i wygladala na oderwana.
+            */}
+            {/*
+              TYLKO mediana wewnatrz slupka. Probowalem dolozyc tu ceny minimalnej
+              ("od 27 000 zl") i przy krotkich slupkach napis wychodzil poza
+              wypelnienie, a `overflow-hidden` obcinal mu ostatnia litere. Etykieta
+              w srodku slupka moze zawierac tylko to, co zmiesci sie w NAJKROTSZYM
+              z nich. Cena minimalna stoi w tabeli obok, w kolumnie "OD".
             */}
             <span className="absolute inset-y-0 left-2.5 flex items-center text-[12px] font-semibold tabular-nums text-neutral-100">
               {pln.format(r.medianPrice)}
