@@ -1,6 +1,7 @@
 import { Analytics } from "@/components/Analytics";
 import { CookieConsent } from "@/components/CookieConsent";
 import { Footer } from "@/components/Footer";
+import { Header } from "@/components/Header";
 import { ZapisPopup } from "@/components/ZapisPopup";
 import type { Metadata } from "next";
 import "./globals.css";
@@ -21,6 +22,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         stopka ma siedziec na dole okna, a nie tuz pod trzema linijkami tekstu.
       */}
       <body className="flex min-h-screen flex-col antialiased">
+        <Header />
         <div className="flex-1">{children}</div>
         <Footer />
         {/* Oba nic nie robia bez zgody — patrz lib/consent.ts. */}

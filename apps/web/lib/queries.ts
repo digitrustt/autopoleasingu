@@ -457,6 +457,22 @@ export async function getMakes(): Promise<string[]> {
  * Modele wybranej marki. Bez marki zwracamy pusto — pelna lista to ponad tysiac
  * pozycji z calego rynku, a "Corolla" obok "Serii 3" nie jest wyborem, tylko szumem.
  */
+/**
+ * Modele marki z liczba ofert — wejscie dla grupowania w rodziny.
+ *
+ * Osobno od `getModels`, bo filtr potrzebuje licznikow (zeby pokazac "X3 353"),
+ * a stare wywolania zwracaly same nazwy.
+ */
+export async function getModelsForFilter(make?: string) {
+  if (!make) return [];
+  return db
+    .select({ model: listings.model, total: sql<number>`count(*)::int` })
+    .from(listings)
+    .where(and(eq(listings.status, "active"), eq(listings.make, make)))
+    .groupBy(listings.model)
+    .orderBy(desc(sql`count(*)`));
+}
+
 export async function getModels(make?: string): Promise<string[]> {
   if (!make) return [];
   const rows = await db

@@ -1,4 +1,3 @@
-import { Logo } from "@/components/Logo";
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 
@@ -40,8 +39,14 @@ export function Crumbs({ items }: { items: Crumb[] }) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }}
       />
       <nav className="mb-5 flex flex-wrap items-center gap-1.5 text-[13px] text-neutral-500">
+        {/*
+          Korzen sciezki to slowo "Oferty", nie logotyp. Odkad naglowek jest
+          staly i niesie nazwe serwisu, powtorzenie jej w okruszkach dawalo dwa
+          logotypy w odstepie kilkunastu pikseli. Slowo opisuje tez lepiej, DOKAD
+          ten link prowadzi — do listy ofert, a nie "do marki".
+        */}
         <Link href="/" className="transition-colors hover:text-accent">
-          <Logo className="text-[13px]" />
+          Oferty
         </Link>
         {items.map((c) => (
           <span key={c.label} className="flex items-center gap-1.5">

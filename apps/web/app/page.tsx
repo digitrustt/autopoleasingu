@@ -1,9 +1,9 @@
 import { BazaNiedostepna } from "@/components/BazaNiedostepna";
 import { Filters } from "@/components/Filters";
-import { Logo } from "@/components/Logo";
 import { Radar } from "@/components/Radar";
 import { Results } from "@/components/Results";
-import { getMakes, getModels, getSources, getStats } from "@/lib/queries";
+import { getMakes, getModelsForFilter, getSources, getStats } from "@/lib/queries";
+import { rodzinyModeli, wariantyRodziny } from "@/lib/rodziny";
 import { Activity } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -98,20 +98,33 @@ export default async function Page({ searchParams }: { searchParams: Promise<Sea
    * wersje. Lapiemy wiec blad i pokazujemy komunikat zamiast zrzutu wyjatku.
    */
   let makes: string[];
-  let models: string[];
+  let modeleZLicznikami: Awaited<ReturnType<typeof getModelsForFilter>>;
   let sourceList: Awaited<ReturnType<typeof getSources>>;
   let stats: Awaited<ReturnType<typeof getStats>>;
   try {
-    [makes, models, sourceList, stats] = await Promise.all([
+    [makes, modeleZLicznikami, sourceList, stats] = await Promise.all([
       getMakes(),
       // Lista modeli zalezy od wybranej marki — bez niej byloby tysiac pozycji.
-      getModels(current.make),
+      getModelsForFilter(current.make),
       getSources(),
       getStats(),
     ]);
   } catch (err) {
     console.error("strona glowna: baza niedostepna —", err);
     return <BazaNiedostepna />;
+  }
+
+  /*
+   * Rodziny modeli zamiast surowych wartosci z kolumny `model`.
+   *
+   * Zrodla zapisuja ten sam model na kilka sposobow — "X3", "X3 20d xDrive",
+   * "X3 xDrive20d" — a filtr porownywal je przez rownosc. Wybranie "X3"
+   * pokazywalo 132 oferty zamiast 353. Patrz lib/rodziny.ts.
+   */
+  const rodziny = rodzinyModeli(modeleZLicznikami);
+  if (current.model) {
+    // Do zapytania idzie KOMPLET wariantow, nie sama nazwa rodziny.
+    (filters as { model?: string | string[] }).model = wariantyRodziny(rodziny, current.model);
   }
 
   const pln = new Intl.NumberFormat("pl-PL", {
@@ -125,8 +138,16 @@ export default async function Page({ searchParams }: { searchParams: Promise<Sea
     <main className="mx-auto max-w-[1400px] px-4 py-6">
       <header className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl">
-            <Logo />
+          {/*
+            H1 OPISOWY, nie logotyp.
+            Logotyp przeniosl sie do stalego naglowka, wiec powtarzanie go tutaj
+            dawaloby te sama nazwe dwa razy jedna pod druga. Przy okazji to lepszy
+            naglowek dla wyszukiwarki: "Auta poleasingowe z 26 zrodel" zawiera
+            fraze, ktorej ludzie szukaja, a "autopoleasingu.pl" — nazwe, ktorej
+            nie zna nikt poza nami.
+          */}
+          <h1 className="text-2xl font-bold tracking-tight text-neutral-100">
+            Auta poleasingowe z {sourceList.length} źródeł
           </h1>
           <p className="text-sm text-neutral-400">
             {num.format(stats.active)} aktywnych z {sourceList.length} źródeł ·{" "}
@@ -145,7 +166,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Sea
       </header>
 
       <div className="mb-5">
-        <Filters makes={makes} models={models} sources={sourceList} current={current} />
+        <Filters makes={makes} rodziny={rodziny} sources={sourceList} current={current} />
       </div>
 
       {/*

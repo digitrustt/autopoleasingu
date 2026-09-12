@@ -1,6 +1,7 @@
 "use client";
 
 import { Option, Select } from "@/components/Select";
+import type { Rodzina } from "@/lib/rodziny";
 import { shortSource } from "@/lib/format";
 import {
   Banknote,
@@ -101,12 +102,13 @@ function countActive(c: FilterState): number {
 
 export function Filters({
   makes,
-  models,
+  rodziny,
   sources,
   current,
 }: {
   makes: string[];
-  models: string[];
+  /** Modele SCALONE w rodziny — patrz lib/rodziny.ts. */
+  rodziny: Rodzina[];
   sources: { id: string; name: string; active: number }[];
   current: FilterState;
 }) {
@@ -159,9 +161,14 @@ export function Filters({
     { value: "", label: "Każda marka" },
     ...makes.map((m) => ({ value: m, label: m })),
   ];
+  /*
+   * Liczba ofert przy kazdym modelu. Bez niej nie widac, ze "X3" to 353 sztuki,
+   * a "M4 Competition" dwie — a to jest pierwsza informacja, ktorej czlowiek
+   * potrzebuje, zeby w ogole wybrac.
+   */
   const modelOptions: Option[] = [
-    { value: "", label: models.length ? "Każdy model" : "Najpierw marka" },
-    ...models.map((m) => ({ value: m, label: m })),
+    { value: "", label: rodziny.length ? "Każdy model" : "Najpierw marka" },
+    ...rodziny.map((r) => ({ value: r.nazwa, label: `${r.nazwa} (${r.total})` })),
   ];
   const sourceOptions: Option[] = [
     { value: "", label: "Wszystkie źródła" },
@@ -201,7 +208,7 @@ export function Filters({
           name="model"
           value={current.model}
           options={modelOptions}
-          placeholder={models.length ? "Każdy model" : "Najpierw marka"}
+          placeholder={rodziny.length ? "Każdy model" : "Najpierw marka"}
           searchable
           className="w-44"
         />
