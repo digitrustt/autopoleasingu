@@ -1,4 +1,5 @@
 import { Crumbs } from "@/components/Crumbs";
+import { MarkaGrid } from "@/components/MarkaGrid";
 import { ZapisPasek } from "@/components/ZapisPasek";
 import { OfferCard } from "@/components/OfferCard";
 import { StatStrip } from "@/components/StatStrip";
@@ -75,24 +76,7 @@ export async function KategoriaWidok({ k }: { k: Kategoria }) {
       {marki.length > 0 && (
         <section className="mb-8">
           <h2 className="mb-3 text-lg font-semibold text-neutral-100">Marki w tej kategorii</h2>
-          <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-            {marki.map((m) => (
-              <li key={m.make}>
-                <Link
-                  href={makeHref(m.make)}
-                  className="group flex items-baseline justify-between gap-2 rounded-lg border border-[var(--color-line)] bg-[var(--color-panel)] px-3 py-2.5 transition-colors hover:border-accent/40"
-                >
-                  <span className="truncate text-sm text-neutral-200 transition-colors group-hover:text-accent">
-                    {m.make}
-                  </span>
-                  <span className="shrink-0 text-[11px] tabular-nums text-neutral-600">
-                    {num.format(m.total)}
-                    {m.minPrice != null && ` · od ${pln.format(m.minPrice)}`}
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
+          <MarkaGrid marki={marki} />
         </section>
       )}
 

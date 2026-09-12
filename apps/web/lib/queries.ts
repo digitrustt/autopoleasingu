@@ -1289,6 +1289,21 @@ export async function getCityMakes(city: string | string[], limit = 24) {
       minPrice: sql<number | null>`min(${listings.priceGross}) filter (
         where ${listings.offerKind} = 'fixed'
       )::int`,
+      /*
+       * Zdjecie reprezentacyjne marki — najnowsza oferta, z pominieciem BMW.
+       *
+       * najlepszeoferty.bmw.pl odpowiada obrazkiem na kazdy adres, ale dla
+       * ofert bez zdjecia jest to ich wlasna grafika "brak zdjecia": szara hala
+       * ze znakiem zapytania. Laduje sie poprawnie (HTTP 200, 1920 px), wiec
+       * `onError` w CarImage jej nie wylapie. Zmierzone na osmiu kolejnych
+       * miniaturach BMW: piec mialo dokladnie 184 404 bajty, czyli ten sam plik.
+       *
+       * Pomijamy to zrodlo tylko przy zdjeciu REPREZENTACYJNYM, gdzie jedna
+       * miniatura stoi za setki ofert. Na kafelku pojedynczej oferty zostaje to,
+       * co przyslal sprzedawca.
+       */
+      thumb: sql<string | null>`(array_agg(${listings.thumbnailUrl} order by ${listings.firstSeenAt} desc)
+        filter (where ${listings.thumbnailUrl} is not null and ${listings.sourceId} <> 'bmw'))[1]`,
     })
     .from(listings)
     .where(and(eq(listings.status, "active"), cityMatches(city)))
@@ -1371,6 +1386,21 @@ export async function getSourceMakes(sourceId: string, limit = 24) {
       minPrice: sql<number | null>`min(${listings.priceGross}) filter (
         where ${listings.offerKind} = 'fixed'
       )::int`,
+      /*
+       * Zdjecie reprezentacyjne marki — najnowsza oferta, z pominieciem BMW.
+       *
+       * najlepszeoferty.bmw.pl odpowiada obrazkiem na kazdy adres, ale dla
+       * ofert bez zdjecia jest to ich wlasna grafika "brak zdjecia": szara hala
+       * ze znakiem zapytania. Laduje sie poprawnie (HTTP 200, 1920 px), wiec
+       * `onError` w CarImage jej nie wylapie. Zmierzone na osmiu kolejnych
+       * miniaturach BMW: piec mialo dokladnie 184 404 bajty, czyli ten sam plik.
+       *
+       * Pomijamy to zrodlo tylko przy zdjeciu REPREZENTACYJNYM, gdzie jedna
+       * miniatura stoi za setki ofert. Na kafelku pojedynczej oferty zostaje to,
+       * co przyslal sprzedawca.
+       */
+      thumb: sql<string | null>`(array_agg(${listings.thumbnailUrl} order by ${listings.firstSeenAt} desc)
+        filter (where ${listings.thumbnailUrl} is not null and ${listings.sourceId} <> 'bmw'))[1]`,
     })
     .from(listings)
     .where(and(eq(listings.status, "active"), eq(listings.sourceId, sourceId)))
@@ -1439,6 +1469,21 @@ export async function getFilterMakes(f: Filters, limit = 24) {
       minPrice: sql<number | null>`min(${listings.priceGross}) filter (
         where ${listings.offerKind} = 'fixed'
       )::int`,
+      /*
+       * Zdjecie reprezentacyjne marki — najnowsza oferta, z pominieciem BMW.
+       *
+       * najlepszeoferty.bmw.pl odpowiada obrazkiem na kazdy adres, ale dla
+       * ofert bez zdjecia jest to ich wlasna grafika "brak zdjecia": szara hala
+       * ze znakiem zapytania. Laduje sie poprawnie (HTTP 200, 1920 px), wiec
+       * `onError` w CarImage jej nie wylapie. Zmierzone na osmiu kolejnych
+       * miniaturach BMW: piec mialo dokladnie 184 404 bajty, czyli ten sam plik.
+       *
+       * Pomijamy to zrodlo tylko przy zdjeciu REPREZENTACYJNYM, gdzie jedna
+       * miniatura stoi za setki ofert. Na kafelku pojedynczej oferty zostaje to,
+       * co przyslal sprzedawca.
+       */
+      thumb: sql<string | null>`(array_agg(${listings.thumbnailUrl} order by ${listings.firstSeenAt} desc)
+        filter (where ${listings.thumbnailUrl} is not null and ${listings.sourceId} <> 'bmw'))[1]`,
     })
     .from(listings)
     .where(buildWhere(f))
