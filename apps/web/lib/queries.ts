@@ -1605,3 +1605,89 @@ export async function getTopSpreads(limit = 10) {
     zrodel: Number(r.zrodel),
   }));
 }
+
+
+/**
+ * Liczniki i po jednym zdjeciu na kategorie — do spisu /poleasingowe.
+ *
+ * Trzy zapytania zamiast czterdziestu. Wywolywanie `getFilterStats` osobno dla
+ * kazdej z 40 kategorii oznaczaloby czterdziesci agregacji po calej tabeli przy
+ * kazdym przeliczeniu strony — a to ten sam wzorzec, ktory raz juz wyczerpal
+ * limit transferu bazy.
+ *
+ * Zdjecie wybieramy jako NAJNOWSZE w kategorii: zdjecia hot-linkujemy ze zrodel,
+ * a starsze adresy wygasaja (patrz CarImage), wiec swieze psuja sie rzadziej.
+ */
+export async function getKategoriePodglad() {
+  const grupaSql = sql<string>`case
+    when ${listings.body} ~* ${BODY_GROUPS.suv} then 'suv'
+    when ${listings.body} ~* ${BODY_GROUPS.kombi} then 'kombi'
+    when ${listings.body} ~* ${BODY_GROUPS.sedan} then 'sedan'
+    when ${listings.body} ~* ${BODY_GROUPS.hatchback} then 'hatchback'
+    when ${listings.body} ~* ${BODY_GROUPS.van} then 'van'
+    when ${listings.body} ~* ${BODY_GROUPS.dostawcze} then 'dostawcze'
+  end`;
+
+  const wspolne = {
+    total: sql<number>`count(*)::int`,
+    minPrice: sql<number | null>`min(${listings.priceGross}) filter (
+      where ${listings.offerKind} = 'fixed'
+    )::int`,
+    /*
+     * Miniatura do kafelka kategorii — NAJNOWSZA, ale nie z BMW.
+     *
+     * najlepszeoferty.bmw.pl odpowiada na kazdy adres obrazkiem, tyle ze dla
+     * ofert bez zdjecia jest to ich wlasna grafika "brak zdjecia" — szara hala
+     * z wielkim znakiem zapytania. Wyglada jak zepsuty obrazek, a technicznie
+     * laduje sie poprawnie (HTTP 200, 1920 px), wiec ani `onError` w CarImage,
+     * ani sprawdzenie adresu tego nie wylapia.
+     *
+     * Zmierzone na osmiu kolejnych miniaturach BMW: piec mialo DOKLADNIE
+     * 184 404 bajty, czyli ten sam plik. Przy wyborze "najnowsza w kategorii"
+     * trzy z szesciu kafelkow trafialy wlasnie na nia.
+     *
+     * Zrodlo pomijamy tylko TUTAJ, w kafelkach kategorii, gdzie jedno zdjecie
+     * reprezentuje kilka tysiecy ofert. Na kafelku pojedynczej oferty zostaje
+     * to, co przyslal sprzedawca.
+     */
+    thumb: sql<string | null>`(array_agg(${listings.thumbnailUrl} order by ${listings.firstSeenAt} desc)
+      filter (where ${listings.thumbnailUrl} is not null and ${listings.sourceId} <> 'bmw'))[1]`,
+  };
+
+  const [nadwozia, paliwa, progi] = await Promise.all([
+    db
+      .select({ klucz: grupaSql, ...wspolne })
+      .from(listings)
+      .where(and(eq(listings.status, "active"), sql`${grupaSql} is not null`))
+      /*
+       * `group by 1`, czyli po POZYCJI kolumny, a nie po powtorzonym wyrazeniu.
+       * Drizzle parametryzuje wyrazenia regularne z BODY_GROUPS osobno w SELECT
+       * i w GROUP BY ($1 kontra $7), wiec Postgres widzi dwa rozne wyrazenia
+       * i odrzuca zapytanie: "listings.body must appear in the GROUP BY clause".
+       */
+      .groupBy(sql`1`),
+    db
+      .select({ klucz: listings.fuel, ...wspolne })
+      .from(listings)
+      .where(and(eq(listings.status, "active"), isNotNull(listings.fuel)))
+      .groupBy(listings.fuel),
+    db
+      .select({
+        prog: sql<number>`p.prog`,
+        total: sql<number>`count(*)::int`,
+      })
+      .from(sql`(values (30),(40),(50),(60),(80),(100),(150)) as p(prog)`)
+      .leftJoin(
+        listings,
+        and(
+          eq(listings.status, "active"),
+          eq(listings.offerKind, "fixed"),
+          isNotNull(listings.priceGross),
+          sql`${listings.priceGross} <= p.prog * 1000`,
+        ),
+      )
+      .groupBy(sql`p.prog`),
+  ]);
+
+  return { nadwozia, paliwa, progi };
+}
