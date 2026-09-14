@@ -1,6 +1,7 @@
 import { BackButton } from "@/components/BackButton";
 import { CarImage } from "@/components/CarImage";
 import { Crumbs } from "@/components/Crumbs";
+import { daneStrukturalnePojazdu } from "@/lib/dane-strukturalne";
 import { FinansowanieBlok } from "@/components/FinansowanieBlok";
 import { ZapisPasek } from "@/components/ZapisPasek";
 import { DealBadge } from "@/components/DealBadge";
@@ -200,8 +201,20 @@ export default async function OfferPage({ params }: { params: Promise<{ id: stri
       t.priceGross < o.priceGross,
   );
 
+  const ld = daneStrukturalnePojazdu(o, `https://autopoleasingu.pl/oferta/${o.id}`);
+
   return (
     <main className="mx-auto max-w-[1100px] px-4 py-6">
+      {/*
+        Dane strukturalne pojazdu — dzieki nim Google pokazuje przy wyniku cene,
+        rocznik i przebieg zamiast samego tytulu. To jedyna dzwignia ruchu, ktora
+        nie wymaga ani lepszych pozycji, ani nowych stron, ani linkow.
+      */}
+      <script
+        type="application/ld+json"
+        // biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD nie ma innej drogi
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }}
+      />
       <BackButton
         fallbackHref={modelHref(o.make, o.model)}
         fallbackLabel={`Wszystkie ${name}`}
