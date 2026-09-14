@@ -1,13 +1,13 @@
 import { Crumbs } from "@/components/Crumbs";
 import { MarkaGrid } from "@/components/MarkaGrid";
+import { MiastaLista } from "@/components/MiastaLista";
 import { OfferCard } from "@/components/OfferCard";
 import { StatStrip } from "@/components/StatStrip";
 import { ZapisPasek } from "@/components/ZapisPasek";
-import { PROG_OFERT, zgrupujParyMarkaMiasto } from "@/lib/marka-miasto";
+import { zgrupujParyMarkaMiasto } from "@/lib/marka-miasto";
 import {
   getCityMakes,
   getListings,
-  getMakeCities,
   getMakeCityPairs,
   getMakeCityStats,
   getMakesWithCounts,
@@ -15,7 +15,6 @@ import {
 import { makeHref, resolveSlug, slugify } from "@/lib/slug";
 import { Building2, MapPin, TrendingDown } from "lucide-react";
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
 /*
@@ -55,7 +54,15 @@ async function resolve(makeSlug: string, miastoSlug: string) {
   const para = wszystkie.find((p) => p.make === make && p.citySlug === slugify(miastoSlug));
   if (!para) return null;
 
-  return { make, para };
+  /*
+   * Pary tej samej marki, ktore TEZ przekraczaja prog — tylko do nich wolno
+   * linkowac w sekcji "w innych miastach". `getMakeCities` zwraca wszystkie 65
+   * miast BMW, ale strona istnieje tylko dla tych powyzej progu; linkowanie do
+   * reszty prowadziloby prosto na notFound.
+   */
+  const inneParyTejMarki = wszystkie.filter((p) => p.make === make && p.citySlug !== para.citySlug);
+
+  return { make, para, inneParyTejMarki };
 }
 
 export async function generateMetadata({
@@ -108,18 +115,16 @@ export default async function MarkaMiastoPage({
   const { make: makeSlug, miasto: miastoSlug } = await params;
   const found = await resolve(makeSlug, miastoSlug);
   if (!found) notFound();
-  const { make, para } = found;
+  const { make, para, inneParyTejMarki } = found;
 
-  const [stats, oferty, inneMiasta, inneMarki] = await Promise.all([
+  const [stats, oferty, inneMarki] = await Promise.all([
     getMakeCityStats(make, para.cityWarianty),
     getListings({ make, city: para.cityWarianty, sort: "deal_desc", withPrice: "1" }, 1, 24),
-    getMakeCities(make),
     getCityMakes(para.cityWarianty),
   ]);
 
   if (stats.total === 0) notFound();
 
-  const innychMiast = inneMiasta.filter((m) => slugify(m.city ?? "") !== para.citySlug);
   const innychMarek = inneMarki.filter((m) => m.make !== make);
 
   return (
@@ -188,26 +193,18 @@ export default async function MarkaMiastoPage({
         </section>
       )}
 
-      {innychMiast.length > 0 && (
+      {inneParyTejMarki.length > 0 && (
         <section className="mb-8">
           <h2 className="mb-3 text-lg font-semibold text-neutral-100">
             {make} w innych miastach
           </h2>
-          <ul className="flex flex-wrap gap-2">
-            {innychMiast.map((m) => (
-              <li key={m.city}>
-                <Link
-                  href={`${makeHref(make)}/poleasingowe/${slugify(m.city ?? "")}`}
-                  className="flex items-baseline gap-1.5 rounded-lg border border-[var(--color-line)] px-2.5 py-1.5 text-[13px] text-neutral-300 transition-colors hover:border-accent/70 hover:text-accent"
-                >
-                  {m.city}
-                  <span className="text-[11px] tabular-nums text-neutral-600">
-                    {num.format(m.total)}
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
+          <MiastaLista
+            miasta={inneParyTejMarki.map((x) => ({
+              city: x.city,
+              href: `${makeHref(make)}/poleasingowe/${x.citySlug}`,
+              total: x.total,
+            }))}
+          />
         </section>
       )}
 

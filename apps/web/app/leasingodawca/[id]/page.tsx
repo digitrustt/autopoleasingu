@@ -1,5 +1,6 @@
 import { Crumbs } from "@/components/Crumbs";
 import { MarkaGrid } from "@/components/MarkaGrid";
+import { MiastaLista } from "@/components/MiastaLista";
 import { OfferCard } from "@/components/OfferCard";
 import { StatStrip } from "@/components/StatStrip";
 import { shortSource } from "@/lib/format";
@@ -147,21 +148,13 @@ export default async function SourcePage({ params }: { params: Promise<{ id: str
             <MapPin size={17} className="text-neutral-600" />
             Gdzie stoją auta z {krotka}
           </h2>
-          <ul className="flex flex-wrap gap-2">
-            {miasta.map((m) => (
-              <li key={m.city}>
-                <Link
-                  href={`/poleasingowe/${slugify(m.city ?? "")}`}
-                  className="flex items-baseline gap-1.5 rounded-lg border border-[var(--color-line)] px-2.5 py-1.5 text-[13px] text-neutral-300 transition-colors hover:border-accent/70 hover:text-accent"
-                >
-                  {m.city}
-                  <span className="text-[11px] tabular-nums text-neutral-600">
-                    {num.format(m.total)}
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
+          <MiastaLista
+            miasta={miasta.map((m) => ({
+              city: m.city ?? "",
+              href: `/poleasingowe/${slugify(m.city ?? "")}`,
+              total: m.total,
+            }))}
+          />
         </section>
       )}
 

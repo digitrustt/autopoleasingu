@@ -1281,7 +1281,7 @@ export async function getCityStats(city: string | string[]) {
 }
 
 /** Marki dostepne w miescie — glowna nawigacja i linkowanie do stron marek. */
-export async function getCityMakes(city: string | string[], limit = 24) {
+export async function getCityMakes(city: string | string[], limit = 80) {
   return db
     .select({
       make: listings.make,
@@ -1371,7 +1371,7 @@ export async function getMakeCityStats(make: string, city: string | string[]) {
 }
 
 /** Miasta, w ktorych stoi ta marka — odwrotnosc getCityMakes, do linkowania poziomego. */
-export async function getMakeCities(make: string, limit = 16) {
+export async function getMakeCities(make: string, limit = 60) {
   return db
     .select({
       city: listings.city,
@@ -1438,7 +1438,7 @@ export async function getSourceStats(sourceId: string) {
 }
 
 /** Marki u jednego leasingodawcy — linkowanie do stron marek. */
-export async function getSourceMakes(sourceId: string, limit = 24) {
+export async function getSourceMakes(sourceId: string, limit = 80) {
   return db
     .select({
       make: listings.make,
@@ -1470,7 +1470,7 @@ export async function getSourceMakes(sourceId: string, limit = 24) {
 }
 
 /** Miasta, w ktorych ten leasingodawca ma auta — linkowanie do stron miast. */
-export async function getSourceCities(sourceId: string, limit = 16) {
+export async function getSourceCities(sourceId: string, limit = 200) {
   return db
     .select({
       city: listings.city,
@@ -1521,7 +1521,7 @@ export async function getFilterStats(f: Filters) {
 }
 
 /** Marki w obrebie filtra — linkowanie do stron marek. */
-export async function getFilterMakes(f: Filters, limit = 24) {
+export async function getFilterMakes(f: Filters, limit = 80) {
   return db
     .select({
       make: listings.make,
@@ -1553,7 +1553,7 @@ export async function getFilterMakes(f: Filters, limit = 24) {
 }
 
 /** Miasta w obrebie filtra — linkowanie do stron miast. */
-export async function getFilterCities(f: Filters, limit = 16) {
+export async function getFilterCities(f: Filters, limit = 200) {
   return db
     .select({ city: listings.city, total: sql<number>`count(*)::int` })
     .from(listings)
