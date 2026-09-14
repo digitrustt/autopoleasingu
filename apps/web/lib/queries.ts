@@ -1327,6 +1327,66 @@ export async function getCitySellers(city: string | string[], limit = 10) {
     .limit(limit);
 }
 
+/**
+ * Surowe pary marka x miasto — wejscie do stron krzyzowych (/[make]/poleasingowe/[miasto]).
+ *
+ * Prog tutaj jest CELOWO niski (5, nie 20). To sa surowe zapisy miasta prosto
+ * z bazy — "Warszawa" i "warszawa" licza sie osobno — wiec dopiero po zgrupowaniu
+ * wariantow zapisu w lib/marka-miasto.ts kilka wierszy ponizej 20 razem przekracza
+ * prog. Wysoki prog TUTAJ odcinalby pary, ktore po scaleniu i tak by przeszly.
+ */
+export async function getMakeCityPairs(minRawCount = 5) {
+  return db
+    .select({
+      make: listings.make,
+      city: listings.city,
+      total: sql<number>`count(*)::int`,
+    })
+    .from(listings)
+    .where(and(eq(listings.status, "active"), isNotNull(listings.city), isNotNull(listings.make)))
+    .groupBy(listings.make, listings.city)
+    .having(sql`count(*) >= ${minRawCount}`);
+}
+
+/** Statystyki jednej pary marka x miasto — ten sam ksztalt co getSegmentStats. */
+export async function getMakeCityStats(make: string, city: string | string[]) {
+  const [row] = await db
+    .select({
+      total: sql<number>`count(*)::int`,
+      newToday: sql<number>`count(*) filter (
+        where ${listings.firstSeenAt} > now() - interval '24 hours'
+      )::int`,
+      deals: sql<number>`count(*) filter (where ${listings.dealScore} >= 0.1)::int`,
+      sources: sql<number>`count(distinct ${listings.sourceId})::int`,
+      minPrice: sql<number | null>`min(${listings.priceGross}) filter (
+        where ${listings.offerKind} = 'fixed'
+      )::int`,
+      medianPrice: sql<number | null>`percentile_cont(0.5) within group (
+        order by ${listings.priceGross}
+      ) filter (where ${listings.offerKind} = 'fixed')::int`,
+    })
+    .from(listings)
+    .where(and(eq(listings.status, "active"), eq(listings.make, make), cityMatches(city)));
+  return row;
+}
+
+/** Miasta, w ktorych stoi ta marka — odwrotnosc getCityMakes, do linkowania poziomego. */
+export async function getMakeCities(make: string, limit = 16) {
+  return db
+    .select({
+      city: listings.city,
+      total: sql<number>`count(*)::int`,
+      minPrice: sql<number | null>`min(${listings.priceGross}) filter (
+        where ${listings.offerKind} = 'fixed'
+      )::int`,
+    })
+    .from(listings)
+    .where(and(eq(listings.status, "active"), eq(listings.make, make), isNotNull(listings.city)))
+    .groupBy(listings.city)
+    .orderBy(desc(sql`count(*)`))
+    .limit(limit);
+}
+
 /* ────────────────────────────────────────────────────────────────────────────
  * Strony leasingodawcow — /leasingodawca/[id]
  *

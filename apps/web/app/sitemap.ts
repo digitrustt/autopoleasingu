@@ -1,6 +1,7 @@
 import { KATEGORIE } from "@/lib/filtry";
+import { makaMiastoHref, zgrupujParyMarkaMiasto } from "@/lib/marka-miasto";
 import { PARY } from "@/lib/pary";
-import { getSitemapEntries } from "@/lib/queries";
+import { getMakeCityPairs, getSitemapEntries } from "@/lib/queries";
 import { makeHref, modelHref, modelKey, slugify } from "@/lib/slug";
 import type { MetadataRoute } from "next";
 
@@ -45,7 +46,11 @@ function when(v: string | Date | null): Date {
  * tresc i nie znikaja z dnia na dzien.
  */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const { makes, models, vins, cities, srcs } = await getSitemapEntries();
+  const [{ makes, models, vins, cities, srcs }, makaMiastoPary] = await Promise.all([
+    getSitemapEntries(),
+    getMakeCityPairs(),
+  ]);
+  const markaMiasto = zgrupujParyMarkaMiasto(makaMiastoPary);
 
   const statics: MetadataRoute.Sitemap = [
     { url: BASE, changeFrequency: "daily", priority: 1 },
@@ -118,6 +123,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       url: `${BASE}/poleasingowe/${k.slug}`,
       changeFrequency: "daily" as const,
       priority: 0.9,
+    })),
+
+    /*
+     * Marka x miasto: "bmw warszawa poleasingowe". Do tej pory strona marki nie
+     * filtrowala po miescie, a strona miasta nie filtrowala po marce — zadna
+     * z 1913 istniejacych stron nie odpowiadala na te fraze. Prog pokrycia
+     * (patrz lib/marka-miasto.ts) zostawia tylko pary z realna trescia zamiast
+     * pelnej krzyzowki 71 marek razy ~200 miast, ktora dalaby tysiace stron
+     * przelotowych.
+     *
+     * Priorytet nizszy niz sama strona miasta (0.9): fraza jest bardziej
+     * konkretna, wiec rzadziej wpisywana wprost, ale wciaz duzo czestsza niz
+     * porownania modeli.
+     */
+    ...markaMiasto.map((p) => ({
+      url: `${BASE}${makaMiastoHref(p.make, p.city)}`,
+      changeFrequency: "daily" as const,
+      priority: 0.7,
     })),
 
     /*
