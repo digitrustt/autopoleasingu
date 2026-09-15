@@ -3,6 +3,7 @@ import { CarImage } from "@/components/CarImage";
 import { Crumbs } from "@/components/Crumbs";
 import { daneStrukturalnePojazdu } from "@/lib/dane-strukturalne";
 import { FinansowanieBlok } from "@/components/FinansowanieBlok";
+import { UbezpieczenieBlok } from "@/components/UbezpieczenieBlok";
 import { ZapisPasek } from "@/components/ZapisPasek";
 import { DealBadge } from "@/components/DealBadge";
 import { OfferLink } from "@/components/OfferLink";
@@ -573,10 +574,41 @@ export default async function OfferPage({ params }: { params: Promise<{ id: stri
               Oferta i transakcja po stronie sprzedawcy. Nie pośredniczymy w sprzedaży.
             </p>
 
-            {/* Tylko przy zywej ofercie z cena — patrz FinansowanieBlok. */}
-            {!gone && o.priceGross != null && (
+            {/*
+              Kredyt ALBO ubezpieczenie, nigdy oba naraz.
+
+              Kredyt wymaga zywej oferty z cena — bez niej nie ma czego
+              finansowac. W pozostalych przypadkach (oferta sprzedana, oferta
+              bez ceny) slot i tak stalby pusty, wiec wchodzi tam OC. Dlaczego
+              nie jedno pod drugim: patrz komentarz w UbezpieczenieBlok —
+              klikniecie w kredyt jest warte okolo czterdziesci razy wiecej,
+              wiec dokladanie mu konkurencji to strata, nie dodatek.
+            */}
+            {!gone && o.priceGross != null ? (
               <FinansowanieBlok ofertaId={o.id} cena={o.priceGross} nazwa={name} />
+            ) : (
+              <UbezpieczenieBlok gdzie={gone ? "oferta-sprzedana" : "oferta-bez-ceny"} nazwa={name} />
             )}
+
+            {/*
+              Zapis w kolumnie decyzyjnej, nie na dole strony.
+
+              Zmierzone na czternastu dniach: 264 osoby na serwisie, 20 z nich
+              zobaczylo nakladke z zapisem. Pasek na dole tej strony stoi pod
+              tabela danych i pod podobnymi autami — jeszcze dalej niz nakladka.
+              To jest jedyne miejsce strony oferty, ktore widzi kazdy.
+            */}
+            <ZapisPasek
+              typ="oferta-kolumna"
+              wariant="kolumna"
+              tytul={`Powiadomić o kolejnych ${name}?`}
+              opis={
+                `Co trzecia oferta znika w ciągu tygodnia. Gdy w którymkolwiek z 26 źródeł ` +
+                `pojawi się ${name}, dostaniesz maila tego samego dnia.`
+              }
+              label={name}
+              filters={{ make: o.make, ...(o.model ? { model: o.model } : {}) }}
+            />
           </div>
 
           {/*
@@ -633,21 +665,6 @@ export default async function OfferPage({ params }: { params: Promise<{ id: stri
         </section>
       )}
 
-      {/*
-        Zapis zawezony do tego modelu. Ktos, kto doczytal oferte do konca,
-        wie juz czego szuka — obietnica "powiadomimy o kolejnych TAKICH"
-        jest wtedy konkretna, a nie ogolnikowa jak w stopce.
-      */}
-      <ZapisPasek
-        typ="oferta"
-        tytul={`Powiadomić o kolejnych ${name}?`}
-        opis={
-          `Gdy w którymkolwiek z 26 źródeł pojawi się ${name}, dostaniesz maila. ` +
-          "Jedna wiadomość dziennie, tylko gdy faktycznie coś doszło."
-        }
-        label={name}
-        filters={{ make: o.make, ...(o.model ? { model: o.model } : {}) }}
-      />
     </main>
   );
 }

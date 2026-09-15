@@ -1,4 +1,5 @@
 import { PriceHistory } from "@/components/PriceHistory";
+import { UbezpieczenieBlok } from "@/components/UbezpieczenieBlok";
 import { Valuation } from "@/components/Valuation";
 import { VehicleHistory } from "@/components/VehicleHistory";
 import { shortSource } from "@/lib/format";
@@ -223,6 +224,20 @@ export default async function VinPage({ params }: { params: Promise<{ vin: strin
         firstRegistrationAt={firstRegistrationAt}
         mileageSpread={mileageSpread}
       />
+
+      {/*
+        OC zaraz pod historia pojazdu, bo to ten sam krok mysli: czlowiek
+        sprawdza KONKRETNY egzemplarz przed zakupem, a polisa jest nastepna
+        rzecza, ktora bedzie mu potrzebna. Bloku kredytowego tu nie ma —
+        strona VIN-u nie dotyczy jednej ceny, tylko wszystkich wystawien tej
+        samej sztuki.
+      */}
+      <div className="mb-6">
+        <UbezpieczenieBlok
+          gdzie="vin"
+          nazwa={spec.make ? `${spec.make} ${spec.model ?? ""}`.trim() : null}
+        />
+      </div>
 
       <h2 className="mb-3 text-sm font-semibold text-neutral-300">
         Gdzie to auto jest wystawione ({data.listings.length})

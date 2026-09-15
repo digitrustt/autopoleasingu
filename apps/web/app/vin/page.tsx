@@ -1,3 +1,4 @@
+import { UbezpieczenieBlok } from "@/components/UbezpieczenieBlok";
 import { Crumbs } from "@/components/Crumbs";
 import { VinSzukaj } from "@/components/VinSzukaj";
 import { getStats } from "@/lib/queries";
@@ -111,6 +112,14 @@ export default async function VinLanding() {
           </p>
         </div>
       </div>
+
+      {/*
+        OC pod sekcja "czego nie powiemy", bo to ta sama mysl: mowimy wprost,
+        czego u nas nie ma, i pokazujemy, gdzie to jest. Historia pojazdu jest
+        za darmo w CEPiK-u i tak tez jest podpisana; porownywarka polis jest
+        linkiem partnerskim i tak tez jest podpisana.
+      */}
+      <UbezpieczenieBlok gdzie="vin-strona" />
 
       <p className="mt-6 flex items-start gap-2 text-[13px] leading-relaxed text-neutral-500">
         <Copy size={15} className="mt-0.5 shrink-0 text-neutral-600" />

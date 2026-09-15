@@ -2,6 +2,7 @@
 
 import { track } from "@/components/Analytics";
 import { adresWyjscia } from "@/lib/wyjscie";
+import { zglosWyjscie } from "@/lib/zapis-sygnal";
 import Link from "next/link";
 
 /**
@@ -53,7 +54,15 @@ export function OfferLink({
         rel="noopener"
         className={className}
         style={style}
-        onClick={onClick}
+        onClick={() => {
+          onClick();
+          /*
+           * Nakladka z zapisem czeka wlasnie na to zdarzenie — patrz
+           * lib/zapis-sygnal.ts. Wolamy je PO `track`, bo kolejnosc zdarzen
+           * w PostHogu decyduje o tym, jak wyglada lejek.
+           */
+          zglosWyjscie();
+        }}
       >
         {children}
       </a>
