@@ -1,3 +1,8 @@
+import { modelKey, slugify } from "@auta/core";
+
+// Definicje siedza w @auta/core — korzysta z nich takze worker (alerts.ts).
+export { modelKey, slugify };
+
 /**
  * Adresy stron marka/model.
  *
@@ -21,15 +26,6 @@
  * sie w NFD na znak bazowy plus diakrytyk — to jest osobny znak Unicode i bez
  * tej podmianki wypadlby calkiem (z "Bielsko" zrobiloby sie "bieso").
  */
-export function slugify(s: string): string {
-  return s
-    .replace(/[łŁ]/g, "l")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
 
 /** Adres strony marki, np. "BMW" -> "/bmw". */
 export function makeHref(make: string): string {
@@ -83,9 +79,6 @@ export function resolveAliases(values: string[], slug: string): string[] {
  * kluczu bez myslnikow, a adresem kanonicznym zostaje wariant zapisu
  * o najwiekszej liczbie ofert.
  */
-export function modelKey(s: string): string {
-  return slugify(s).replace(/-/g, "");
-}
 
 /**
  * Grupuje nazwy po slugu, zachowujac kolejnosc wejscia.

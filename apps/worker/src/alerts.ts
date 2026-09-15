@@ -11,9 +11,9 @@
  * najszybsza droga do wypisania sie i do zgloszen spamu, ktore psuja reputacje
  * domeny nadawcy.
  */
-import { BODY_GROUPS, type AlertOffer, newOffers } from "@auta/core";
+import { BODY_GROUPS, type AlertOffer, newOffers, rodzinyModeli, wariantyRodziny } from "@auta/core";
 import { alertsSent, client, db, listings, sources, subscriptions } from "@auta/db";
-import { and, desc, eq, gte, ilike, isNotNull, isNull, lte, notInArray, sql } from "drizzle-orm";
+import { and, desc, eq, gte, ilike, inArray, isNotNull, isNull, lte, notInArray, or, sql } from "drizzle-orm";
 
 /** Ile ofert maksymalnie w jednym mailu. Powyzej tego nikt nie czyta. */
 const MAX_PER_MAIL = 12;
@@ -24,7 +24,27 @@ const FRESH_HOURS = 30;
 type Filters = Record<string, string>;
 
 /** Te same reguly co w wyszukiwarce — patrz apps/web/lib/queries.ts. */
-function whereFor(f: Filters) {
+/**
+ * Warianty zapisu modelu dla tej marki — te same, ktore lapie filtr na stronie.
+ *
+ * Zrodla zapisuja model po swojemu: "X3", "X3 20d xDrive", "X3 xDrive20d". Na
+ * stronie lista rozwijana pokazuje RODZINY (patrz @auta/core/rodziny), wiec
+ * zapis na powiadomienia przychodzi z nazwa rodziny — a worker porownywal ja
+ * przez rownosc i lapal 132 oferty zamiast 353.
+ *
+ * Bez tego obietnica ze strony ("powiadomimy o kolejnych X3") byla spelniana
+ * w jednej trzeciej i nikt by sie nie domyslil, dlaczego.
+ */
+async function wariantyModelu(make: string, model: string): Promise<string[]> {
+  const modele = await db
+    .select({ model: listings.model, total: sql<number>`count(*)::int` })
+    .from(listings)
+    .where(and(eq(listings.status, "active"), eq(listings.make, make)))
+    .groupBy(listings.model);
+  return wariantyRodziny(rodzinyModeli(modele), model);
+}
+
+function whereFor(f: Filters, modelWarianty?: string[]) {
   const parts = [
     eq(listings.status, "active"),
     isNotNull(listings.priceGross),
@@ -32,7 +52,12 @@ function whereFor(f: Filters) {
   ];
 
   if (f.make) parts.push(eq(listings.make, f.make));
-  if (f.model) parts.push(eq(listings.model, f.model));
+  // Komplet wariantow zapisu, nie sama nazwa rodziny — patrz wariantyModelu.
+  if (modelWarianty && modelWarianty.length > 0) {
+    parts.push(inArray(listings.model, modelWarianty));
+  } else if (f.model) {
+    parts.push(eq(listings.model, f.model));
+  }
   if (f.source) parts.push(eq(listings.sourceId, f.source));
   if (f.fuel) parts.push(eq(listings.fuel, f.fuel));
   if (f.gearbox) parts.push(eq(listings.gearbox, f.gearbox));
@@ -89,14 +114,39 @@ async function main() {
   for (const sub of subs) {
     const filters = (sub.filters ?? {}) as Filters;
 
-    // Oferty juz wyslane temu adresatowi — nie powtarzamy.
+    /*
+     * Oferty juz wyslane temu adresatowi — nie powtarzamy.
+     *
+     * ODSIEWAMY TEZ PO VIN, nie tylko po ID oferty, i to jest konieczne:
+     * zrodla wystawiaja ten sam egzemplarz ponownie pod NOWYM identyfikatorem.
+     * Zdarzone naprawde — pierwszy subskrybent spoza rodziny dostal tego samego
+     * Formentora dwa razy w piec dni:
+     *
+     *   11.09  oferta 202667  VIN VSSZZZKM7SR031180  166 138 zl  23 653 km
+     *   15.09  oferta 218583  VIN VSSZZZKM7SR031180  166 138 zl  23 653 km
+     *
+     * Dla bazy to dwa rozne wiersze, dla czlowieka to samo auto drugi raz
+     * w skrzynce. Przy jednym mailu dziennie i kilku ofertach w srodku takie
+     * powtorki sa najszybsza droga do wypisania sie.
+     */
     const seen = await db
-      .select({ id: alertsSent.listingId })
+      .select({ id: alertsSent.listingId, vin: listings.vin })
       .from(alertsSent)
+      .innerJoin(listings, eq(listings.id, alertsSent.listingId))
       .where(eq(alertsSent.subscriptionId, sub.id));
     const seenIds = seen.map((s) => s.id);
+    const seenVins = [...new Set(seen.map((s) => s.vin).filter((v): v is string => v != null))];
 
-    const where = whereFor(filters);
+    /*
+     * Model rozwijamy do wariantow zapisu tylko wtedy, gdy znamy marke —
+     * bez niej "Leon" moglby zlapac modele innych producentow.
+     */
+    const modelWarianty =
+      filters.make && typeof filters.model === "string"
+        ? await wariantyModelu(filters.make, filters.model)
+        : undefined;
+
+    const where = whereFor(filters, modelWarianty);
     const rows = await db
       .select({
         id: listings.id,
@@ -113,7 +163,22 @@ async function main() {
       })
       .from(listings)
       .innerJoin(sources, eq(sources.id, listings.sourceId))
-      .where(seenIds.length > 0 ? and(where, notInArray(listings.id, seenIds)) : where)
+      .where(
+        and(
+          where,
+          seenIds.length > 0 ? notInArray(listings.id, seenIds) : undefined,
+          /*
+           * `notInArray`, nie `<> all(...)` w surowym SQL: Drizzle nie serializuje
+           * tablicy JS do tablicy Postgresa i zapytanie wywala sie na
+           * `make_scalar_array_op`. Sprawdzone.
+           *
+           * `vin is null` przepuszczamy — brak numeru nie moze blokowac oferty.
+           */
+          seenVins.length > 0
+            ? or(isNull(listings.vin), notInArray(listings.vin, seenVins))
+            : undefined,
+        ),
+      )
       // Najlepsze okazje na gorze — mail ma sie zaczynac od tego, co najciekawsze.
       .orderBy(sql`${listings.dealScore} desc nulls last`, desc(listings.firstSeenAt))
       .limit(MAX_PER_MAIL);
