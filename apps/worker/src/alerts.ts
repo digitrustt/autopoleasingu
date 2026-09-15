@@ -160,6 +160,9 @@ async function main() {
         dealScore: listings.dealScore,
         url: listings.url,
         sourceName: sources.name,
+        thumbnailUrl: listings.thumbnailUrl,
+        fuel: listings.fuel,
+        gearbox: listings.gearbox,
       })
       .from(listings)
       .innerJoin(sources, eq(sources.id, listings.sourceId))

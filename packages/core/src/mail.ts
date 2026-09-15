@@ -113,42 +113,123 @@ export interface AlertOffer {
   dealScore: number | null;
   sourceName: string;
   url: string;
+  /** Miniatura hot-linkowana ze zrodla — patrz komentarz przy szablonie. */
+  thumbnailUrl: string | null;
+  fuel: string | null;
+  gearbox: string | null;
 }
 
-/** Alert o nowych ofertach pasujacych do subskrypcji. */
+/** Polskie nazwy paliwa i skrzyni — w mailu nie ma miejsca na ikony. */
+const PALIWO_PL: Record<string, string> = {
+  petrol: "Benzyna",
+  diesel: "Diesel",
+  hybrid: "Hybryda",
+  phev: "PHEV",
+  electric: "Elektryk",
+  lpg: "LPG",
+};
+const SKRZYNIA_PL: Record<string, string> = { automatic: "Automat", manual: "Manual" };
+
+/**
+ * Alert o nowych ofertach pasujacych do subskrypcji.
+ *
+ * ZDJECIA SA HOT-LINKOWANE ZE ZRODEL, tak samo jak na stronie. Nie kopiujemy
+ * ich do siebie: to cudze zdjecia cudzych aut, a ich kopiowanie na wlasny
+ * serwer bylo by ich rozpowszechnianiem.
+ *
+ * Mail MUSI byc czytelny bez obrazkow — Gmail i Outlook domyslnie blokuja
+ * zewnetrzne obrazki, dopoki czlowiek nie kliknie "pokaz". Dlatego zdjecie ma
+ * staly rozmiar (nie rozjezdza ukladu, gdy sie nie zaladuje), sensowny tekst
+ * alternatywny, a WSZYSTKIE informacje potrzebne do decyzji — cena, rocznik,
+ * przebieg, ile pod rynkiem — stoja w tekscie obok, nie na obrazku.
+ *
+ * Tabele i style inline zamiast flexboxa, bo Outlook nie zna nowoczesnego
+ * layoutu. `border-radius` i tak zignoruje — to jest ozdoba dla reszty.
+ */
 export function newOffers(email: string, token: string, label: string | null, offers: AlertOffer[]) {
+  const { subject, html } = renderNewOffers(token, label, offers);
+  return send(email, subject, html);
+}
+
+/**
+ * Sam HTML alertu, bez wysylki — zeby dalo sie go podejrzec i sprawdzic
+ * w przegladarce, nie strzelajac mailem do prawdziwego subskrybenta.
+ */
+export function renderNewOffers(token: string, label: string | null, offers: AlertOffer[]) {
   const unsub = `${SITE}/alerty/wypisz?token=${encodeURIComponent(token)}`;
 
   const rows = offers
     .map((o) => {
-      const deal =
-        o.dealScore != null && o.dealScore >= 0.1
-          ? `<span style="color:#34d399;font-weight:600"> · ${Math.round(o.dealScore * 100)}% pod rynkiem</span>`
+      const procent = o.dealScore != null ? Math.round(o.dealScore * 100) : null;
+      const okazja =
+        procent != null && procent >= 10
+          ? `<div style="padding-top:6px">
+               <span style="background:#065f46;color:#6ee7b7;font-size:12px;font-weight:700;padding:3px 8px;border-radius:5px;display:inline-block">
+                 ${procent}% pod rynkiem
+               </span>
+             </div>`
           : "";
-      const spec = [o.year, o.mileageKm != null ? `${num.format(o.mileageKm)} km` : null]
+
+      const spec = [
+        o.year,
+        o.mileageKm != null ? `${num.format(o.mileageKm)} km` : null,
+        o.fuel ? PALIWO_PL[o.fuel] : null,
+        o.gearbox ? SKRZYNIA_PL[o.gearbox] : null,
+      ]
         .filter(Boolean)
         .join(" · ");
-      return `<tr><td style="padding:12px 0;border-bottom:1px solid #232a32">
-        <a href="${esc(o.url)}" style="color:#e7ecf3;text-decoration:none;font-weight:600;font-size:15px">${esc(o.make)} ${esc(o.model)}</a>
-        ${o.trim ? `<div style="font-size:12px;color:#6b7280">${esc(o.trim)}</div>` : ""}
-        <div style="font-size:13px;color:#8b95a1;padding-top:3px">${esc(spec)}</div>
-        <div style="padding-top:5px;font-size:16px;font-weight:700;color:#e7ecf3">
-          ${o.priceGross != null ? esc(pln.format(o.priceGross)) : "cena na zapytanie"}${deal}
-        </div>
-        <div style="font-size:12px;color:#6b7280">${esc(o.sourceName)}</div>
+
+      const nazwa = `${o.make} ${o.model}`;
+
+      /*
+       * Szerokosc i wysokosc jako ATRYBUTY, nie tylko w stylu: klienci pocztowi,
+       * ktore nie zaladowaly obrazka, rezerwuja miejsce tylko na podstawie
+       * atrybutow. Bez nich zablokowane zdjecie zwija sie do zera i caly wiersz
+       * podskakuje, gdy uzytkownik kliknie "pokaz obrazki".
+       */
+      /*
+       * Kolor i `text-decoration` NA OBRAZKU, nie tylko na linku: gdy klient
+       * pocztowy zablokuje zdjecie, pokazuje tekst alternatywny, ktory dziedziczy
+       * style po <img>. Bez tego alt wychodzil niebieski i podkreslony — czyli
+       * wygladal jak zepsuty link, a nie jak podpis.
+       */
+      const foto = o.thumbnailUrl
+        ? `<img src="${esc(o.thumbnailUrl)}" width="140" height="94" alt="${esc(nazwa)}"
+             style="display:block;width:140px;height:94px;object-fit:cover;border-radius:8px;border:0;background:#14181d;color:#6b7280;font-size:11px;text-decoration:none">`
+        : `<div style="width:140px;height:94px;border-radius:8px;background:#14181d"></div>`;
+
+      return `<tr><td style="padding:14px 0;border-bottom:1px solid #232a32">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+          <td width="140" valign="top" style="width:140px;padding-right:14px">
+            <a href="${esc(o.url)}" style="text-decoration:none">${foto}</a>
+          </td>
+          <td valign="top">
+            <a href="${esc(o.url)}" style="color:#e7ecf3;text-decoration:none;font-weight:700;font-size:16px;line-height:1.3">${esc(nazwa)}</a>
+            ${o.trim ? `<div style="font-size:12px;color:#6b7280;padding-top:2px">${esc(o.trim)}</div>` : ""}
+            <div style="font-size:13px;color:#8b95a1;padding-top:5px">${esc(spec)}</div>
+            <div style="padding-top:7px;font-size:18px;font-weight:700;color:#e7ecf3">
+              ${o.priceGross != null ? esc(pln.format(o.priceGross)) : "cena na zapytanie"}
+            </div>
+            ${okazja}
+            <div style="font-size:12px;color:#6b7280;padding-top:6px">${esc(o.sourceName)}</div>
+          </td>
+        </tr></table>
       </td></tr>`;
     })
     .join("");
 
   const n = offers.length;
-  return send(
-    email,
-    `${n} ${n === 1 ? "nowa oferta" : "nowych ofert"}${label ? ` — ${label}` : ""}`,
-    layout(
+  return {
+    subject: `${n} ${n === 1 ? "nowa oferta" : "nowych ofert"}${label ? ` — ${label}` : ""}`,
+    html: layout(
       `${n === 1 ? "Nowa oferta" : `Nowe oferty: ${n}`}`,
       `${label ? `<p style="color:#6b7280;font-size:13px;margin-top:0">Powiadomienie: ${esc(label)}</p>` : ""}
-       <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rows}</table>`,
+       <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rows}</table>
+       <p style="padding-top:20px;font-size:13px;color:#6b7280;margin:0">
+         Ceny porównujemy z medianą rynkową dla tego samego rocznika, przebiegu i napędu.
+         <a href="${SITE}" style="color:#8b95a1">Zobacz wszystkie oferty</a>.
+       </p>`,
       unsub,
     ),
-  );
+  };
 }
