@@ -1,20 +1,23 @@
 "use client";
 
-import { type Consent, readConsent, writeConsent } from "@/lib/consent";
+import { type Consent, hasConsentDecision, readConsent, writeConsent } from "@/lib/consent";
 import { Cookie } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
 /**
- * Baner zgody na analitykę.
+ * Baner informujący o analityce.
  *
- * Wcześniej serwis nie zbierał niczego i baner byłby pustym rytuałem — teraz
- * zbiera, więc zgoda jest realnie potrzebna i musi być UPRZEDNIA: analityka
- * startuje dopiero po kliknięciu, nigdy wcześniej.
+ * NIE BLOKUJE POMIARU — analityka działa od wejścia (patrz DOMYSLNA_ZGODA
+ * w lib/consent.ts, gdzie stoi powód i ostrzeżenie prawne). Baner wisi,
+ * dopóki człowiek sam czegoś nie kliknie, i daje realną możliwość odmowy.
+ *
+ * „Odrzuć" DZIAŁA NAPRAWDĘ i musi tak zostać: zatrzymuje pomiar i czyści
+ * to, co PostHog zdążył zebrać w tej sesji. Przycisk, który udaje wybór,
+ * byłby okłamywaniem człowieka, który świadomie odmawia.
  *
  * Dwa przyciski o równej wadze. „Odrzuć" schowane pod linkiem albo w szarym,
- * ledwo widocznym tekście jest tak zwanym dark patternem i w EU podważa
- * ważność samej zgody — musi być tak samo łatwe jak akceptacja.
+ * ledwo widocznym tekście jest tak zwanym dark patternem.
  */
 export function CookieConsent() {
   const [visible, setVisible] = useState(false);
@@ -23,37 +26,11 @@ export function CookieConsent() {
     // Renderujemy dopiero po stronie klienta: na serwerze nie wiadomo,
     // czy użytkownik już zdecydował, a mignięcie banera przy każdym
     // wejściu byłoby gorsze niż jego brak.
-    if (readConsent() !== null) return;
+    //
+    // Pytamy o WŁASNĄ decyzję, nie o `readConsent` — to drugie przy pierwszym
+    // wejściu zwraca teraz wartość domyślną i baner nie pokazałby się nigdy.
+    if (hasConsentDecision()) return;
     setVisible(true);
-
-    /*
-     * ZGODA PRZEZ PRZEWINIĘCIE — decyzja właściciela serwisu, podjęta
-     * świadomie po zgłoszeniu zastrzeżenia.
-     *
-     * Uwaga dla przyszłego czytelnika: wytyczne EROD 05/2020 wskazują scroll
-     * jako przykład zachowania, które NIE stanowi ważnej zgody w rozumieniu
-     * RODO — jest czynnością nawigacyjną, nie jednoznacznym działaniem
-     * potwierdzającym. Jeśli ten mechanizm ma zostać usunięty, wystarczy
-     * skasować ten useEffect; przyciski działają niezależnie.
-     *
-     * Próg jest celowo wysoki (600 px) i liczony dopiero po sekundzie:
-     * przywrócenie pozycji przewijania przez przeglądarkę albo przypadkowy
-     * ruch kółkiem nie mogą uchodzić za decyzję.
-     */
-    const SCROLL_PX = 600;
-    const armAt = Date.now() + 1000;
-    let done = false;
-
-    const onScroll = () => {
-      if (done || Date.now() < armAt) return;
-      if (window.scrollY < SCROLL_PX) return;
-      done = true;
-      writeConsent("granted");
-      setVisible(false);
-    };
-
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
   if (!visible) return null;
@@ -73,8 +50,7 @@ export function CookieConsent() {
         <p className="flex max-w-[70ch] items-center gap-2.5 text-[13px] leading-relaxed text-neutral-400">
           <Cookie size={18} className="shrink-0 text-neutral-500" />
           <span>
-            Używamy ciasteczek do anonimowych statystyk. Przewijając stronę dalej, wyrażasz
-            zgodę.{" "}
+            Używamy ciasteczek do anonimowych statystyk. Możesz to wyłączyć.{" "}
             <Link href="/cookies" className="underline underline-offset-2 hover:text-accent">
               Szczegóły
             </Link>
@@ -94,7 +70,7 @@ export function CookieConsent() {
             onClick={() => decide("granted")}
             className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-black transition-colors hover:bg-white"
           >
-            Wyrażam zgodę
+            OK
           </button>
         </div>
       </div>

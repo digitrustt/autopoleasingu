@@ -5,31 +5,31 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Cookies i analityka — autopoleasingu.pl",
   description:
-    "Jakie dane zbieramy przez analitykę, po co i jak to wyłączyć. Bez zgody nie zapisujemy nic.",
+    "Jakie dane zbieramy przez analitykę, po co i jak to wyłączyć jednym kliknięciem.",
   alternates: { canonical: "/cookies" },
 };
 
 export default function Cookies() {
   return (
-    <LegalPage title="Cookies i analityka" updated="7 sierpnia 2026">
-      <Section title="Jak wyrażasz zgodę">
-        <p>Zgodę na analitykę wyrażasz na jeden z dwóch sposobów:</p>
-        <ul className="ml-4 list-disc space-y-1 marker:text-neutral-600">
-          <li>klikając <strong className="text-neutral-200">„Wyrażam zgodę"</strong> w banerze,</li>
-          <li>
-            <strong className="text-neutral-200">przewijając stronę dalej</strong> — po przewinięciu
-            o ponad 600 pikseli baner znika, a analityka się uruchamia.
-          </li>
-        </ul>
+    <LegalPage title="Cookies i analityka" updated="17 września 2026">
+      <Section title="Analityka jest domyślnie włączona">
         <p>
-          Jeśli nie chcesz się zgodzić, kliknij <strong className="text-neutral-200">„Odrzuć"</strong>{" "}
-          zanim zaczniesz przewijać, albo wyłącz analitykę przełącznikiem niżej — działa
-          w każdej chwili, także po fakcie.
+          Anonimowa analityka działa od momentu wejścia na stronę — nie czekamy na kliknięcie
+          w banerze. Baner informuje o tym i daje możliwość wyłączenia.
         </p>
         <p>
-          Zanim wybierzesz którykolwiek z tych sposobów,{" "}
-          <strong className="text-neutral-200">nie zapisujemy w Twojej przeglądarce niczego</strong>{" "}
-          poza samą informacją o podjętej decyzji.
+          Aby ją wyłączyć, kliknij <strong className="text-neutral-200">„Odrzuć"</strong>{" "}
+          w banerze albo użyj przełącznika niżej. Działa w każdej chwili, także po fakcie —
+          wyłączenie zatrzymuje zbieranie i kasuje to, co PostHog zdążył zapisać
+          w Twojej przeglądarce.
+        </p>
+        <p>
+          Mówimy o tym wprost, bo{" "}
+          <strong className="text-neutral-200">
+            przepisy unijne wymagają zgody przed uruchomieniem analityki
+          </strong>
+          , a my jej nie zbieramy z góry. Uznaliśmy, że uczciwiej jest to napisać, niż udawać,
+          że baner coś blokuje.
         </p>
       </Section>
 
@@ -37,8 +37,8 @@ export default function Cookies() {
         <ConsentToggle />
       </Section>
 
-      <Section title="Co zbieramy po wyrażeniu zgody">
-        <p>Korzystamy z PostHog. Po zgodzie zbieramy:</p>
+      <Section title="Co zbieramy">
+        <p>Korzystamy z PostHog. Zbieramy:</p>
         <ul className="ml-4 list-disc space-y-1 marker:text-neutral-600">
           <li>odwiedzane podstrony i oglądane oferty,</li>
           <li>użyte filtry i sortowania (marka, źródło, próg okazji),</li>
@@ -70,15 +70,16 @@ export default function Cookies() {
       <Section title="Gdzie trafiają dane">
         <p>
           Na serwery PostHog w Unii Europejskiej (<code className="text-neutral-300">eu.i.posthog.com</code>).
-          Dane nie opuszczają Europejskiego Obszaru Gospodarczego. Podstawą przetwarzania jest
-          Twoja zgoda (art. 6 ust. 1 lit. a RODO), którą możesz wycofać w każdej chwili
-          przełącznikiem wyżej.
+          Dane nie opuszczają Europejskiego Obszaru Gospodarczego. Jako podstawę przetwarzania
+          wskazujemy nasz prawnie uzasadniony interes w mierzeniu ruchu na własnym serwisie
+          (art. 6 ust. 1 lit. f RODO). Pomiar możesz wyłączyć w każdej chwili przełącznikiem
+          wyżej — to jest Twój sprzeciw w rozumieniu art. 21 RODO i honorujemy go natychmiast.
         </p>
       </Section>
 
       <Section title="Ciasteczka">
         <p>
-          Po zgodzie PostHog zapisuje ciasteczka i wpisy w pamięci lokalnej, które pozwalają
+          PostHog zapisuje ciasteczka i wpisy w pamięci lokalnej, które pozwalają
           rozpoznać, że kolejne kliknięcia pochodzą z tej samej sesji. Są anonimowe —
           nie zawierają Twojego imienia, e-maila ani niczego, co pozwoliłoby Cię wskazać.
         </p>
@@ -99,7 +100,7 @@ export default function Cookies() {
       <Section title="Jak to sprawdzić">
         <p>
           Otwórz narzędzia deweloperskie (F12), zakładka <em>Application → Cookies</em>. Przed
-          wyrażeniem zgody lista dla domeny autopoleasingu.pl będzie pusta.
+          wyłączeniem analityki lista dla domeny autopoleasingu.pl będzie pusta.
         </p>
       </Section>
     </LegalPage>

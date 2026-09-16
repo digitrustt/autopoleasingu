@@ -2,7 +2,7 @@
 
 import { track } from "@/components/Analytics";
 import { ZapisForm } from "@/components/ZapisForm";
-import { readConsent } from "@/lib/consent";
+import { hasConsentDecision } from "@/lib/consent";
 import { SYGNAL_WYJSCIA } from "@/lib/zapis-sygnal";
 import { Bell, X } from "lucide-react";
 import { usePathname } from "next/navigation";
@@ -40,8 +40,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
  *    w localStorage NA STALE. Nakladka, ktora wraca po odmowie, jest gorsza
  *    niz jej brak: kosztuje zaufanie, ktorego przy tym ruchu nie ma z czego
  *    oddawac. Oba wyzwalacze dziela ten sam zamek — zadne "a moze teraz".
- *  - Nie pokazuje sie, dopoki wisi baner zgody na cookies. Dwie nakladki naraz
- *    to sciana, ktora zamyka sie odruchowo, razem z cala strona.
+ *  - Nie pokazuje sie, dopoki wisi baner cookies (czyli dopoki czlowiek sam
+ *    czegos w nim nie kliknie). Dwie nakladki naraz to sciana, ktora zamyka
+ *    sie odruchowo, razem z cala strona.
  *  - Escape i klikniecie w tlo zamykaja. Krzyzyk jest pelnowymiarowy, nie
  *    szescioma pikselami w rogu.
  *  - Tresc mowi dokladnie, co przyjdzie: jeden mail dziennie, dwanascie ofert.
@@ -68,10 +69,17 @@ function zapisz(store: Storage, k: string, v: string): void {
   }
 }
 
-/** Wspolny zamek obu wyzwalaczy: decyzja juz zapadla albo wisi baner cookies. */
+/**
+ * Wspolny zamek obu wyzwalaczy: decyzja o zapisie juz zapadla albo wisi baner.
+ *
+ * Pytamy o WLASNA decyzje w banerze, nie o `readConsent`. Od 17.09.2026 zgoda
+ * jest domyslnie udzielona (patrz lib/consent.ts), wiec `readConsent() !== null`
+ * bylo juz zawsze prawdziwe — nakladka wjezdzalaby NA baner, a dwie nakladki
+ * naraz to sciana, ktora czlowiek zamyka odruchowo razem z cala strona.
+ */
 function wolno(): boolean {
   if (czytaj(localStorage, KLUCZ_DECYZJA)) return false;
-  return readConsent() !== null;
+  return hasConsentDecision();
 }
 
 type Powod = "oferty" | "wyjscie";
