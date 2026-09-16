@@ -1,8 +1,8 @@
 /**
  * Wysylka maili przez Resend + szablony.
  *
- * W pakiecie `core`, bo korzystaja z tego dwie strony: web (mail potwierdzajacy
- * zapis) i worker (alerty o nowych ofertach). Trzymanie tego w jednym miejscu
+ * W pakiecie `core`, bo korzystaja z tego dwie strony: web (mail powitalny
+ * po zapisie) i worker (alerty o nowych ofertach). Trzymanie tego w jednym miejscu
  * gwarantuje, ze oba wygladaja tak samo i oba maja link wypisujacy.
  *
  * Bez RESEND_API_KEY funkcje nic nie wysylaja i zwracaja `skipped` — dzieki temu
@@ -79,25 +79,43 @@ function layout(title: string, body: string, unsubUrl?: string): string {
 /* --------------------------------------------------------------- wiadomosci */
 
 /**
- * Mail potwierdzajacy zapis (double opt-in).
+ * Mail powitalny — wychodzi od razu po zapisie, powiadomienia sa juz wlaczone.
  *
- * Bez tego kroku kazdy moglby zapisac cudzy adres, a my slalibysmy alerty
- * komus, kto o nic nie prosil — czyli spamowali.
+ * DLACZEGO NIE MA JUZ POTWIERDZENIA LINKIEM. Double opt-in zjadal polowe ludzi:
+ * z trzech obcych osob, ktore sie zapisaly, dwie nigdy nie kliknely w link
+ * (obie na wp.pl i onet.pl, ktore agresywnie filtruja maile od nowych
+ * nadawcow). Kto wpisal adres w formularz, ten chcial dostawac powiadomienia.
+ *
+ * Ryzyko, przed ktorym potwierdzenie chronilo, nie zniknelo — zmienilo sie
+ * miejsce obrony. Ktos wciaz moze wpisac cudzy adres albo sie pomylic. Dlatego
+ * ten mail:
+ *
+ *  - wychodzi NATYCHMIAST, zanim poleci jakikolwiek alert — wlasciciel adresu
+ *    dowiaduje sie o zapisie od razu, a nie z jutrzejszej wysylki;
+ *  - ma wypisanie jako pierwsza rzecz pod trescia, nie w stopce drobnym
+ *    drukiem. Jedno klikniecie konczy sprawe, bez logowania.
+ *
+ * Tresc mowi dokladnie to, co bedzie: mail tylko wtedy, gdy doszla pasujaca
+ * oferta, najwyzej jeden dziennie. To samo obiecuje formularz.
  */
-export function confirmSubscription(email: string, token: string, label: string | null) {
-  const url = `${SITE}/alerty/potwierdz?token=${encodeURIComponent(token)}`;
+export function welcomeSubscription(email: string, token: string, label: string | null) {
+  const wypisz = `${SITE}/alerty/wypisz?token=${encodeURIComponent(token)}`;
   return send(
     email,
-    "Potwierdź powiadomienia — autopoleasingu.pl",
+    label ? `Powiadomienia włączone: ${label}` : "Powiadomienia włączone — autopoleasingu.pl",
     layout(
-      "Potwierdź zapis",
-      `<p>Ktoś (mamy nadzieję, że Ty) zapisał ten adres na powiadomienia o nowych ofertach${
+      "Powiadomienia włączone",
+      `<p>Zapisaliśmy ten adres na powiadomienia o nowych ofertach${
         label ? `: <strong style="color:#e7ecf3">${esc(label)}</strong>` : ""
       }.</p>
-       <p style="padding:18px 0">
-         <a href="${esc(url)}" style="background:#f2f5f9;color:#0b0d10;text-decoration:none;padding:11px 20px;border-radius:8px;font-weight:600;display:inline-block">Potwierdzam</a>
+       <p>Codziennie przeglądamy 26 źródeł poleasingowych. Gdy pojawi się pasująca oferta, dostaniesz maila — najwyżej jednego dziennie i tylko wtedy, gdy faktycznie coś doszło.</p>
+       <p style="padding:14px 0 4px">
+         <a href="${esc(SITE)}" style="background:#f2f5f9;color:#0b0d10;text-decoration:none;padding:11px 20px;border-radius:8px;font-weight:600;display:inline-block">Zobacz aktualne oferty</a>
        </p>
-       <p style="font-size:13px;color:#6b7280">Jeśli to nie Ty — po prostu zignoruj tę wiadomość. Bez kliknięcia nie wyślemy Ci nic więcej.</p>`,
+       <p style="font-size:13px;color:#6b7280;padding-top:10px">
+         Nie zapisywałeś się? <a href="${esc(wypisz)}" style="color:#b6bec9">Wypisz ten adres</a> — jedno kliknięcie, bez logowania. Nie wyślemy wtedy nic więcej.
+       </p>`,
+      wypisz,
     ),
   );
 }

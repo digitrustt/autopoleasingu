@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 
 export default function Prywatnosc() {
   return (
-    <LegalPage title="Polityka prywatności" updated="7 sierpnia 2026">
+    <LegalPage title="Polityka prywatności" updated="17 września 2026">
       <Section title="Krótko">
         <p>
           Serwis nie ma kont, formularzy ani newslettera —{" "}
@@ -47,9 +47,10 @@ export default function Prywatnosc() {
           zbieramy.
         </p>
         <p>
-          Zapis wymaga <strong className="text-neutral-200">potwierdzenia linkiem</strong> —
-          bez kliknięcia nie wyślemy ani jednej wiadomości. Dzięki temu nikt nie zapisze na
-          powiadomienia cudzego adresu.
+          Powiadomienia włączają się od razu po zapisie. Na podany adres{" "}
+          <strong className="text-neutral-200">natychmiast wysyłamy wiadomość powitalną</strong>{" "}
+          z linkiem do wypisania. Jeśli ktoś zapisał Twój adres bez Twojej wiedzy, jedno
+          kliknięcie w tej wiadomości kończy sprawę i nie dostaniesz od nas nic więcej.
         </p>
         <p>
           Podstawą jest Twoja zgoda (art. 6 ust. 1 lit. a RODO). Możesz ją wycofać{" "}

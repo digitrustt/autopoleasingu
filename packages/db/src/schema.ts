@@ -196,10 +196,13 @@ export const events = pgTable(
 /**
  * Subskrypcje alertow mailowych.
  *
- * DOUBLE OPT-IN nie jest tu ozdoba: bez potwierdzenia linkiem kazdy moglby
- * zapisac cudzy adres na powiadomienia, a my wysylalibysmy je komus, kto o nic
- * nie prosil. Dlatego `confirmedAt` jest puste do momentu klikniecia w mail,
- * a wysylka bierze WYLACZNIE potwierdzone rekordy.
+ * `confirmedAt` ZNACZY "OD KIEDY AKTYWNE". Wysylka bierze wylacznie rekordy
+ * z ta data. Do 17.09.2026 ustawial ja dopiero klik w link potwierdzajacy
+ * (double opt-in); od tego dnia zapis ustawia ja od razu, a obrona przed
+ * cudzymi adresami przeszla do maila powitalnego z wypisaniem na wierzchu
+ * (patrz welcomeSubscription w @auta/core). Stare niepotwierdzone rekordy
+ * zostaja nieaktywne, dopoki ich wlasciciel nie kliknie w stary link albo nie
+ * zapisze sie ponownie.
  *
  * Filtry trzymamy jako jsonb, bo to dokladnie ten sam ksztalt co filtry
  * wyszukiwarki (marka, model, cena do, rocznik od, prog okazji...). Osobne

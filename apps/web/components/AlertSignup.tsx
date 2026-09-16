@@ -27,6 +27,8 @@ export function AlertSignup({
   ) as Record<string, string>;
 
   const [email, setEmail] = useState("");
+  /* Pulapka na boty — patrz api/alerty i ZapisForm. */
+  const [website, setWebsite] = useState("");
   const [state, setState] = useState<"idle" | "sending" | "done">("idle");
   const [error, setError] = useState<string | null>(null);
 
@@ -52,7 +54,7 @@ export function AlertSignup({
     const res = await fetch("/api/alerty", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, label: label || null, filters: active }),
+      body: JSON.stringify({ email, label: label || null, filters: active, website }),
     });
     const data = await res.json().catch(() => ({}));
 
@@ -70,8 +72,7 @@ export function AlertSignup({
       <div className="mb-5 flex items-center gap-2.5 rounded-xl border border-emerald-500/30 bg-emerald-500/5 px-4 py-3 text-sm">
         <CircleCheck size={17} className="shrink-0 text-emerald-400" />
         <span className="text-neutral-200">
-          Sprawdź skrzynkę — wysłaliśmy link potwierdzający. Bez kliknięcia w niego nie wyślemy
-          Ci nic więcej.
+          Zapisane. Mail przyjdzie, gdy pojawi się pasująca oferta — najwyżej jeden dziennie.
         </span>
       </div>
     );
@@ -80,8 +81,18 @@ export function AlertSignup({
   return (
     <form
       onSubmit={submit}
-      className="mb-5 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-[var(--color-line)] bg-[var(--color-panel)] px-4 py-3"
+      className="relative mb-5 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-[var(--color-line)] bg-[var(--color-panel)] px-4 py-3"
     >
+      <input
+        type="text"
+        name="website"
+        tabIndex={-1}
+        autoComplete="off"
+        aria-hidden="true"
+        value={website}
+        onChange={(e) => setWebsite(e.target.value)}
+        className="absolute left-[-9999px] h-px w-px opacity-0"
+      />
       <p className="flex items-center gap-2 text-sm text-neutral-300">
         <Bell size={16} className="shrink-0 text-neutral-500" />
         <span>
@@ -112,7 +123,7 @@ export function AlertSignup({
       {error && <p className="w-full text-xs text-rose-400">{error}</p>}
 
       <p className="w-full text-[11px] text-neutral-600">
-        Wyślemy maila z prośbą o potwierdzenie. Sprawdzamy raz na dobę, wypisanie jednym
+        Bez potwierdzania — działa od razu. Sprawdzamy raz na dobę, wypisanie jednym
         kliknięciem w każdej wiadomości. Adresu nie przekazujemy nikomu —{" "}
         <a href="/polityka-prywatnosci" className="underline hover:text-accent">
           polityka prywatności

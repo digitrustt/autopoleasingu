@@ -32,6 +32,8 @@ export function ZapisForm({
   autoFocus?: boolean;
 }) {
   const [email, setEmail] = useState("");
+  /* Pulapka na boty — patrz api/alerty. Czlowiek tego pola nie widzi. */
+  const [website, setWebsite] = useState("");
   const [state, setState] = useState<"idle" | "sending" | "done">("idle");
   const [error, setError] = useState<string | null>(null);
 
@@ -43,7 +45,7 @@ export function ZapisForm({
     const res = await fetch("/api/alerty", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, label, filters }),
+      body: JSON.stringify({ email, label, filters, website }),
     });
     const data = await res.json().catch(() => ({}));
 
@@ -61,13 +63,28 @@ export function ZapisForm({
     return (
       <p className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/5 px-4 py-3 text-[13px] text-neutral-200">
         <CircleCheck size={16} className="shrink-0 text-emerald-400" />
-        Sprawdź skrzynkę — wysłaliśmy link potwierdzający.
+        Zapisane. Mail przyjdzie, gdy pojawi się pasująca oferta.
       </p>
     );
   }
 
   return (
     <form onSubmit={submit}>
+      {/*
+        Pulapka na boty. Poza ekranem zamiast `display:none`, bo czesc botow
+        pomija ukryte pola. `tabIndex -1` i `aria-hidden`, zeby czlowiek z
+        klawiatura albo czytnikiem ekranu nigdy na nie nie trafil.
+      */}
+      <input
+        type="text"
+        name="website"
+        tabIndex={-1}
+        autoComplete="off"
+        aria-hidden="true"
+        value={website}
+        onChange={(e) => setWebsite(e.target.value)}
+        className="absolute left-[-9999px] h-px w-px opacity-0"
+      />
       {/*
         Pole i przycisk w jednej ramce: przy dwoch osobnych obwodkach formularz
         zaczyna wygladac jak formularz kontaktowy z 2010 roku.
@@ -98,8 +115,8 @@ export function ZapisForm({
         <p className="mt-2 text-[11px] text-rose-400">{error}</p>
       ) : (
         <p className="mt-2 text-[11px] leading-relaxed text-neutral-600">
-          Wyślemy mail z prośbą o potwierdzenie. Wypisanie jednym kliknięciem, adresu nie
-          przekazujemy nikomu.
+          Bez potwierdzania — działa od razu. Wypisanie jednym kliknięciem w każdym mailu,
+          adresu nie przekazujemy nikomu.
         </p>
       )}
     </form>

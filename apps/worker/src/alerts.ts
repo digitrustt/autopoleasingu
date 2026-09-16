@@ -96,13 +96,14 @@ function whereFor(f: Filters, modelWarianty?: string[]) {
 }
 
 async function main() {
+  // `confirmedAt` = od kiedy aktywne; patrz komentarz przy tabeli w @auta/db.
   const subs = await db
     .select()
     .from(subscriptions)
     .where(and(isNotNull(subscriptions.confirmedAt), isNull(subscriptions.unsubscribedAt)));
 
   if (subs.length === 0) {
-    console.log("✓ alerty: brak potwierdzonych subskrypcji");
+    console.log("✓ alerty: brak aktywnych subskrypcji");
     await client.end();
     return;
   }

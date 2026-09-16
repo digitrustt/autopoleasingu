@@ -7,11 +7,13 @@ import Link from "next/link";
 export const dynamic = "force-dynamic";
 
 /**
- * Potwierdzenie zapisu (drugi krok double opt-in).
+ * Potwierdzenie zapisu — POZOSTALOSC PO DOUBLE OPT-IN.
  *
- * Dopiero tutaj subskrypcja zaczyna cokolwiek robic — wysylka bierze wylacznie
- * rekordy z `confirmedAt`. Ponowne wejscie w link jest bezpieczne: ustawiamy
- * date tylko wtedy, gdy jest pusta.
+ * Nowe zapisy sa aktywne od razu i nie dostaja juz linku potwierdzajacego.
+ * Strona zostaje dla ludzi, ktorzy zapisali sie przed 17.09.2026 i maja taki
+ * link w skrzynce: klik nadal wlacza ich powiadomienia. Usuniecie jej
+ * zamieniloby te linki w 404 akurat u osob, ktore chcialy sie zapisac.
+ * Ponowne wejscie w link jest bezpieczne: date ustawiamy tylko, gdy jest pusta.
  */
 export default async function Potwierdz({
   searchParams,

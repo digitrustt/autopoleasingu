@@ -248,7 +248,7 @@ export function ZapisPopup() {
             label={tresc.label}
             autoFocus
             onDone={() => {
-              // Zamykamy z opoznieniem: potwierdzenie musi byc przeczytane.
+              // Zamykamy z opoznieniem: komunikat o zapisie musi byc przeczytany.
               setTimeout(() => schowaj("zapisano"), 2600);
             }}
           />
