@@ -3,7 +3,7 @@
 import { track } from "@/components/Analytics";
 import { ZapisForm } from "@/components/ZapisForm";
 import { hasConsentDecision } from "@/lib/consent";
-import { SYGNAL_WYJSCIA } from "@/lib/zapis-sygnal";
+import { type KontekstWyjscia, SYGNAL_WYJSCIA } from "@/lib/zapis-sygnal";
 import { Bell, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -85,41 +85,68 @@ function wolno(): boolean {
 type Powod = "oferty" | "wyjscie";
 
 /*
- * Tresc zalezy od tego, SKAD przyszlo wywolanie. Po wyjsciu do sprzedawcy
- * czlowiek ma juz w drugiej karcie konkretne auto — obietnica "przysylac
- * okazje" jest wtedy nie na temat. Na temat jest to, co wlasnie robi: sprawdza
- * jedna sztuke, ktora za tydzien moze nie istniec.
+ * Tresc zalezy od tego, SKAD przyszlo wywolanie, a po wyjsciu do sprzedawcy —
+ * takze od tego, JAKIE AUTO czlowiek wlasnie oglada.
  *
- * Liczba "co trzecia oferta znika w ciagu tygodnia" jest ZMIERZONA, nie
- * szacowana: 16 348 ofert, ktore pojawily sie od 17 sierpnia i zdazyly
- * przezyc swoje siedem dni, z czego 5 583 zniknelo w tym czasie — 34,2%.
- * Mediana zycia oferty, ktora zniknela, to 6,9 dnia. Nie podnosic tej liczby
- * bez ponownego przeliczenia; to jedyne twarde zdanie na tej nakladce.
+ * Pierwsza wersja mowila ogolnikami ("dac znac, gdy trafi sie podobne?").
+ * Zmierzone: pokazana 5 osobom, zamknieta przez 5, zero zapisow. Za malo, zeby
+ * cokolwiek wnioskowac, ale dosc, zeby poprawic to, co widac golym okiem —
+ * nakladka nie mowila o aucie, ktore czlowiek ma wlasnie w drugiej karcie.
+ *
+ * Liczby sa ZMIERZONE, nie szacowane: 16 348 ofert, ktore pojawily sie od
+ * 17 sierpnia i zdazyly przezyc siedem dni, z czego 5 583 zniknelo w tym
+ * czasie — 34,2%. Mediana zycia oferty, ktora zniknela, to 6,9 dnia. Stad
+ * "co trzecia" i "srednio w tydzien". Nie podnosic tych liczb bez ponownego
+ * przeliczenia; to jedyne twarde zdania na tej nakladce.
  */
-const TRESC: Record<Powod, { tytul: string; opis: string; label: string }> = {
-  oferty: {
+function tresc(powod: Powod, k: KontekstWyjscia) {
+  if (powod === "wyjscie" && k.nazwa) {
+    return {
+      tytul: `Dać znać o kolejnych ${k.nazwa}?`,
+      opis:
+        `Ta oferta zniknie średnio w tydzień — co trzecia znika w siedem dni, ` +
+        `sprzedana albo zdjęta. Gdy w którymkolwiek z 26 źródeł pojawi się ` +
+        `następne ${k.nazwa}, dostaniesz maila tego samego dnia.`,
+      label: k.nazwa,
+      /* Patrz KontekstWyjscia.zdjecie — BMW oddaje zastepnik nie do odroznienia. */
+      zdjecie: k.zrodlo === "bmw" ? null : (k.zdjecie ?? null),
+      /* Zapis zawezony do TEGO auta — czlowiek nie wybiera niczego drugi raz. */
+      filters: {
+        ...(k.make ? { make: k.make } : {}),
+        ...(k.model ? { model: k.model } : {}),
+      },
+    };
+  }
+  if (powod === "wyjscie") {
+    return {
+      tytul: "Dać znać, gdy trafi się podobne?",
+      opis:
+        "Ta oferta zniknie średnio w tydzień — co trzecia znika w siedem dni. " +
+        "Jeśli Ci ucieknie, dowiesz się o następnej tego samego dnia, w którym się pojawi.",
+      label: "Najlepsze nowe okazje",
+      zdjecie: null,
+      filters: {},
+    };
+  }
+  return {
     tytul: "Przysyłać Ci najlepsze okazje?",
     opis:
       "Co trzecia oferta znika w ciągu tygodnia — sprzedana albo zdjęta. Codziennie " +
       "przeglądamy 26 źródeł i wysyłamy dwanaście ofert najbardziej odstających od ceny " +
       "rynkowej. Jeden mail dziennie, nic poza tym.",
     label: "Najlepsze nowe okazje",
-  },
-  wyjscie: {
-    tytul: "Dać znać, gdy trafi się podobne?",
-    opis:
-      "Co trzecia oferta znika w ciągu tygodnia — sprzedana albo zdjęta. Jeśli ta Ci " +
-      "ucieknie, dowiesz się o następnej tego samego dnia, w którym się pojawi. Jeden " +
-      "mail dziennie, tylko gdy faktycznie coś doszło.",
-    label: "Najlepsze nowe okazje",
-  },
-};
+    zdjecie: null,
+    filters: {},
+  };
+}
 
 export function ZapisPopup() {
   const pathname = usePathname();
   const [widoczny, setWidoczny] = useState(false);
   const [wjechal, setWjechal] = useState(false);
   const [powod, setPowod] = useState<Powod>("oferty");
+  /* Co czlowiek ogladal, wychodzac — zasila tytul, zdjecie i filtr zapisu. */
+  const [kontekst, setKontekst] = useState<KontekstWyjscia>({});
 
   const schowaj = useCallback((decyzja: "zamkniete" | "zapisano") => {
     zapisz(localStorage, KLUCZ_DECYZJA, decyzja);
@@ -164,16 +191,25 @@ export function ZapisPopup() {
    * pokazujemy mimo to, zeby ten wyzwalacz nie przepadl po cichu.
    */
   const uzbrojony = useRef(false);
+  /*
+   * Kontekst trzymamy TAKZE w ref. `odpal` siedzi w timeoucie i w nasluchu
+   * `visibilitychange`, wiec widzialby stan z chwili podpiecia, a nie ten
+   * ustawiony przed momentem przez klikniecie.
+   */
+  const kontekstRef = useRef<KontekstWyjscia>({});
   useEffect(() => {
     const odpal = () => {
       if (!uzbrojony.current || document.hidden) return;
       uzbrojony.current = false;
       if (!wolno()) return;
-      pokaz("wyjscie", {});
+      pokaz("wyjscie", { auto: kontekstRef.current.nazwa ?? null });
     };
 
-    const naWyjscie = () => {
+    const naWyjscie = (e: Event) => {
       if (widoczny || !wolno()) return;
+      const k = (e as CustomEvent<KontekstWyjscia>).detail ?? {};
+      kontekstRef.current = k;
+      setKontekst(k);
       uzbrojony.current = true;
       setTimeout(odpal, 1200);
     };
@@ -204,7 +240,7 @@ export function ZapisPopup() {
 
   if (!widoczny) return null;
 
-  const tresc = TRESC[powod];
+  const t = tresc(powod, kontekst);
 
   return (
     <div
@@ -243,17 +279,41 @@ export function ZapisPopup() {
           <X size={16} />
         </button>
 
-        <p className="flex items-center gap-2 pr-8 text-[15px] font-medium text-neutral-100">
-          <Bell size={16} className="shrink-0 text-neutral-500" />
-          <span id="zapis-popup-tytul">{tresc.tytul}</span>
-        </p>
+        {/*
+          Zdjecie auta, ktore czlowiek wlasnie oglada, zamiast ikonki dzwonka.
+          Bez niego nakladka mowi o "ofertach" w ogolnosci, a z nim — o tym
+          konkretnym aucie, ktore czlowiek ma otwarte w drugiej karcie.
+          `onError` chowa je, bo miniatury sa hot-linkowane z cudzych serwerow
+          i czasem nie dochodza; pusta ramka wygladalaby na usterke.
+        */}
+        <div className="flex items-start gap-3 pr-8">
+          {t.zdjecie ? (
+            // biome-ignore lint/performance/noImgElement: miniatury hot-linkujemy, patrz next.config
+            <img
+              src={t.zdjecie}
+              alt=""
+              width={72}
+              height={54}
+              onError={(e) => {
+                e.currentTarget.style.display = "none";
+              }}
+              className="h-[54px] w-[72px] shrink-0 rounded-lg object-cover"
+            />
+          ) : (
+            <Bell size={16} className="mt-0.5 shrink-0 text-neutral-500" />
+          )}
+          <p className="text-[15px] font-medium leading-snug text-neutral-100">
+            <span id="zapis-popup-tytul">{t.tytul}</span>
+          </p>
+        </div>
 
-        <p className="mt-2 text-[13px] leading-relaxed text-neutral-400">{tresc.opis}</p>
+        <p className="mt-2 text-[13px] leading-relaxed text-neutral-400">{t.opis}</p>
 
         <div className="mt-4">
           <ZapisForm
             typ={`popup-${powod}`}
-            label={tresc.label}
+            label={t.label}
+            filters={t.filters}
             autoFocus
             onDone={() => {
               // Zamykamy z opoznieniem: komunikat o zapisie musi byc przeczytany.

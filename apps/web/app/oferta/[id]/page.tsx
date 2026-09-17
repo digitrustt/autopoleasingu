@@ -579,6 +579,19 @@ export default async function OfferPage({ params }: { params: Promise<{ id: stri
               href={o.url}
               external
               sourceId={o.sourceId}
+              /*
+               * Nakladka zapisu pokazuje TO auto, gdy czlowiek wroci do karty —
+               * patrz lib/zapis-sygnal.ts. Bez tego mowilaby ogolnikami
+               * o "okazjach", zamiast o aucie, ktore wlasnie oglada.
+               */
+              kontekst={{
+                nazwa: name,
+                make: o.make,
+                model: o.model,
+                zdjecie: o.thumbnailUrl,
+                zrodlo: o.sourceId,
+                cena: o.priceGross,
+              }}
               offer={{
                 id: o.id,
                 make: o.make,

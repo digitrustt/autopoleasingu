@@ -14,6 +14,34 @@
  */
 export const SYGNAL_WYJSCIA = "zapis:wyjscie";
 
-export function zglosWyjscie(): void {
-  window.dispatchEvent(new Event(SYGNAL_WYJSCIA));
+/**
+ * Co czlowiek ogladal, wychodzac. Nakladka pokazuje TO auto zamiast ogolnika —
+ * "dac znac o kolejnych BMW Seria 3?" dziala inaczej niz "przysylac okazje?",
+ * bo odpowiada na mysl, ktora czlowiek wlasnie ma w glowie.
+ *
+ * Wszystko opcjonalne: sygnal leci tez z kafelka na liscie, gdzie czesci
+ * danych nie ma, a nakladka musi dzialac takze bez nich.
+ */
+export interface KontekstWyjscia {
+  /** "BMW Seria 3" — do tytulu i do filtra subskrypcji. */
+  nazwa?: string | null;
+  make?: string | null;
+  model?: string | null;
+  /**
+   * Miniatura auta — jedyny obrazek na nakladce.
+   *
+   * MOZE BYC GRAFIKA "BRAK ZDJECIA". najlepszeoferty.bmw.pl oddaje na oferty
+   * bez zdjecia wlasna grafike zastepcza, z kodem 200 i w proporcji 16:9 —
+   * czyli nie do odroznienia ani przez `onError`, ani po ksztalcie
+   * (sprawdzone: 1920x1080), ani po adresie (sa unikalne). Dlatego nakladka
+   * pomija zdjecia z tego zrodla, patrz `zrodlo` nizej.
+   */
+  zdjecie?: string | null;
+  /** Identyfikator zrodla — sluzy wylacznie do odsiania zastepnikow BMW. */
+  zrodlo?: string | null;
+  cena?: number | null;
+}
+
+export function zglosWyjscie(kontekst: KontekstWyjscia = {}): void {
+  window.dispatchEvent(new CustomEvent(SYGNAL_WYJSCIA, { detail: kontekst }));
 }

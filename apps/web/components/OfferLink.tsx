@@ -2,7 +2,7 @@
 
 import { track } from "@/components/Analytics";
 import { adresWyjscia } from "@/lib/wyjscie";
-import { zglosWyjscie } from "@/lib/zapis-sygnal";
+import { type KontekstWyjscia, zglosWyjscie } from "@/lib/zapis-sygnal";
 import Link from "next/link";
 
 /**
@@ -26,6 +26,7 @@ export function OfferLink({
   offer,
   external = false,
   sourceId = null,
+  kontekst,
   className,
   style,
   children,
@@ -36,6 +37,11 @@ export function OfferLink({
   external?: boolean;
   /** Potrzebne, bo jedno zrodlo nie znosi parametrow — patrz lib/wyjscie.ts. */
   sourceId?: string | null;
+  /**
+   * Co pokazac na nakladce zapisu po wyjsciu — patrz lib/zapis-sygnal.ts.
+   * Tylko dla `external`; kafelek na liscie prowadzi do wnetrza serwisu.
+   */
+  kontekst?: KontekstWyjscia;
   className?: string;
   style?: React.CSSProperties;
   children: React.ReactNode;
@@ -61,7 +67,7 @@ export function OfferLink({
            * lib/zapis-sygnal.ts. Wolamy je PO `track`, bo kolejnosc zdarzen
            * w PostHogu decyduje o tym, jak wyglada lejek.
            */
-          zglosWyjscie();
+          zglosWyjscie(kontekst ?? {});
         }}
       >
         {children}
