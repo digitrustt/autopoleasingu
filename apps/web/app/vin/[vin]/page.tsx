@@ -5,6 +5,7 @@ import { VehicleHistory } from "@/components/VehicleHistory";
 import { shortSource } from "@/lib/format";
 import { VinSzukaj } from "@/components/VinSzukaj";
 import { getVinHistory, getWmiMake } from "@/lib/queries";
+import type { Metadata } from "next";
 import {
   ArrowLeft,
   ArrowUpRight,
@@ -103,6 +104,47 @@ async function BrakVin({ numer }: { numer: string }) {
       <VinSzukaj />
     </main>
   );
+}
+
+/**
+ * VIN, ktorego nie mamy, NIE MOZE byc indeksowany.
+ *
+ * Sama strona zostaje i ma sens dla czlowieka: rozpoznaje marke z trzech
+ * pierwszych znakow numeru i kieruje do CEPiK-u po historie, ktorej my nie
+ * mamy. Ale dla wyszukiwarki jest to tresc niemal identyczna dla kazdego
+ * z nieskonczenie wielu mozliwych numerow — czyli dokladnie to, za co Google
+ * obniza ocene calej domeny.
+ *
+ * Status zostaje 200, bo `notFound()` byloby klamstwem: adres jest poprawny,
+ * a odpowiedz prawdziwa. Od odciecia tego od indeksu jest `noindex`, tak samo
+ * jak przy ofertach, ktore zniknely (patrz app/oferta/[id]/page.tsx).
+ */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ vin: string }>;
+}): Promise<Metadata> {
+  const { vin } = await params;
+  const numer = decodeURIComponent(vin).toUpperCase();
+  const data = await getVinHistory(numer);
+
+  if (!data) {
+    return {
+      title: `VIN ${numer} — brak w bazie`,
+      robots: { index: false, follow: true },
+    };
+  }
+
+  const spec = data.listings.find((l) => l.powerHp && l.engineCcm) ?? data.listings[0];
+  const nazwa = [spec?.make, spec?.model].filter(Boolean).join(" ");
+  return {
+    title: nazwa ? `${nazwa} — VIN ${numer}` : `VIN ${numer}`,
+    description:
+      `Historia ofert i cen dla VIN ${numer}` +
+      (nazwa ? ` (${nazwa})` : "") +
+      `: ${data.listings.length} wystawien w sledzonych zrodlach poleasingowych.`,
+    alternates: { canonical: `/vin/${numer}` },
+  };
 }
 
 export default async function VinPage({ params }: { params: Promise<{ vin: string }> }) {
