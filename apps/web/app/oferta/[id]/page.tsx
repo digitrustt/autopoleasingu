@@ -90,10 +90,18 @@ export async function generateMetadata({
   if (!o) return { title: "Nie znaleziono oferty" };
 
   const name = [o.make, o.model, o.trim].filter(Boolean).join(" ");
-  const title = `${name}${o.year ? ` (${o.year})` : ""}${
+  const sprzedane = o.status !== "active";
+  /*
+   * "Sprzedane" JEST W TYTULE, bo tytul trafia prosto do wyniku wyszukiwania.
+   * Bez tego czlowiek klika w oferte z cena, a dostaje auto, ktorego nie ma —
+   * czyli dokladnie to, za co ludzie nienawidza ogloszeniowych serwisow.
+   * Uczciwy tytul kosztuje troche klikniec, ale nie kosztuje zaufania.
+   */
+  const title = `${sprzedane ? "[Sprzedane] " : ""}${name}${o.year ? ` (${o.year})` : ""}${
     o.priceGross ? ` — ${pln.format(o.priceGross)}` : ""
   }`;
   const description =
+    (sprzedane ? `Sprzedane. ` : "") +
     `${name} po leasingu` +
     (o.mileageKm != null ? `, ${num.format(o.mileageKm)} km` : "") +
     (fuelSpec(o.fuel) ? `, ${fuelSpec(o.fuel)?.label}` : "") +
@@ -105,10 +113,27 @@ export async function generateMetadata({
     description,
     alternates: { canonical: `/oferta/${o.id}` },
     /*
-     * Oferta zniknieta zostaje dostepna dla czytelnika, ale nie ma po co
-     * siedziec w indeksie — tresci juz nie ma, a link prowadzi donikad.
+     * SPRZEDANE OFERTY ZOSTAJA W INDEKSIE — decyzja z 17.09.2026, cofa
+     * wczesniejsze `noindex`.
+     *
+     * Powod jest zmierzony: 42% odslon stron ofert (135 z 322 w 30 dni)
+     * dotyczy aut JUZ SPRZEDANYCH. Ludzie wchodza na nie z Google i dostaja
+     * historie ceny oraz podobne egzemplarze, ktore nadal sa dostepne.
+     * `noindex` skazywal te strony na wypadniecie z indeksu, czyli po cichu
+     * kasowal prawie polowe ruchu na ofertach. W bazie jest juz 23 tys.
+     * sprzedanych wobec 21 tys. aktywnych i ta przewaga rosnie.
+     *
+     * Tak samo robi Otomoto i tak samo radzi Google dla towaru niedostepnego:
+     * strona zostaje, status 200, a brak dostepnosci zglasza sie w danych
+     * strukturalnych. Nasze JSON-LD podaje `SoldOut` (patrz
+     * lib/dane-strukturalne.ts), a tytul i opis mowia "Sprzedane" wprost,
+     * zeby wynik w Google nie obiecywal auta, ktorego nie ma.
+     *
+     * Oferty nadal NIE WCHODZA do mapy strony (patrz sitemap.ts) — zglaszanie
+     * 44 tys. adresow zdusiloby 1,9 tys. stron, ktore realnie rankuja. Google
+     * dochodzi do nich po linkach i to wystarcza: sam zaindeksowal ich 9,5 tys.
      */
-    robots: o.status === "active" ? undefined : { index: false, follow: true },
+    robots: undefined,
     openGraph: { title, description, type: "website" },
   };
 }

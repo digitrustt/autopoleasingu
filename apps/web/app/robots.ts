@@ -31,8 +31,9 @@ import type { MetadataRoute } from "next";
  * z `utm_source=chatgpt.com`, wiec modele realnie tu odsylaja.
  *
  * Zniknieta oferta nie jest martwym adresem: strona zostaje, mowi wprost, ze
- * auto zostalo sprzedane, pokazuje historie ceny i podobne egzemplarze — i ma
- * `noindex`, wiec sama wypada z indeksu, gdy przestaje byc aktualna.
+ * auto zostalo sprzedane, pokazuje historie ceny i podobne egzemplarze.
+ * ZOSTAJE TEZ W INDEKSIE — `noindex` zdjety 17.09.2026, bo 42% odslon stron
+ * ofert dotyczy wlasnie aut sprzedanych (patrz app/oferta/[id]/page.tsx).
  */
 const ZABRONIONE = ["/api/", "/alerty/"];
 
