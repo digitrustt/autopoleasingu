@@ -24,18 +24,29 @@ export function Select({
   options,
   placeholder,
   searchable = false,
+  multiple = false,
   className = "",
 }: {
   name: string;
-  value?: string;
+  /** Jedna wartosc albo kilka — przy `multiple` tablica. */
+  value?: string | string[];
   options: Option[];
   placeholder: string;
   /** Wlacza pole wyszukiwania w srodku — dla dlugich list (marki, zrodla). */
   searchable?: boolean;
+  /**
+   * Wielokrotny wybor. Lista nie zamyka sie po kliknieciu, a do formularza
+   * idzie tyle ukrytych pol, ile wybrano — przegladarka wysle wtedy parametr
+   * kilka razy ("?make=BMW&make=Audi"), a strona glowna to rozumie.
+   */
+  multiple?: boolean;
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const [selected, setSelected] = useState(value ?? "");
+  const [wybrane, setWybrane] = useState<string[]>(
+    value == null || value === "" ? [] : Array.isArray(value) ? value : [value],
+  );
+  const selected = wybrane[0] ?? "";
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
 
@@ -44,6 +55,11 @@ export function Select({
   const listId = useId();
 
   const current = options.find((o) => o.value === selected);
+  /* Podpis na przycisku: przy kilku wyborach nie miescimy nazw, wiec liczymy. */
+  const etykieta =
+    wybrane.length > 1
+      ? `${options.find((o) => o.value === wybrane[0])?.label ?? wybrane[0]} +${wybrane.length - 1}`
+      : (current?.label ?? "");
 
   const shown = useMemo(() => {
     if (!searchable || !query.trim()) return options;
@@ -70,8 +86,25 @@ export function Select({
   }, [open, searchable]);
 
   function choose(v: string) {
-    setSelected(v);
-    setOpen(false);
+    if (!multiple) {
+      setWybrane(v ? [v] : []);
+      setOpen(false);
+      return;
+    }
+    // Pusta wartosc to pozycja "Kazda marka" — czysci caly wybor.
+    if (!v) {
+      setWybrane([]);
+      setOpen(false);
+      return;
+    }
+    /*
+     * Lista ZOSTAJE OTWARTA. Przy wielokrotnym wyborze zamykanie po kazdym
+     * kliknieciu zmuszaloby do otwierania jej od nowa przy kazdej marce —
+     * czyli dokladnie do tego, co ten tryb ma usunac.
+     */
+    setWybrane((poprz) =>
+      poprz.includes(v) ? poprz.filter((x) => x !== v) : [...poprz, v],
+    );
   }
 
   function onKeyDown(e: React.KeyboardEvent) {
@@ -98,7 +131,14 @@ export function Select({
   return (
     <div ref={rootRef} className={`relative ${className}`}>
       {/* To pole niesie wartosc do GET-a; sam przycisk nie jest kontrolka formularza. */}
-      <input type="hidden" name={name} value={selected} />
+      {/*
+        Jedno pole na kazda wybrana wartosc. Przegladarka wysle wtedy ten sam
+        parametr kilka razy, a `many` na stronie glownej zlozy z tego tablice.
+        Przy pustym wyborze nie ma zadnego pola, wiec parametr nie trafia do URL-a.
+      */}
+      {wybrane.map((v) => (
+        <input key={v} type="hidden" name={name} value={v} />
+      ))}
 
       <button
         type="button"
@@ -114,7 +154,7 @@ export function Select({
         }`}
       >
         <span className={`truncate ${current ? "" : "text-neutral-500"}`}>
-          {current?.label ?? placeholder}
+          {etykieta || placeholder}
         </span>
         <ChevronDown
           size={15}
@@ -152,7 +192,7 @@ export function Select({
               <p className="px-3 py-2 text-sm text-neutral-500">Brak dopasowań</p>
             ) : (
               shown.map((o, i) => {
-                const isSel = o.value === selected;
+                const isSel = o.value ? wybrane.includes(o.value) : wybrane.length === 0;
                 return (
                   <button
                     key={o.value}

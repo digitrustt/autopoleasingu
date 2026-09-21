@@ -9,7 +9,7 @@ import {
   statystykiNaglowka,
 } from "@/lib/cache-filtrow";
 import type { getModelsForFilter, getSources, getStats } from "@/lib/queries";
-import { rodzinyModeli, wariantyRodziny } from "@/lib/rodziny";
+import { linieModelowe, rodzinyModeli, wariantyRodziny } from "@/lib/rodziny";
 import { Activity } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -54,14 +54,39 @@ function one(v: string | string[] | undefined): string | undefined {
   return s && s.trim() !== "" ? s.trim() : undefined;
 }
 
+/**
+ * Kilka wartosci tego samego parametru — "?make=BMW&make=Audi" albo
+ * "?make=BMW,Audi".
+ *
+ * Oba zapisy, bo oba powstaja naturalnie: przegladarka przy wielu polach
+ * formularza wysyla parametr kilka razy, a link skopiowany recznie czy
+ * sklejony w kodzie latwiej zapisac po przecinku. Zwracamy tekst przy jednej
+ * wartosci i tablice przy kilku — zapytania przyjmuja jedno i drugie.
+ */
+function many(v: string | string[] | undefined): string | string[] | undefined {
+  const lista = (Array.isArray(v) ? v : [v])
+    .flatMap((x) => (x ?? "").split(","))
+    .map((x) => x.trim())
+    .filter(Boolean);
+  if (lista.length === 0) return undefined;
+  return lista.length === 1 ? lista[0] : lista;
+}
+
+/** Pierwsza wartosc z wielokrotnego parametru — do podpisow i list zaleznych. */
+function pierwsza(v: string | string[] | undefined): string | undefined {
+  const w = many(v);
+  return Array.isArray(w) ? w[0] : w;
+}
+
 const numOrUndef = (v?: string) => (v ? Number(v) : undefined);
 
 export default async function Page({ searchParams }: { searchParams: Promise<Search> }) {
   const sp = await searchParams;
   const current = {
     q: one(sp.q),
-    make: one(sp.make),
-    model: one(sp.model),
+    /* Marka i model przyjmuja kilka wartosci naraz — patrz `many`. */
+    make: many(sp.make),
+    model: many(sp.model),
     source: one(sp.source),
     priceMin: one(sp.priceMin),
     priceMax: one(sp.priceMax),
@@ -116,7 +141,12 @@ export default async function Page({ searchParams }: { searchParams: Promise<Sea
     [makes, modeleZLicznikami, sourceList, stats] = await Promise.all([
       filtryMarek(),
       // Lista modeli zalezy od wybranej marki — bez niej byloby tysiac pozycji.
-      filtryModeli(current.make),
+      /*
+       * Lista modeli dla PIERWSZEJ wybranej marki. Przy kilku markach naraz
+       * mieszanie ich modeli dawaloby liste bez sensu ("X3" obok "A4"),
+       * a filtr modelu i tak dotyczy jednej marki.
+       */
+      filtryModeli(pierwsza(sp.make)),
       filtryZrodel(),
       statystykiNaglowka(),
     ]);
@@ -133,9 +163,26 @@ export default async function Page({ searchParams }: { searchParams: Promise<Sea
    * pokazywalo 132 oferty zamiast 353. Patrz lib/rodziny.ts.
    */
   const rodziny = rodzinyModeli(modeleZLicznikami);
+  /*
+   * Linie modelowe ponad rodzinami — "Seria 4" obejmuje 430i, 420d i reszte.
+   * Rodziny scalaja pisownie tego samego modelu, linie scalaja rodzenstwo;
+   * patrz packages/core/src/rodziny.ts.
+   */
+  const marka = pierwsza(sp.make);
+  const linie = marka ? linieModelowe(marka, modeleZLicznikami) : [];
+
   if (current.model) {
-    // Do zapytania idzie KOMPLET wariantow, nie sama nazwa rodziny.
-    (filters as { model?: string | string[] }).model = wariantyRodziny(rodziny, current.model);
+    /*
+     * Do zapytania idzie KOMPLET zapisow, nie nazwa wybrana na ekranie.
+     * Kazdy wybor moze byc linia ("Seria 4") albo rodzina ("X3"), a przy
+     * wielokrotnym wyborze — jednym i drugim naraz.
+     */
+    const wybrane = Array.isArray(current.model) ? current.model : [current.model];
+    const zapisy = wybrane.flatMap((w) => {
+      const linia = linie.find((l) => l.nazwa === w);
+      return linia ? linia.warianty : wariantyRodziny(rodziny, w);
+    });
+    (filters as { model?: string | string[] }).model = [...new Set(zapisy)];
   }
 
   const pln = new Intl.NumberFormat("pl-PL", {
@@ -177,7 +224,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Sea
       </header>
 
       <div className="mb-5">
-        <Filters makes={makes} rodziny={rodziny} sources={sourceList} current={current} />
+        <Filters makes={makes} rodziny={rodziny} linie={linie} sources={sourceList} current={current} />
       </div>
 
       {/*

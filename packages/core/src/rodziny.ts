@@ -105,3 +105,92 @@ export function wariantyRodziny(rodziny: Rodzina[], wybrana: string): string[] {
   const r = rodziny.find((x) => x.nazwa === wybrana);
   return r ? r.warianty : [wybrana];
 }
+
+/* ────────────────────────────────────────────────────────────────────────────
+ * Linie modelowe — "Seria 4" obejmujaca 430i, 420d i "Seria 4 Gran Coupe"
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+/**
+ * Nazwa linii modelowej, do ktorej nalezy model — albo null.
+ *
+ * PO CO: rodziny scalaja pisownie TEGO SAMEGO modelu ("X3" i "X3 20d xDrive"),
+ * ale nie scalaja RODZENSTWA. W bazie BMW stoja obok siebie "Seria 3" (105
+ * ofert), "320d", "330i" i "318i" jako osobne pozycje, mimo ze dla kupujacego
+ * to jedna linia. Zmierzone: po zgrupowaniu Seria 5 ma 383 oferty zamiast 94
+ * widocznych pod ta nazwa, Seria 3 — 312 zamiast 105, a Seria 4 az 108 przy
+ * ZERO widocznych, bo w bazie nie ma ani jednej oferty zapisanej jako
+ * "Seria 4": sa same 430i i 420d.
+ *
+ * DZIALA TYLKO TAM, GDZIE OZNACZENIE NIESIE LINIE. U BMW pierwsza cyfra
+ * trzycyfrowego oznaczenia to numer serii (118i -> 1, 530d -> 5). U Mercedesa
+ * te sama role gra litera przed "Klasa" ("C Klasa", "C 180" -> Klasa C).
+ * Audi ma A4, Q5 i tak dalej — tam model JEST juz linia, wiec nie ma czego
+ * grupowac i funkcja zwraca null.
+ *
+ * SWIADOMIE NIE RUSZAMY X, Z ANI i. "X3" i "X5" to osobne auta, a nie warianty
+ * jednej linii — grupowanie ich w "Serie X" byloby pomylka, nie ulatwieniem.
+ */
+export function liniaModelowa(make: string, model: string): string | null {
+  const m = model.trim();
+
+  if (/^bmw$/i.test(make)) {
+    // "Seria 3", "Seria 3 Touring" — linia podana wprost.
+    const wprost = m.match(/^seria\s*(\d)\b/i);
+    if (wprost) return `Seria ${wprost[1]}`;
+    /*
+     * "530d xDrive", "118i" — pierwsza cyfra to seria. Wymagamy DOKLADNIE
+     * trzech cyfr: "3" samo w sobie to nie oznaczenie, a czterocyfrowe liczby
+     * to juz co innego (np. pojemnosc w starszych zapisach).
+     */
+    const oznaczenie = m.match(/^(\d)\d\d(?!\d)/);
+    if (oznaczenie) return `Seria ${oznaczenie[1]}`;
+    return null;
+  }
+
+  if (/^mercedes/i.test(make)) {
+    // "C Klasa", "A Klasa" — litera przed slowem "Klasa".
+    const klasa = m.match(/^([A-Z])\s*[-\s]?\s*klasa\b/i);
+    if (klasa) return `Klasa ${klasa[1].toUpperCase()}`;
+    // "C 180", "A 200" — litera i numer silnika.
+    const zSilnikiem = m.match(/^([A-Z])\s+\d{3}\b/);
+    if (zSilnikiem) return `Klasa ${zSilnikiem[1].toUpperCase()}`;
+    return null;
+  }
+
+  return null;
+}
+
+export interface Linia {
+  nazwa: string;
+  /** Wszystkie zapisy modelu w tej linii — do filtrowania przez `in (...)`. */
+  warianty: string[];
+  total: number;
+}
+
+/**
+ * Linie modelowe marki, posortowane malejaco po liczbie ofert.
+ *
+ * Zwraca TYLKO linie, ktore realnie cos scalaja — jesli linia ma jeden wariant
+ * o tej samej nazwie co ona sama, nie wnosi nic ponad zwykla rodzine i tylko
+ * dublowalaby pozycje na liscie filtra.
+ */
+export function linieModelowe(
+  make: string,
+  modele: { model: string; total: number }[],
+): Linia[] {
+  const grupy = new Map<string, Linia>();
+  for (const { model, total } of modele) {
+    const nazwa = liniaModelowa(make, model);
+    if (!nazwa) continue;
+    const g = grupy.get(nazwa);
+    if (g) {
+      g.warianty.push(model);
+      g.total += total;
+    } else {
+      grupy.set(nazwa, { nazwa, warianty: [model], total });
+    }
+  }
+  return [...grupy.values()]
+    .filter((l) => l.warianty.length > 1 || l.warianty[0] !== l.nazwa)
+    .sort((a, b) => b.total - a.total);
+}

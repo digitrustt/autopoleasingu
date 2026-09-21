@@ -5,7 +5,8 @@ import { groupBySlug } from "@/lib/slug";
 
 export interface Filters {
   q?: string;
-  make?: string;
+  /** Jedna marka albo kilka — patrz makeMatches. */
+  make?: string | string[];
   /** Nazwa modelu albo komplet pisowni tego samego sluga. */
   model?: string | string[];
   source?: string;
@@ -101,7 +102,7 @@ function buildWhere(f: Filters) {
     );
     if (m) parts.push(m);
   }
-  if (f.make) parts.push(eq(listings.make, f.make));
+  if (f.make) parts.push(makeMatches(f.make));
   if (f.model) parts.push(modelMatches(f.model));
   if (f.source) parts.push(eq(listings.sourceId, f.source));
   /*
@@ -169,6 +170,17 @@ function buildWhere(f: Filters) {
  */
 function modelMatches(model: string | string[]) {
   return Array.isArray(model) ? inArray(listings.model, model) : eq(listings.model, model);
+}
+
+/**
+ * Marka — jedna albo kilka naraz.
+ *
+ * Wiele marek ma sens, bo ludzie nie szukaja jednej: ktos porownuje BMW
+ * z Audi i Mercedesem w jednym podejsciu. Do tej pory trzeba bylo przegladac
+ * je po kolei, tracac za kazdym razem reszte ustawionych filtrow.
+ */
+function makeMatches(make: string | string[]) {
+  return Array.isArray(make) ? inArray(listings.make, make) : eq(listings.make, make);
 }
 
 export const PAGE_SIZE = 60;

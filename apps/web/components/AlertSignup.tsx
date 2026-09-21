@@ -19,11 +19,19 @@ export function AlertSignup({
   filters,
   total,
 }: {
-  filters: Record<string, string | undefined>;
+  filters: Record<string, string | string[] | undefined>;
   total: number;
 }) {
+  /*
+   * Subskrypcja przyjmuje po jednej wartosci na pole, a filtr moze mieć kilka
+   * marek naraz. Bierzemy pierwsza — zapis na "BMW albo Audi" wymagalby
+   * innego ksztaltu subskrypcji po stronie workera, a obiecywanie tego
+   * w formularzu byloby klamstwem.
+   */
   const active = Object.fromEntries(
-    Object.entries(filters).filter(([, v]) => v != null && v !== ""),
+    Object.entries(filters)
+      .map(([k, v]) => [k, Array.isArray(v) ? v[0] : v])
+      .filter(([, v]) => v != null && v !== ""),
   ) as Record<string, string>;
 
   const [email, setEmail] = useState("");

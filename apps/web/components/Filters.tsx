@@ -1,7 +1,7 @@
 "use client";
 
 import { Option, Select } from "@/components/Select";
-import type { Rodzina } from "@/lib/rodziny";
+import type { Linia, Rodzina } from "@/lib/rodziny";
 import { shortSource } from "@/lib/format";
 import {
   Banknote,
@@ -72,8 +72,9 @@ const inputCls =
 
 export interface FilterState {
   q?: string;
-  make?: string;
-  model?: string;
+  /** Kilka marek naraz — patrz `many` w app/(glowna)/page.tsx. */
+  make?: string | string[];
+  model?: string | string[];
   source?: string;
   priceMin?: string;
   priceMax?: string;
@@ -103,12 +104,15 @@ function countActive(c: FilterState): number {
 export function Filters({
   makes,
   rodziny,
+  linie,
   sources,
   current,
 }: {
   makes: string[];
   /** Modele SCALONE w rodziny — patrz lib/rodziny.ts. */
   rodziny: Rodzina[];
+  /** Linie modelowe ponad rodzinami ("Seria 4") — patrz lib/rodziny.ts. */
+  linie: Linia[];
   sources: { id: string; name: string; active: number }[];
   current: FilterState;
 }) {
@@ -166,8 +170,16 @@ export function Filters({
    * a "M4 Competition" dwie — a to jest pierwsza informacja, ktorej czlowiek
    * potrzebuje, zeby w ogole wybrac.
    */
+  /*
+   * LINIE NAD RODZINAMI. "Seria 4" to 108 ofert rozsypanych po 430i, 420d
+   * i podobnych — bez tej pozycji nie dalo sie ich wybrac razem, bo w bazie
+   * nie ma ani jednej oferty zapisanej wprost jako "Seria 4". Linie ida na
+   * gore listy, bo to od nich czlowiek zaczyna ("chce trojke"), a dopiero
+   * potem schodzi do konkretu ("320d").
+   */
   const modelOptions: Option[] = [
     { value: "", label: rodziny.length ? "Każdy model" : "Najpierw marka" },
+    ...linie.map((l) => ({ value: l.nazwa, label: l.nazwa, hint: String(l.total) })),
     ...rodziny.map((r) => ({ value: r.nazwa, label: `${r.nazwa} (${r.total})` })),
   ];
   const sourceOptions: Option[] = [
@@ -202,6 +214,7 @@ export function Filters({
           options={makeOptions}
           placeholder="Każda marka"
           searchable
+          multiple
           className="w-44"
         />
         <Select
@@ -210,6 +223,7 @@ export function Filters({
           options={modelOptions}
           placeholder={rodziny.length ? "Każdy model" : "Najpierw marka"}
           searchable
+          multiple
           className="w-44"
         />
         <Select

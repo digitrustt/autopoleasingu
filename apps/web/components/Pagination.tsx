@@ -6,10 +6,19 @@ const cls =
   "px-3 py-2 text-sm transition-colors hover:border-accent/70 hover:text-accent";
 
 /** Zachowuje aktywne filtry przy zmianie strony — podmienia tylko `page`. */
-function hrefFor(params: Record<string, string | undefined>, page: number): string {
+/** Filtry z adresu — marka i model moga byc wielokrotne. */
+export type FilterParams = Record<string, string | string[] | undefined>;
+
+function hrefFor(params: FilterParams, page: number): string {
   const sp = new URLSearchParams();
   for (const [k, v] of Object.entries(params)) {
-    if (v && k !== "page") sp.set(k, v);
+    if (!v || k === "page") continue;
+    /*
+     * `append`, nie `set` — marka i model moga miec kilka wartosci naraz.
+     * Przy `set` przejscie na druga strone gubiloby wszystkie poza pierwsza,
+     * czyli czlowiek dostawalby inne wyniki niz na stronie pierwszej.
+     */
+    for (const jedna of Array.isArray(v) ? v : [v]) sp.append(k, jedna);
   }
   if (page > 1) sp.set("page", String(page));
   const qs = sp.toString();
@@ -23,7 +32,7 @@ export function Pagination({
 }: {
   page: number;
   pageCount: number;
-  params: Record<string, string | undefined>;
+  params: FilterParams;
 }) {
   if (pageCount <= 1) return null;
 
