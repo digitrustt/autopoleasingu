@@ -4,7 +4,20 @@ import { ArrowLeft, CircleAlert, CircleCheck, CircleSlash, ExternalLink } from "
 import type { Metadata } from "next";
 import Link from "next/link";
 
-export const dynamic = "force-dynamic";
+/*
+ * NIE renderujemy przy buildzie i NIE renderujemy przy kazdym wejsciu.
+ *
+ * Te strony licza agregacje po calej tabeli. Przy prerenderowaniu kilkunastu
+ * naraz przekraczaly limit czasu w poolerze i wywracaly deploy — stad kiedys
+ * `force-dynamic`. Ale to znaczylo tez pelne przeliczenie przy KAZDYM wejsciu,
+ * takze robota, i to jeden z powodow, dla ktorych 21.09.2026 Vercel odcial caly
+ * serwis (HTTP 402) po zuzyciu 10 h 14 min CPU.
+ *
+ * `revalidate` daje jedno i drugie: pierwszy odwiedzajacy po wygasnieciu placi
+ * za przeliczenie, reszta dostaje gotowa strone, a build nic nie liczy, bo
+ * strona i tak powstaje na zadanie.
+ */
+export const revalidate = 3600;
 
 export const metadata: Metadata = {
   alternates: { canonical: "/zrodla" },

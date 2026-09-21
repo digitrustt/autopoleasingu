@@ -2,7 +2,13 @@ import { BazaNiedostepna } from "@/components/BazaNiedostepna";
 import { Filters } from "@/components/Filters";
 import { Radar } from "@/components/Radar";
 import { Results } from "@/components/Results";
-import { getMakes, getModelsForFilter, getSources, getStats } from "@/lib/queries";
+import {
+  filtryMarek,
+  filtryModeli,
+  filtryZrodel,
+  statystykiNaglowka,
+} from "@/lib/cache-filtrow";
+import type { getModelsForFilter, getSources, getStats } from "@/lib/queries";
 import { rodzinyModeli, wariantyRodziny } from "@/lib/rodziny";
 import { Activity } from "lucide-react";
 import type { Metadata } from "next";
@@ -102,12 +108,17 @@ export default async function Page({ searchParams }: { searchParams: Promise<Sea
   let sourceList: Awaited<ReturnType<typeof getSources>>;
   let stats: Awaited<ReturnType<typeof getStats>>;
   try {
+    /*
+     * Wszystkie cztery z BUFORA — patrz lib/cache-filtrow.ts. Bez niego kazde
+     * wejscie na strone glowna (takze kazde wejscie robota) odpalalo cztery
+     * agregacje po calej tabeli i to one wyczerpaly limit CPU Vercela.
+     */
     [makes, modeleZLicznikami, sourceList, stats] = await Promise.all([
-      getMakes(),
+      filtryMarek(),
       // Lista modeli zalezy od wybranej marki — bez niej byloby tysiac pozycji.
-      getModelsForFilter(current.make),
-      getSources(),
-      getStats(),
+      filtryModeli(current.make),
+      filtryZrodel(),
+      statystykiNaglowka(),
     ]);
   } catch (err) {
     console.error("strona glowna: baza niedostepna —", err);

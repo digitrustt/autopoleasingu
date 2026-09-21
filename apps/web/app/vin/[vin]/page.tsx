@@ -23,7 +23,19 @@ import {
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-export const dynamic = "force-dynamic";
+/*
+ * Dynamiczna, ale BUFOROWANA przez godzine.
+ *
+ * VIN-ow jest w bazie 32 tys., wiec `generateStaticParams` odpada — nie
+ * zbudujemy tylu stron. Ale `force-dynamic` znaczylo pelne przeliczenie przy
+ * kazdym wejsciu, a to wlasnie te strony robot mieli najchetniej: jeden adres
+ * na kazdy numer nadwozia. Wspolnie ze strona glowna doprowadzilo to
+ * 21.09.2026 do odciecia serwisu przez Vercela (HTTP 402, 10 h 14 min CPU).
+ *
+ * `revalidate` zostawia adresy dynamiczne — kazdy numer dziala od reki — ale
+ * drugie wejscie na ten sam VIN w ciagu godziny nie kosztuje juz nic.
+ */
+export const revalidate = 3600;
 
 const pln = new Intl.NumberFormat("pl-PL", {
   style: "currency",

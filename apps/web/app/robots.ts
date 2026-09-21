@@ -35,7 +35,17 @@ import type { MetadataRoute } from "next";
  * ZOSTAJE TEZ W INDEKSIE — `noindex` zdjety 17.09.2026, bo 42% odslon stron
  * ofert dotyczy wlasnie aut sprzedanych (patrz app/oferta/[id]/page.tsx).
  */
-const ZABRONIONE = ["/api/", "/alerty/"];
+/*
+ * `/opengraph-image` to obrazki podgladu dla Facebooka i Twittera, generowane
+ * osobno dla KAZDEJ oferty. Robot traktowal je jak zwykle adresy i mielil
+ * tysiacami — w raporcie Google zajmowaly wiekszosc pozycji "wykluczona tagiem
+ * noindex". Kazde takie zadanie to osobne generowanie obrazka, czyli czysty
+ * koszt CPU bez zadnej wartosci: te adresy nigdy nie mialy byc w indeksie,
+ * a serwisy spolecznosciowe pobieraja je BEZPOSREDNIO, ignorujac robots.txt.
+ *
+ * Wspolwinne odcieciu serwisu przez Vercela 21.09.2026 (10 h 14 min CPU).
+ */
+const ZABRONIONE = ["/api/", "/alerty/", "/*/opengraph-image"];
 
 /** Crawlery modeli jezykowych i wyszukiwarek opartych na modelach. */
 const MODELE = [
