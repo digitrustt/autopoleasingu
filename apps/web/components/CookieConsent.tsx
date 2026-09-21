@@ -18,6 +18,15 @@ import { useEffect, useState } from "react";
  *
  * Dwa przyciski o równej wadze. „Odrzuć" schowane pod linkiem albo w szarym,
  * ledwo widocznym tekście jest tak zwanym dark patternem.
+ *
+ * PRZEWINIĘCIE CHOWA BANER, ale NIE zapisuje żadnej decyzji — i to jest tu
+ * cała różnica. Wcześniej scroll ustawiał zgodę, co było obejściem potrzebnym,
+ * gdy baner blokował pomiar. Teraz analityka i tak działa od wejścia, więc
+ * przewinięcie niczego nie włącza: po prostu zdejmuje z ekranu pasek, który
+ * przeczytałeś albo zignorowałeś.
+ *
+ * Skutek uboczny jest zamierzony: baner wraca przy następnym wejściu, bo
+ * decyzja nie zapadła. Kto chce ją zamknąć na stałe, klika „OK" albo „Odrzuć".
  */
 export function CookieConsent() {
   const [visible, setVisible] = useState(false);
@@ -31,6 +40,20 @@ export function CookieConsent() {
     // wejściu zwraca teraz wartość domyślną i baner nie pokazałby się nigdy.
     if (hasConsentDecision()) return;
     setVisible(true);
+
+    /*
+     * Próg 400 px i sekunda zwłoki: przywrócenie pozycji przewijania przez
+     * przeglądarkę albo przypadkowy ruch kółkiem nie mogą chować banera,
+     * zanim człowiek zdąży go zobaczyć.
+     */
+    const PROG = 400;
+    const odKiedy = Date.now() + 1000;
+    const onScroll = () => {
+      if (Date.now() < odKiedy || window.scrollY < PROG) return;
+      setVisible(false);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
   if (!visible) return null;
