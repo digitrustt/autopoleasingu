@@ -11,6 +11,7 @@ import { fuelSpec } from "@/lib/spec";
 import { ChartColumn } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { connection } from "next/server";
 
 /*
  * NIE renderujemy przy buildzie i NIE renderujemy przy kazdym wejsciu.
@@ -26,6 +27,20 @@ import Link from "next/link";
  * strona i tak powstaje na zadanie.
  */
 export const revalidate = 3600;
+/*
+ * NIE liczymy tej strony przy budowaniu.
+ *
+ * Agregacje po calej tabeli trwaja ponad 60 s, czyli wiecej niz limit Vercela
+ * na prerender jednej strony — przy pierwszym wdrozeniu na nowe konto wywrocily
+ * caly build. Wczesniej chronilo przed tym `force-dynamic`, ale ono znaczylo
+ * tez pelne przeliczenie przy KAZDYM wejsciu i wspolnie ze strona glowna
+ * wyczerpalo limit CPU (HTTP 402, 21.09.2026).
+ *
+ * `connection()` zmusza Next do odlozenia renderu na pierwsze zadanie, a
+ * `revalidate` powyzej sprawia, ze wynik zyje godzine. Build nic nie liczy,
+ * pierwszy odwiedzajacy placi raz, reszta dostaje gotowa strone.
+ */
+
 
 const pln = new Intl.NumberFormat("pl-PL", {
   style: "currency", currency: "PLN", maximumFractionDigits: 0,
@@ -52,6 +67,8 @@ export const metadata: Metadata = {
  * bez kafelkow, bez niczego, co trzeba klikac, zeby zobaczyc liczbe.
  */
 export default async function DanePage() {
+  // Render dopiero na zadanie — patrz komentarz przy `revalidate`.
+  await connection();
   const [stats, lata, paliwa, rozjazd, zrodla] = await Promise.all([
     getStats(),
     getMarketByYear(),

@@ -8,6 +8,7 @@ import { groupBySlug, slugify } from "@/lib/slug";
 import { MapPin } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { connection } from "next/server";
 
 /*
  * Odswiezanie RAZ NA DOBE, nie co godzine.
@@ -43,7 +44,17 @@ export const metadata: Metadata = {
  * ustawiaja. Dla wyszukiwarki: bez tej strony 128 podstron miast nie mialoby
  * ZADNEGO linku prowadzacego, a strona odlinkowana praktycznie nie istnieje.
  */
+
+/*
+ * Render na zadanie, nie przy budowaniu.
+ *
+ * Przy 235 stronach generowanych rownolegle te agregacje wpadaly w zator
+ * i przekraczaly limit 60 s na strone, wywracajac caly build. Same w sobie
+ * sa tanie, ale nie ma powodu liczyc ich przy kazdym wdrozeniu — `revalidate`
+ * i tak trzyma wynik przez dobe.
+ */
 export default async function CitiesPage() {
+  await connection();
   const [miasta, stats, podglad] = await Promise.all([
     getCitiesWithCounts(),
     getStats(),

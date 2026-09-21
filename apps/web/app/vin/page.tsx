@@ -7,6 +7,7 @@ import { and, eq, isNotNull, sql } from "drizzle-orm";
 import { CircleCheck, CircleSlash, Copy } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { connection } from "next/server";
 
 /*
  * Odswiezanie RAZ NA DOBE, nie co godzine.
@@ -40,7 +41,17 @@ export const metadata: Metadata = {
  * sztuka stoi rownoczesnie gdzies indziej i po ile. Zaobserwowany rekord to
  * 80 000 zl roznicy na tym samym numerze nadwozia.
  */
+
+/*
+ * Render na zadanie, nie przy budowaniu.
+ *
+ * Przy 235 stronach generowanych rownolegle te agregacje wpadaly w zator
+ * i przekraczaly limit 60 s na strone, wywracajac caly build. Same w sobie
+ * sa tanie, ale nie ma powodu liczyc ich przy kazdym wdrozeniu — `revalidate`
+ * i tak trzyma wynik przez dobe.
+ */
 export default async function VinLanding() {
+  await connection();
   const [stats, [vinStats]] = await Promise.all([
     getStats(),
     db
