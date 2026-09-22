@@ -72,7 +72,126 @@ export const client = postgres(url, {
    */
   connection: { statement_timeout: 15_000 },
 });
-export const db = drizzle(client, { schema });
+/*
+ * PONAWIANIE ZAPYTAN PRZY ZERWANYM POLACZENIU.
+ *
+ * Zmierzone na produkcji: `Connection closed.` trafil do naszego licznika
+ * bledow piec razy, za kazdym razem u prawdziwego uzytkownika — ostatnio
+ * 22.09 o 12:29 na `/?make=BMW&sort=price_asc`, czyli przy zwyklym filtrowaniu.
+ * Czlowiek widzial wtedy ekran bledu zamiast wynikow.
+ *
+ * SKAD TO SIE BIERZE. Pula oddaje polaczenie poolerowi po dwoch sekundach
+ * bezczynnosci i zamyka je po minucie zycia (patrz `idle_timeout` i
+ * `max_lifetime` wyzej). Te wartosci sa niskie celowo — chronia przed
+ * wyczerpaniem limitu klientow Supabase. Cena jest taka, ze zapytanie
+ * wyslane dokladnie w chwili zamykania polaczenia ginie razem z nim.
+ * Pooler moze tez zamknac polaczenie po swojej stronie, kiedy zechce.
+ *
+ * DLACZEGO PONOWIENIE JEST TU BEZPIECZNE. Strony serwisu WYLACZNIE CZYTAJA
+ * z bazy — zapisuje tylko worker (zaciag, wycena, alerty), ktory nie uzywa
+ * tej sciezki. Powtorzenie SELECT-a nie ma zadnych skutkow ubocznych.
+ *
+ * Ponawiamy TYLKO bledy polaczenia, nigdy bledow SQL-a. Zle zapytanie ma
+ * polec od razu i glosno, a nie trzy razy ciszej.
+ */
+/*
+ * Zerwane polaczenie zglasza sie na DWA sposoby i trzeba lapac oba —
+ * sprawdzone doswiadczalnie na lokalnej bazie przez zabijanie sesji:
+ *
+ *   CONNECTION_CLOSED   — postgres-js zauwazyl, ze gniazdo padlo
+ *   57P01               — to sam PostgreSQL odeslal "terminating connection"
+ *
+ * Bez tego drugiego kodu ponawianie lapalo tylko czesc przypadkow: w tescie
+ * na trzydziestu zapytaniach przy zrywanych polaczeniach piec nadal padalo.
+ */
+const BLEDY_POLACZENIA = new Set([
+  // postgres-js
+  "CONNECTION_CLOSED",
+  "CONNECTION_DESTROYED",
+  "CONNECTION_ENDED",
+  "CONNECT_TIMEOUT",
+  // PostgreSQL — klasa 57, "operator intervention"
+  "57P01", // admin_shutdown — sesja ubita przez serwer albo pooler
+  "57P02", // crash_shutdown
+  "57P03", // cannot_connect_now — baza wstaje
+  // cala klasa 08 (connection exception) lapana osobno — patrz nizej
+  // gniazdo padlo na poziomie systemu
+  "ECONNRESET",
+  "EPIPE",
+  "ETIMEDOUT",
+]);
+
+const PROBY = 3;
+
+function toZerwanePolaczenie(e: unknown): boolean {
+  const kod = (e as { code?: string })?.code;
+  if (typeof kod !== "string") return false;
+  if (BLEDY_POLACZENIA.has(kod)) return true;
+  /*
+   * CALA KLASA 08 — "connection exception" w PostgreSQL.
+   *
+   * Dosypane po tescie na produkcji: pooler Supabase odeslal 08006
+   * (connection_failure), ktorego nie bylo na liscie. Zamiast dopisywac
+   * kolejne kody po kazdej awarii, lapiemy klase — wszystkie 08xxx znacza
+   * to samo: polaczenie padlo, a nie zapytanie bylo zle.
+   */
+  return kod.startsWith("08");
+}
+
+/**
+ * Powtarza zapytanie, gdy polaczenie padlo w locie.
+ *
+ * Krotka przerwa miedzy probami (50 ms, potem 150 ms) wystarcza, zeby pula
+ * podniosla nowe polaczenie. Dluzsze czekanie nie ma sensu: strony maja
+ * wlasny limit czasu, a czlowiek patrzy w ekran ladowania.
+ */
+async function zPonawianiem<T>(fn: () => Promise<T>): Promise<T> {
+  let ostatni: unknown;
+  for (let proba = 0; proba < PROBY; proba++) {
+    try {
+      return await fn();
+    } catch (e) {
+      if (!toZerwanePolaczenie(e)) throw e;
+      ostatni = e;
+      if (proba < PROBY - 1) await new Promise((r) => setTimeout(r, 50 * (proba + 1) ** 2));
+    }
+  }
+  throw ostatni;
+}
+
+const bazowy = drizzle(client, { schema });
+
+/*
+ * Opakowujemy `execute` i buildery zapytan. Drizzle zwraca obiekty, ktore sa
+ * "thenable" — wykonuja sie dopiero przy `await`. Przechwytujemy wiec `then`,
+ * bo to jedyny moment, w ktorym zapytanie naprawde leci do bazy.
+ */
+function opakuj<T extends object>(cel: T): T {
+  return new Proxy(cel, {
+    get(obiekt, klucz, odbiorca) {
+      const wartosc = Reflect.get(obiekt, klucz, odbiorca);
+
+      if (klucz === "then" && typeof wartosc === "function") {
+        return (spelnij: (v: unknown) => unknown, odrzuc: (e: unknown) => unknown) =>
+          zPonawianiem(() => Promise.resolve(Reflect.apply(wartosc, obiekt, [(v: unknown) => v]))).then(
+            spelnij,
+            odrzuc,
+          );
+      }
+
+      if (typeof wartosc === "function") {
+        return (...args: unknown[]) => {
+          const wynik = Reflect.apply(wartosc, obiekt, args);
+          // Builder zwraca kolejny builder — opakowujemy caly lancuch.
+          return wynik !== null && typeof wynik === "object" ? opakuj(wynik as object) : wynik;
+        };
+      }
+      return wartosc;
+    },
+  });
+}
+
+export const db = opakuj(bazowy);
 
 export * from "./schema";
 export { schema };
