@@ -15,6 +15,7 @@ import { Layers, SlidersHorizontal, TrendingDown } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { oferty } from "@/lib/format";
 
 /*
  * Odswiezanie RAZ NA DOBE, nie co godzine.
@@ -62,7 +63,10 @@ export async function generateMetadata({
   if (!found) return { title: "Nie znaleziono marki" };
 
   const stats = await getSegmentStats(found.make);
-  const title = `${found.make} po leasingu — ${num.format(stats.total)} ofert`;
+  /* Cena w tytule: to ona decyduje o kliknieciu, nie liczba ofert. */
+  const title =
+    `${found.make} po leasingu — ${num.format(stats.total)} ${oferty(stats.total)}` +
+    (stats.minPrice ? ` od ${pln.format(stats.minPrice)}` : "");
   const description =
     `Aktualne oferty ${found.make} poleasingowych z ${stats.sources} źródeł: ` +
     (stats.medianPrice ? `mediana ${pln.format(stats.medianPrice)}, ` : "") +

@@ -12,7 +12,7 @@ import {
   getFilterStats,
   getListings,
 } from "@/lib/queries";
-import { shortSource } from "@/lib/format";
+import { shortSource, oferty } from "@/lib/format";
 import { groupBySlug, makeHref, resolveAliases, slugify } from "@/lib/slug";
 import { KategoriaWidok } from "@/components/KategoriaWidok";
 import { znajdzKategorie } from "@/lib/filtry";
@@ -76,7 +76,9 @@ export async function generateMetadata({
   const k = znajdzKategorie(co);
   if (k) {
     const stats = await getFilterStats(k.filtry);
-    const title = `${k.h1} — ${num.format(stats.total)} ofert`;
+    const title =
+      `${k.h1} — ${num.format(stats.total)} ${oferty(stats.total)}` +
+      (stats.minPrice ? ` od ${pln.format(stats.minPrice)}` : "");
     const description =
       `${k.opis} ${num.format(stats.total)} ofert z ${stats.sources} źródeł` +
       (stats.minPrice ? `, ceny od ${pln.format(stats.minPrice)}` : "") +
@@ -93,7 +95,9 @@ export async function generateMetadata({
   if (!found) return { title: "Nie znaleziono miasta" };
 
   const stats = await getCityStats(found.warianty);
-  const title = `Samochody poleasingowe ${found.miasto} — ${num.format(stats.total)} ofert`;
+  const title =
+    `Samochody poleasingowe ${found.miasto} — ${num.format(stats.total)} ${oferty(stats.total)}` +
+    (stats.minPrice ? ` od ${pln.format(stats.minPrice)}` : "");
   const description =
     `Auta poleasingowe w mieście ${found.miasto}: ${num.format(stats.total)} ofert z ` +
     `${stats.sources} źródeł` +

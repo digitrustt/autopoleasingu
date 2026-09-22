@@ -24,6 +24,7 @@ import { CalendarRange, Gauge, Layers, SlidersHorizontal, TrendingDown } from "l
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { oferty } from "@/lib/format";
 
 /*
  * Odswiezanie RAZ NA DOBE, nie co godzine.
@@ -98,14 +99,27 @@ export async function generateMetadata({
 
   const stats = await getSegmentStats(found.make, found.aliasy);
   const name = `${found.make} ${found.model}`;
-  const title = `${name} po leasingu — ${num.format(stats.total)} ofert${
+  const title = `${name} po leasingu — ${num.format(stats.total)} ${oferty(stats.total)}${
     stats.minPrice ? ` od ${pln.format(stats.minPrice)}` : ""
   }`;
+  /*
+   * Opis zaczyna sie od CENY, nie od liczby zrodel.
+   *
+   * Poprzednia wersja otwierala sie slowami "Ceny X poleasingowych z 9 zrodel",
+   * czyli informacja o NAS, a nie o aucie. Czlowiek w wynikach wyszukiwania
+   * szuka widelek cenowych — je stawiamy na poczatku, zanim Google utnie opis.
+   * Liczba zrodel zostaje na koncu jako dowod kompletnosci.
+   */
+  const widelki =
+    stats.minPrice && stats.maxPrice
+      ? `${pln.format(stats.minPrice)} – ${pln.format(stats.maxPrice)}`
+      : null;
+
   const description =
-    `Ceny ${name} poleasingowych z ${stats.sources} źródeł: ` +
-    (stats.medianPrice ? `mediana ${pln.format(stats.medianPrice)}` : "aktualne oferty") +
-    (stats.minYear && stats.maxYear ? `, roczniki ${stats.minYear}–${stats.maxYear}` : "") +
-    ". Rozbicie cen po roczniku i paliwie, aktualizowane codziennie.";
+    (widelki ? `${name} po leasingu: ${widelki}` : `${name} po leasingu`) +
+    (stats.medianPrice ? `, mediana ${pln.format(stats.medianPrice)}` : "") +
+    (stats.minYear && stats.maxYear ? `. Roczniki ${stats.minYear}–${stats.maxYear}` : "") +
+    `. ${num.format(stats.total)} ${oferty(stats.total)} z ${stats.sources} źródeł, aktualizowane codziennie.`;
 
   return {
     title,

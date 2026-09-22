@@ -100,13 +100,44 @@ export async function generateMetadata({
   const title = `${sprzedane ? "[Sprzedane] " : ""}${name}${o.year ? ` (${o.year})` : ""}${
     o.priceGross ? ` — ${pln.format(o.priceGross)}` : ""
   }`;
+  /*
+   * OPIS UKLADANY OD NAJMOCNIEJSZEGO ARGUMENTU, nie w stalej kolejnosci pol.
+   *
+   * Opis trafia prosto pod tytul w wynikach Google i to on decyduje o kliknieciu.
+   * Poprzednia wersja zaczynala od nazwy auta (ktora czlowiek widzi juz
+   * w tytule), a konczyla na nazwie zrodla — informacji, ktora nikogo nie
+   * interesuje przed kliknieciem. Mediana ladowala na koncu, czyli w miejscu
+   * ucinanym przez Google.
+   *
+   * DLACZEGO NIE JEDEN SZABLON Z "PONIZEJ RYNKU": zmierzone, tylko 28% ofert
+   * ma w ogole mediane rynkowa, a 6% jest ponizej niej. Szablon oparty na
+   * okazji dzialalby na garstce stron, a na reszcie zostawialby dziure albo
+   * zmuszal do klamstwa. Kazda strona dostaje wiec najmocniejszy argument,
+   * ktory NAPRAWDE ma.
+   */
+  const ile = (n: number) => `${Math.round(n * 100)}%`;
+  const ponizejRynku =
+    !sprzedane && o.dealScore != null && o.dealScore >= 0.05 && o.marketPrice != null
+      ? `${ile(o.dealScore)} poniżej mediany rynkowej (${pln.format(o.marketPrice)}). `
+      : null;
+
+  const konkret = [
+    o.year ? `rocznik ${o.year}` : null,
+    o.mileageKm != null ? `${num.format(o.mileageKm)} km` : null,
+    fuelSpec(o.fuel)?.label ?? null,
+    o.powerHp ? `${o.powerHp} KM` : null,
+  ]
+    .filter(Boolean)
+    .join(", ");
+
   const description =
-    (sprzedane ? `Sprzedane. ` : "") +
-    `${name} po leasingu` +
-    (o.mileageKm != null ? `, ${num.format(o.mileageKm)} km` : "") +
-    (fuelSpec(o.fuel) ? `, ${fuelSpec(o.fuel)?.label}` : "") +
-    `. Oferta z ${shortSource(o.sourceName)}` +
-    (o.marketPrice ? `, mediana rynkowa ${pln.format(o.marketPrice)}.` : ".");
+    (sprzedane
+      ? `Sprzedane — historia ceny i podobne egzemplarze. `
+      : (ponizejRynku ?? "")) +
+    `${name}` +
+    (konkret ? `: ${konkret}` : "") +
+    (o.priceGross && !sprzedane ? `, ${pln.format(o.priceGross)}` : "") +
+    `. Oferta poleasingowa z ${shortSource(o.sourceName)}.`;
 
   return {
     title,

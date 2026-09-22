@@ -16,6 +16,7 @@ import { makeHref, resolveSlug, slugify } from "@/lib/slug";
 import { Building2, MapPin, TrendingDown } from "lucide-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { oferty } from "@/lib/format";
 
 /*
  * Odswiezanie RAZ NA DOBE, nie co godzine.
@@ -76,7 +77,9 @@ export async function generateMetadata({
   const { make, para } = found;
 
   const stats = await getMakeCityStats(make, para.cityWarianty);
-  const title = `${make} poleasingowe ${para.city} — ${num.format(stats.total)} ofert`;
+  const title =
+    `${make} poleasingowe ${para.city} — ${num.format(stats.total)} ${oferty(stats.total)}` +
+    (stats.minPrice ? ` od ${pln.format(stats.minPrice)}` : "");
   const description =
     `${make} po leasingu w mieście ${para.city}: ${num.format(stats.total)} ofert z ` +
     `${stats.sources} źródeł` +
