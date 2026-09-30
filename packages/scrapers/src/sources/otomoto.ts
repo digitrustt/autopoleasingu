@@ -14,7 +14,9 @@ import { fetchText } from "../http";
 import type { SourceAdapter } from "../types";
 
 /**
- * Otomoto — WYLACZNIE sklepy firmowe leasingodawcow i CFM, nie caly serwis.
+ * Otomoto — imiennie wybrane sklepy: leasingodawcy i CFM, a od 30.09.2026
+ * rowniez komisy specjalizujace sie w autach poleasingowych (patrz DEALERS).
+ * Nigdy caly serwis.
  *
  * Otomoto ma 234 tys. ofert osobowych; filtr "sprzedawca: firma" zawęża to
  * do 188 tys., czyli nadal calego handlu uzywkami. To nie jest to, czego szukamy,
@@ -59,6 +61,44 @@ const STORES: [string, string][] = [
   ["mleasing", "mLeasing"],
   ["impuls", "Impuls Leasing"],
   ["vbleasing", "VB Leasing"],
+  // Place leasingodawcow wystawiane pod wlasna nazwa.
+  ["mautovandercar", "mLeasing (plac mAuto)"],
+  ["master1wola", "Masterlease (AM Warszawa)"],
+  ["fleetcenter", "Fleet Center"],
+];
+
+/**
+ * KOMISY z autami poleasingowymi — dodane 30.09.2026 dla wolumenu (~1400 aut).
+ *
+ * To NIE jest sprzedaz u zrodla: komis kupuje auto od leasingodawcy (czesto na
+ * aukcji, ktora tez zbieramy) i odsprzedaje z marza. Dlatego do `seller` idzie
+ * nasza krotka nazwa z dopiskiem "(komis)", a nie `businessName` — ten bywa
+ * reklama na dwie linijki z gwiazdkami — i dlatego te same auto moze sie tu
+ * pojawic drugi raz, drozej niz na aukcji.
+ */
+const DEALERS: [string, string][] = [
+  ["metrocars", "Metrocars"],
+  ["arctos", "ARCTOS"],
+  ["caroutlet", "Caroutlet Dynamica"],
+  ["mustangcars", "Mustang"],
+  ["autakrajowe", "Auta Krajowe"],
+  ["carseduzywane", "CARSED"],
+  ["carsedwarszawa", "CARSED Centrum Flotowe"],
+  ["autoborys", "Autoborys"],
+  ["next-car", "Next-Car"],
+  ["regner", "Regner"],
+  ["fokuscars", "Fokuscars"],
+  ["poleasingowe-norma", "Norma"],
+  ["phuprofit", "PHU Profit"],
+  ["salonpoleasingowe", "Auto Salon Poleasingowe.pl"],
+  ["automaxwarszawa", "Auto-Max Warszawa"],
+  ["kangoor", "Kangoor"],
+  ["poleasingowelublin", "Poleasingowe Lublin"],
+];
+
+const ALL_STORES: { subdomain: string; seller: string; dealer: boolean }[] = [
+  ...STORES.map(([subdomain, seller]) => ({ subdomain, seller, dealer: false })),
+  ...DEALERS.map(([subdomain, seller]) => ({ subdomain, seller: `${seller} (komis)`, dealer: true })),
 ];
 
 interface AdAttribute {
@@ -148,7 +188,7 @@ export const otomoto: SourceAdapter = {
   async discover(): Promise<ListingRef[]> {
     const seen = new Map<string, ListingRef>();
 
-    for (const [subdomain, sellerName] of STORES) {
+    for (const { subdomain, seller: sellerName, dealer } of ALL_STORES) {
       let total = Number.POSITIVE_INFINITY;
 
       for (let page = 1; page <= MAX_PAGES; page++) {
@@ -176,7 +216,7 @@ export const otomoto: SourceAdapter = {
             externalId: ad.id,
             // Adres oferty podaje samo API — nie skladamy sluga.
             url: ad.url ?? `https://www.otomoto.pl/osobowe/oferta/ID${ad.id}.html`,
-            payload: { ad, seller: found.seller ?? sellerName },
+            payload: { ad, seller: dealer ? sellerName : (found.seller ?? sellerName) },
           });
         }
 

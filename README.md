@@ -28,7 +28,7 @@ zdobyć. Szczegóły w [PLAN.md, sekcja 15](PLAN.md).
 | `carefleet` (Credit Agricole) | listing + tabela "Dane pojazdu" | 149 | 100% |
 | `mhc` (MHC Mobility, d. Athlon) | listing ASP.NET + postback `__VIEWSTATE` | 62 | 100% |
 | `bravoauto` (Inchcape) | **render listingu** + JSON-LD z detalu | ~430 | 100% |
-| `otomoto` (sklepy leasingodawców) | `__NEXT_DATA__` z `/inventory?page=N` | 435 | brak (szyfrowany) |
+| `otomoto` (sklepy leasingodawców + 17 komisów poleasingowych) | `__NEXT_DATA__` z `/inventory?page=N` | 1869 (z czego ~1150 z komisów, `seller` z dopiskiem „(komis)”) | brak (szyfrowany) |
 | `arval` (Arval AutoSelect) | publiczne JSON API | 294 z 635 | 100% |
 | `alphabet` (BMW Group) | publiczne JSON API | 223 | 100% |
 | `vwfs` (VW Financial Services) | `__NEXT_DATA__` z listingu | 186 z 285 | 100% |
