@@ -3,7 +3,13 @@
 import { track } from "@/components/Analytics";
 import { ZapisForm } from "@/components/ZapisForm";
 import { banerWidoczny } from "@/lib/consent";
-import { type KontekstWyjscia, SYGNAL_WYJSCIA } from "@/lib/zapis-sygnal";
+import {
+  GOTOWOSC,
+  KLUCZ_DECYZJA,
+  type KontekstWyjscia,
+  type PrzedWyjsciem,
+  SYGNAL_PRZED_WYJSCIEM,
+} from "@/lib/zapis-sygnal";
 import { Bell, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -29,13 +35,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
  * ktorej prog liczbowy nie zlapie nigdy: czlowieka, ktory wszedl z Google
  * prosto na jedna oferte, kliknal "zobacz u sprzedawcy" i na tym skonczyl.
  *
- * Nakladka po wyjsciu czeka, az czlowiek WROCI do karty (visibilitychange), a
- * nie pokazuje sie w tle. Nie chodzi o uprzejmosc, tylko o pomiar: nakladka
- * wyrenderowana w ukrytej karcie wyslalaby `popup_pokazany` za pokaz, ktorego
- * nikt nie zobaczyl, i zafalszowala caly lejek zapisow.
+ * Od 2.10.2026 nakladka pokazuje sie PRZED wyjsciem: klikniecie "Zobacz w ..."
+ * jest wstrzymane, a do sprzedawcy przenosi zapis albo kazde zamkniecie.
+ * Wczesniej czekala na powrot do naszej karty, a wiekszosc ludzi nie wracala.
  *
  * ZASADY, KTORE TRZYMAJA TO PO STRONIE UCZCIWOSCI:
  *
+ *  - Zamkniecie ZAWSZE przenosi do oferty — krzyzyk, tlo, Escape i "przejdz
+ *    bez zapisu". To propozycja, nie bramka.
  *  - Raz na sesje i nigdy wiecej po zamknieciu. Zamkniecie zapisuje sie
  *    w localStorage NA STALE. Nakladka, ktora wraca po odmowie, jest gorsza
  *    niz jej brak: kosztuje zaufanie, ktorego przy tym ruchu nie ma z czego
@@ -48,7 +55,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
  *    Bez "ekskluzywnych okazji" i bez licznika, ktory udaje, ze cos ucieka.
  */
 
-const KLUCZ_DECYZJA = "zapis_popup_decyzja";
 const KLUCZ_LICZNIK = "zapis_popup_obejrzane";
 const PROG = 2;
 
@@ -153,12 +159,17 @@ export function ZapisPopup() {
   const [powod, setPowod] = useState<Powod>("oferty");
   /* Co czlowiek ogladal, wychodzac — zasila tytul, zdjecie i filtr zapisu. */
   const [kontekst, setKontekst] = useState<KontekstWyjscia>({});
+  /* true = nakladka wstrzymala klikniecie "Zobacz w ..." i ma potem przeniesc do oferty. */
+  const [doOferty, setDoOferty] = useState(false);
 
   const schowaj = useCallback((decyzja: "zamkniete" | "zapisano") => {
     zapisz(localStorage, KLUCZ_DECYZJA, decyzja);
     setWjechal(false);
     // Domykamy dopiero po animacji, zeby nakladka nie znikala skokiem.
-    setTimeout(() => setWidoczny(false), 150);
+    setTimeout(() => {
+      setWidoczny(false);
+      setDoOferty(false);
+    }, 150);
   }, []);
 
   const pokaz = useCallback((p: Powod, dane: Record<string, unknown>) => {
@@ -189,65 +200,68 @@ export function ZapisPopup() {
   }, [pathname, pokaz]);
 
   /*
-   * WYZWALACZ 2: wyjscie do sprzedawcy.
+   * WYZWALACZ 2: klikniecie "Zobacz w ..." — PRZED wyjsciem do sprzedawcy.
    *
-   * Link otwiera sie w nowej karcie, wiec nasza traci widocznosc. Czekamy na
-   * powrot — i dopiero wtedy pokazujemy. Gdyby karta nigdy nie zostala ukryta
-   * (bywa: ustawienia przegladarki, blokada wyskakujacych okien), po 1,2 s
-   * pokazujemy mimo to, zeby ten wyzwalacz nie przepadl po cichu.
+   * Do 2.10.2026 nakladka czekala, az czlowiek wroci do naszej karty po
+   * obejrzeniu oferty. Wiekszosc nie wracala nigdy. Teraz OfferLink wstrzymuje
+   * klikniecie i nakladka pokazuje sie od razu; do sprzedawcy przenosi zapis
+   * albo KAZDE zamkniecie (patrz `zamknij`). Gdy nakladka nie jest gotowa,
+   * link dziala zwyczajnie — patrz GOTOWOSC w lib/zapis-sygnal.ts.
    */
-  const uzbrojony = useRef(false);
+  const dokadRef = useRef<string | null>(null);
+
   /*
-   * Kontekst trzymamy TAKZE w ref. `odpal` siedzi w timeoucie i w nasluchu
-   * `visibilitychange`, wiec widzialby stan z chwili podpiecia, a nie ten
-   * ustawiony przed momentem przez klikniecie.
+   * Otwiera oferte w nowej karcie. Wolane wylacznie z obslugi klikniecia albo
+   * klawisza — inaczej przegladarka zablokuje to jako wyskakujace okno.
    */
-  const kontekstRef = useRef<KontekstWyjscia>({});
+  const przejdz = useCallback(() => {
+    const href = dokadRef.current;
+    dokadRef.current = null;
+    if (!href) return;
+    const okno = window.open(href, "_blank");
+    if (okno) {
+      // Odpowiednik rel="noopener" bez "noreferrer" — sprzedawca ma widziec, skad ruch.
+      okno.opener = null;
+    } else {
+      // Blokada wyskakujacych okien: lepiej wyjsc w tej karcie niz nie wyjsc wcale.
+      window.location.href = href;
+    }
+  }, []);
+
+  const zamknij = useCallback(
+    (jak: string) => {
+      track("popup_zamkniety", { jak, powod });
+      schowaj("zamkniete");
+      przejdz();
+    },
+    [powod, schowaj, przejdz],
+  );
+
   useEffect(() => {
-    const odpal = () => {
-      if (!uzbrojony.current || document.hidden) return;
-      uzbrojony.current = false;
-      if (!wolno()) return;
-      pokaz("wyjscie", { auto: kontekstRef.current.nazwa ?? null });
+    const naKlik = (e: Event) => {
+      const d = (e as CustomEvent<PrzedWyjsciem>).detail;
+      if (!d?.href) return;
+      dokadRef.current = d.href;
+      setDoOferty(true);
+      setKontekst(d.kontekst ?? {});
+      pokaz("wyjscie", { auto: d.kontekst?.nazwa ?? null, przed: true });
     };
-
-    const naWyjscie = (e: Event) => {
-      /*
-       * Bez sprawdzania baneru: to samo zdarzenie wlasnie go chowa (patrz
-       * CookieConsent), ale React zdejmie go z DOM-u dopiero za chwile.
-       * `odpal` i tak pyta o `wolno()` — po sekundzie, gdy paska juz nie ma.
-       */
-      if (widoczny || zdecydowano()) return;
-      const k = (e as CustomEvent<KontekstWyjscia>).detail ?? {};
-      kontekstRef.current = k;
-      setKontekst(k);
-      uzbrojony.current = true;
-      setTimeout(odpal, 1200);
-    };
-    const naPowrot = () => {
-      // Chwila zwloki: nakladka wpadajaca w sekundzie przelaczania kart miga.
-      if (!document.hidden) setTimeout(odpal, 600);
-    };
-
-    window.addEventListener(SYGNAL_WYJSCIA, naWyjscie);
-    document.addEventListener("visibilitychange", naPowrot);
+    window.addEventListener(SYGNAL_PRZED_WYJSCIEM, naKlik);
+    (window as unknown as Record<string, unknown>)[GOTOWOSC] = true;
     return () => {
-      window.removeEventListener(SYGNAL_WYJSCIA, naWyjscie);
-      document.removeEventListener("visibilitychange", naPowrot);
+      window.removeEventListener(SYGNAL_PRZED_WYJSCIEM, naKlik);
+      (window as unknown as Record<string, unknown>)[GOTOWOSC] = false;
     };
-  }, [widoczny, pokaz]);
+  }, [pokaz]);
 
   useEffect(() => {
     if (!widoczny) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        track("popup_zamkniety", { jak: "escape", powod });
-        schowaj("zamkniete");
-      }
+      if (e.key === "Escape") zamknij("escape");
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [widoczny, schowaj, powod]);
+  }, [widoczny, zamknij]);
 
   if (!widoczny) return null;
 
@@ -263,10 +277,7 @@ export function ZapisPopup() {
       <button
         type="button"
         aria-label="Zamknij"
-        onClick={() => {
-          track("popup_zamkniety", { jak: "tlo", powod });
-          schowaj("zamkniete");
-        }}
+        onClick={() => zamknij("tlo")}
         className="absolute inset-0 cursor-default bg-black/70"
       />
 
@@ -280,10 +291,7 @@ export function ZapisPopup() {
       >
         <button
           type="button"
-          onClick={() => {
-            track("popup_zamkniety", { jak: "krzyzyk", powod });
-            schowaj("zamkniete");
-          }}
+          onClick={() => zamknij("krzyzyk")}
           aria-label="Zamknij"
           className="absolute right-3 top-3 rounded-lg p-2 text-neutral-500 transition-colors hover:bg-[var(--color-ink)] hover:text-neutral-200"
         >
@@ -326,12 +334,28 @@ export function ZapisPopup() {
             label={t.label}
             filters={t.filters}
             autoFocus
+            przycisk={doOferty ? "Powiadom i przejdź" : "Powiadom mnie"}
+            onSubmitStart={przejdz}
             onDone={() => {
               // Zamykamy z opoznieniem: komunikat o zapisie musi byc przeczytany.
               setTimeout(() => schowaj("zapisano"), 2600);
             }}
           />
         </div>
+
+        {/*
+          Wyjscie bez zapisu musi byc rownie widoczne jak zapis — to nie jest
+          bramka. Ten sam efekt co krzyzyk, tlo i Escape.
+        */}
+        {doOferty && (
+          <button
+            type="button"
+            onClick={() => zamknij("pomin")}
+            className="mt-3 w-full rounded-lg border border-[var(--color-line)] px-4 py-2 text-[13px] text-neutral-300 transition-colors hover:border-neutral-600 hover:text-neutral-100"
+          >
+            Przejdź do oferty bez zapisu →
+          </button>
+        )}
       </div>
     </div>
   );

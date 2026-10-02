@@ -1,7 +1,7 @@
 "use client";
 
 import { BANER_ID, type Consent, hasConsentDecision, readConsent, writeConsent } from "@/lib/consent";
-import { SYGNAL_WYJSCIA } from "@/lib/zapis-sygnal";
+import { SYGNAL_PRZED_WYJSCIEM, SYGNAL_WYJSCIA } from "@/lib/zapis-sygnal";
 import { Cookie } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -62,9 +62,12 @@ export function CookieConsent() {
      */
     const onWyjscie = () => setVisible(false);
     window.addEventListener(SYGNAL_WYJSCIA, onWyjscie);
+    // Nakladka przed wyjsciem pokazuje sie od razu — pasek nie moze pod nia wisiec.
+    window.addEventListener(SYGNAL_PRZED_WYJSCIEM, onWyjscie);
     return () => {
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener(SYGNAL_WYJSCIA, onWyjscie);
+      window.removeEventListener(SYGNAL_PRZED_WYJSCIEM, onWyjscie);
     };
   }, []);
 

@@ -45,3 +45,45 @@ export interface KontekstWyjscia {
 export function zglosWyjscie(kontekst: KontekstWyjscia = {}): void {
   window.dispatchEvent(new CustomEvent(SYGNAL_WYJSCIA, { detail: kontekst }));
 }
+
+/**
+ * NAKLADKA PRZED WYJSCIEM (od 2.10.2026). Klikniecie "Zobacz w ..." najpierw
+ * pokazuje propozycje zapisu, a do sprzedawcy przenosi dopiero zapis ALBO
+ * zamkniecie nakladki — krzyzyk, tlo, Escape i "przejdz bez zapisu" dzialaja
+ * tak samo: od razu otwieraja oferte. To jest decyzja wlasciciela serwisu;
+ * nigdy nie robic z tego bramki, ktorej nie da sie ominac jednym kliknieciem.
+ *
+ * Raz na zawsze: po zapisie albo zamknieciu kolejne klikniecia ida juz prosto
+ * do sprzedawcy (wspolny klucz z ZapisPopup).
+ */
+export const SYGNAL_PRZED_WYJSCIEM = "zapis:przed-wyjsciem";
+
+/** Klucz decyzji nakladki w localStorage — wspolny dla wszystkich wyzwalaczy. */
+export const KLUCZ_DECYZJA = "zapis_popup_decyzja";
+
+export function zapisZdecydowany(): boolean {
+  try {
+    return window.localStorage.getItem(KLUCZ_DECYZJA) !== null;
+  } catch {
+    // Bez localStorage nie zapamietamy zamkniecia — wiec nie przechwytujemy wcale.
+    return true;
+  }
+}
+
+/**
+ * Nakladka ustawia to po zamontowaniu. Link przechwytuje klikniecie TYLKO
+ * wtedy — gdyby nakladka nie wstala (blad, inny layout), przechwycone
+ * klikniecie nie prowadziloby nigdzie.
+ */
+export const GOTOWOSC = "__zapisPrzedWyjsciemGotowy";
+
+export interface PrzedWyjsciem {
+  href: string;
+  kontekst: KontekstWyjscia;
+}
+
+export function zglosPrzedWyjsciem(dane: PrzedWyjsciem): boolean {
+  if (!(window as unknown as Record<string, unknown>)[GOTOWOSC]) return false;
+  window.dispatchEvent(new CustomEvent(SYGNAL_PRZED_WYJSCIEM, { detail: dane }));
+  return true;
+}

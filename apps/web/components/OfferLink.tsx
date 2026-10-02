@@ -2,7 +2,12 @@
 
 import { track } from "@/components/Analytics";
 import { adresWyjscia } from "@/lib/wyjscie";
-import { type KontekstWyjscia, zglosWyjscie } from "@/lib/zapis-sygnal";
+import {
+  type KontekstWyjscia,
+  zapisZdecydowany,
+  zglosPrzedWyjsciem,
+  zglosWyjscie,
+} from "@/lib/zapis-sygnal";
 import Link from "next/link";
 
 /**
@@ -49,9 +54,10 @@ export function OfferLink({
   const onClick = () => track("oferta_klik", offer);
 
   if (external) {
+    const dokad = adresWyjscia(href, sourceId);
     return (
       <a
-        href={adresWyjscia(href, sourceId)}
+        href={dokad}
         target="_blank"
         /*
          * `noopener` zostaje dla bezpieczenstwa, `noreferrer` NIE — to on
@@ -60,13 +66,23 @@ export function OfferLink({
         rel="noopener"
         className={className}
         style={style}
-        onClick={() => {
+        onClick={(e) => {
           onClick();
           /*
-           * Nakladka z zapisem czeka wlasnie na to zdarzenie — patrz
-           * lib/zapis-sygnal.ts. Wolamy je PO `track`, bo kolejnosc zdarzen
-           * w PostHogu decyduje o tym, jak wyglada lejek.
+           * Najpierw nakladka z zapisem, dopiero potem sprzedawca — patrz
+           * SYGNAL_PRZED_WYJSCIEM w lib/zapis-sygnal.ts.
+           *
+           * Nie ruszamy klikniec z modyfikatorem ani srodkowym przyciskiem:
+           * kto otwiera oferty hurtem w tle, wie, czego chce, i nakladka
+           * w kazdej karcie bylaby karą.
            */
+          const zwykle = e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey;
+          if (zwykle && !zapisZdecydowany() && zglosPrzedWyjsciem({ href: dokad, kontekst: kontekst ?? {} })) {
+            e.preventDefault();
+            return;
+          }
+          // Chowa baner cookies (patrz CookieConsent). Po `track`, bo kolejnosc
+          // zdarzen w PostHogu decyduje o tym, jak wyglada lejek.
           zglosWyjscie(kontekst ?? {});
         }}
       >

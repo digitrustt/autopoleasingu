@@ -22,6 +22,8 @@ export function ZapisForm({
   label = null,
   typ,
   onDone,
+  onSubmitStart,
+  przycisk = "Powiadom mnie",
   autoFocus = false,
 }: {
   filters?: Record<string, string>;
@@ -29,6 +31,15 @@ export function ZapisForm({
   /** Skad przyszedl zapis — jedyny sposob, zeby wiedziec, ktore miejsce dziala. */
   typ: string;
   onDone?: () => void;
+  /**
+   * Wolane SYNCHRONICZNIE w chwili wyslania, zanim pojdzie zapytanie. Sluzy
+   * nakladce przed wyjsciem do sprzedawcy: otwarcie nowej karty musi nastapic
+   * w tym samym kliknieciu, bo po `await fetch` przegladarka uznaje je za
+   * wyskakujace okno i blokuje.
+   */
+  onSubmitStart?: () => void;
+  /** Napis na przycisku — nakladka przed wyjsciem mowi, ze przeniesie dalej. */
+  przycisk?: string;
   autoFocus?: boolean;
 }) {
   const [email, setEmail] = useState("");
@@ -39,6 +50,7 @@ export function ZapisForm({
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    onSubmitStart?.();
     setState("sending");
     setError(null);
 
@@ -107,7 +119,7 @@ export function ZapisForm({
           className="flex shrink-0 items-center gap-1.5 rounded-lg bg-accent px-3.5 py-2 text-[13px] font-medium text-black transition-colors hover:bg-white disabled:opacity-60"
         >
           {state === "sending" && <Loader2 size={13} className="animate-spin" />}
-          Powiadom mnie
+          {przycisk}
         </button>
       </div>
 
