@@ -4,6 +4,7 @@ import { Crumbs } from "@/components/Crumbs";
 import { daneStrukturalnePojazdu } from "@/lib/dane-strukturalne";
 import { FinansowanieBlok } from "@/components/FinansowanieBlok";
 import { UbezpieczenieBlok } from "@/components/UbezpieczenieBlok";
+import { ZapisForm } from "@/components/ZapisForm";
 import { ZapisPasek } from "@/components/ZapisPasek";
 import { DealBadge } from "@/components/DealBadge";
 import { OfferLink } from "@/components/OfferLink";
@@ -290,12 +291,34 @@ export default async function OfferPage({ params }: { params: Promise<{ id: stri
           Zniknieta oferta nie jest bledem 404 — adres mogl trafic do indeksu
           albo na czyjas liste. Mowimy wprost, co sie stalo, i kierujemy dalej.
         */
-        <p className="mb-5 flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm text-amber-200">
-          <CircleSlash size={16} className="shrink-0" />
-          Ta oferta zniknęła ze źródła
-          {o.goneAt && ` ${day.format(o.goneAt)}`} — najpewniej auto zostało sprzedane. Podobne
-          egzemplarze są niżej.
-        </p>
+        /*
+          Zapis stoi TUTAJ, przy samym komunikacie, a nie w bocznej kolumnie.
+          Na sprzedane oferty trafia z Google kilkaset osob tygodniowo i to jest
+          jedyne, co czytaja: auta juz nie ma, wiec jedyne pytanie, jakie maja
+          w glowie, brzmi "a kiedy bedzie nastepne". `typ` osobny, zeby bylo
+          widac, ile daje to miejsce.
+        */
+        <section className="mb-5 rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3">
+          <p className="flex items-center gap-2 text-sm text-amber-200">
+            <CircleSlash size={16} className="shrink-0" />
+            Ta oferta zniknęła ze źródła
+            {o.goneAt && ` ${day.format(o.goneAt)}`} — najpewniej auto zostało sprzedane. Podobne
+            egzemplarze są niżej.
+          </p>
+          <p className="mt-3 text-[13px] font-medium text-neutral-100">
+            Dać znać, gdy pojawi się kolejne {name}?
+          </p>
+          <p className="mt-0.5 text-[12px] leading-relaxed text-neutral-400">
+            Sprawdzamy 26 źródeł codziennie. Jeden mail dziennie, tylko gdy jest coś nowego.
+          </p>
+          <div className="mt-2.5 max-w-[460px]">
+            <ZapisForm
+              typ="oferta-sprzedana"
+              label={name}
+              filters={{ make: o.make, ...(o.model ? { model: o.model } : {}) }}
+            />
+          </div>
+        </section>
       )}
 
       {/*
@@ -667,7 +690,8 @@ export default async function OfferPage({ params }: { params: Promise<{ id: stri
               tabela danych i pod podobnymi autami — jeszcze dalej niz nakladka.
               To jest jedyne miejsce strony oferty, ktore widzi kazdy.
             */}
-            <ZapisPasek
+            {/* Przy sprzedanej ofercie zapis stoi na gorze strony — patrz komunikat. */}
+            {!gone && <ZapisPasek
               typ="oferta-kolumna"
               wariant="kolumna"
               tytul={`Powiadomić o kolejnych ${name}?`}
@@ -677,7 +701,7 @@ export default async function OfferPage({ params }: { params: Promise<{ id: stri
               }
               label={name}
               filters={{ make: o.make, ...(o.model ? { model: o.model } : {}) }}
-            />
+            />}
           </div>
 
           {/*

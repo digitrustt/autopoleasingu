@@ -2,7 +2,7 @@
 
 import { track } from "@/components/Analytics";
 import { ZapisForm } from "@/components/ZapisForm";
-import { hasConsentDecision } from "@/lib/consent";
+import { banerWidoczny } from "@/lib/consent";
 import { type KontekstWyjscia, SYGNAL_WYJSCIA } from "@/lib/zapis-sygnal";
 import { Bell, X } from "lucide-react";
 import { usePathname } from "next/navigation";
@@ -40,9 +40,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
  *    w localStorage NA STALE. Nakladka, ktora wraca po odmowie, jest gorsza
  *    niz jej brak: kosztuje zaufanie, ktorego przy tym ruchu nie ma z czego
  *    oddawac. Oba wyzwalacze dziela ten sam zamek — zadne "a moze teraz".
- *  - Nie pokazuje sie, dopoki wisi baner cookies (czyli dopoki czlowiek sam
- *    czegos w nim nie kliknie). Dwie nakladki naraz to sciana, ktora zamyka
- *    sie odruchowo, razem z cala strona.
+ *  - Nie pokazuje sie, dopoki baner cookies jest na ekranie. Dwie nakladki
+ *    naraz to sciana, ktora zamyka sie odruchowo, razem z cala strona.
  *  - Escape i klikniecie w tlo zamykaja. Krzyzyk jest pelnowymiarowy, nie
  *    szescioma pikselami w rogu.
  *  - Tresc mowi dokladnie, co przyjdzie: jeden mail dziennie, dwanascie ofert.
@@ -69,17 +68,24 @@ function zapisz(store: Storage, k: string, v: string): void {
   }
 }
 
+/** Decyzja o zapisie juz zapadla — zamknieta albo zapisana — wiec nigdy wiecej. */
+function zdecydowano(): boolean {
+  return czytaj(localStorage, KLUCZ_DECYZJA) !== null;
+}
+
 /**
- * Wspolny zamek obu wyzwalaczy: decyzja o zapisie juz zapadla albo wisi baner.
+ * Wspolny zamek obu wyzwalaczy: decyzja o zapisie juz zapadla albo baner
+ * cookies WISI TERAZ na ekranie — dwie nakladki naraz to sciana, ktora
+ * czlowiek zamyka odruchowo razem z cala strona.
  *
- * Pytamy o WLASNA decyzje w banerze, nie o `readConsent`. Od 17.09.2026 zgoda
- * jest domyslnie udzielona (patrz lib/consent.ts), wiec `readConsent() !== null`
- * bylo juz zawsze prawdziwe — nakladka wjezdzalaby NA baner, a dwie nakladki
- * naraz to sciana, ktora czlowiek zamyka odruchowo razem z cala strona.
+ * DLACZEGO NIE `hasConsentDecision`. Tak bylo do 2.10.2026 i nakladka prawie
+ * nie istniala: od kiedy przewiniecie chowa baner BEZ zapisywania decyzji,
+ * mało kto cokolwiek w nim klika. Zmierzone na 30 dniach — 161 osob wyszlo do
+ * sprzedawcy, nakladke po wyjsciu zobaczylo 15 z nich (9%). Pytamy wiec, czy
+ * pasek jest widoczny, a nie, czy ktos go kiedys kliknal.
  */
 function wolno(): boolean {
-  if (czytaj(localStorage, KLUCZ_DECYZJA)) return false;
-  return hasConsentDecision();
+  return !zdecydowano() && !banerWidoczny();
 }
 
 type Powod = "oferty" | "wyjscie";
@@ -206,7 +212,12 @@ export function ZapisPopup() {
     };
 
     const naWyjscie = (e: Event) => {
-      if (widoczny || !wolno()) return;
+      /*
+       * Bez sprawdzania baneru: to samo zdarzenie wlasnie go chowa (patrz
+       * CookieConsent), ale React zdejmie go z DOM-u dopiero za chwile.
+       * `odpal` i tak pyta o `wolno()` — po sekundzie, gdy paska juz nie ma.
+       */
+      if (widoczny || zdecydowano()) return;
       const k = (e as CustomEvent<KontekstWyjscia>).detail ?? {};
       kontekstRef.current = k;
       setKontekst(k);

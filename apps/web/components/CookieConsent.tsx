@@ -1,6 +1,7 @@
 "use client";
 
-import { type Consent, hasConsentDecision, readConsent, writeConsent } from "@/lib/consent";
+import { BANER_ID, type Consent, hasConsentDecision, readConsent, writeConsent } from "@/lib/consent";
+import { SYGNAL_WYJSCIA } from "@/lib/zapis-sygnal";
 import { Cookie } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -53,7 +54,18 @@ export function CookieConsent() {
       setVisible(false);
     };
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+
+    /*
+     * Wyjscie do sprzedawcy chowa baner tak samo jak przewiniecie — bez
+     * zapisywania decyzji. Inaczej po powrocie do karty baner zaslanialby
+     * nakladke zapisu (patrz ZapisPopup), a ta czeka, az pasek zniknie.
+     */
+    const onWyjscie = () => setVisible(false);
+    window.addEventListener(SYGNAL_WYJSCIA, onWyjscie);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener(SYGNAL_WYJSCIA, onWyjscie);
+    };
   }, []);
 
   if (!visible) return null;
@@ -65,6 +77,7 @@ export function CookieConsent() {
 
   return (
     <div
+      id={BANER_ID}
       role="dialog"
       aria-label="Zgoda na analitykę"
       className="fixed inset-x-0 bottom-0 z-50 border-t border-[var(--color-line)] bg-[var(--color-panel)]/95 backdrop-blur"

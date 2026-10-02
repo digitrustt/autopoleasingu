@@ -65,6 +65,21 @@ export function hasConsentDecision(): boolean {
   }
 }
 
+/** Id paska z banerem — po nim nakladka zapisu sprawdza, czy pasek wisi na ekranie. */
+export const BANER_ID = "baner-zgody";
+
+/**
+ * Czy baner cookies jest TERAZ widoczny.
+ *
+ * To co innego niz `hasConsentDecision`: od kiedy przewiniecie chowa baner bez
+ * zapisywania decyzji, wiekszosc ludzi nigdy niczego w nim nie klika — a baneru
+ * i tak juz nie widzi.
+ */
+export function banerWidoczny(): boolean {
+  if (typeof document === "undefined") return false;
+  return document.getElementById(BANER_ID) !== null;
+}
+
 export function writeConsent(v: Consent): void {
   try {
     window.localStorage.setItem(CONSENT_KEY, v);
