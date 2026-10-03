@@ -3,6 +3,7 @@ import { makaMiastoHref, zgrupujParyMarkaMiasto } from "@/lib/marka-miasto";
 import { PARY } from "@/lib/pary";
 import { getMakeCityPairs, getSitemapEntries } from "@/lib/queries";
 import { makeHref, modelHref, modelKey, slugify } from "@/lib/slug";
+import { WOJEWODZTWA } from "@/lib/wojewodztwa";
 import type { MetadataRoute } from "next";
 
 const BASE = "https://autopoleasingu.pl";
@@ -57,6 +58,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE}/zrodla`, changeFrequency: "weekly", priority: 0.5 },
     { url: `${BASE}/poleasingowe`, changeFrequency: "daily", priority: 0.9 },
     { url: `${BASE}/porownaj`, changeFrequency: "weekly", priority: 0.8 },
+    {
+      url: `${BASE}/poleasingowe/dla-osoby-prywatnej`,
+      changeFrequency: "weekly",
+      priority: 0.8,
+    },
     { url: `${BASE}/vin`, changeFrequency: "weekly", priority: 0.6 },
     { url: `${BASE}/dane`, changeFrequency: "daily", priority: 0.8 },
     {
@@ -121,6 +127,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
      */
     ...KATEGORIE.map((k) => ({
       url: `${BASE}/poleasingowe/${k.slug}`,
+      changeFrequency: "daily" as const,
+      priority: 0.9,
+    })),
+
+    // Wojewodztwa — "auta poleasingowe dolnośląskie". Patrz lib/wojewodztwa.ts.
+    ...WOJEWODZTWA.map((w) => ({
+      url: `${BASE}/poleasingowe/${w.slug}`,
       changeFrequency: "daily" as const,
       priority: 0.9,
     })),

@@ -16,6 +16,8 @@ import { shortSource, oferty } from "@/lib/format";
 import { groupBySlug, makeHref, resolveAliases, slugify } from "@/lib/slug";
 import { KategoriaWidok } from "@/components/KategoriaWidok";
 import { znajdzKategorie } from "@/lib/filtry";
+import { WojewodztwoWidok, miejscaWojewodztwa } from "@/components/WojewodztwoWidok";
+import { znajdzWojewodztwo } from "@/lib/wojewodztwa";
 import { Building2, MapPin, SlidersHorizontal, TrendingDown } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -91,6 +93,28 @@ export async function generateMetadata({
     };
   }
 
+  // Wojewodztwo przed miastem: zadne miasto w bazie nie nazywa sie jak region.
+  const w = znajdzWojewodztwo(co);
+  if (w) {
+    const { warianty } = await miejscaWojewodztwa(w);
+    if (warianty.length === 0) return { title: "Nie znaleziono regionu" };
+    const stats = await getCityStats(warianty);
+    const title =
+      `Samochody poleasingowe ${w.nazwa} — ${num.format(stats.total)} ${oferty(stats.total)}` +
+      (stats.minPrice ? ` od ${pln.format(stats.minPrice)}` : "");
+    const description =
+      `Auta poleasingowe w województwie ${w.wMiejscowniku}: ${num.format(stats.total)} ofert z ` +
+      `${stats.sources} źródeł` +
+      (stats.minPrice ? `, ceny od ${pln.format(stats.minPrice)}` : "") +
+      ". Lista miast, marek i sprzedających, aktualizowana codziennie.";
+    return {
+      title,
+      description,
+      alternates: { canonical: `/poleasingowe/${w.slug}` },
+      openGraph: { title, description, type: "website" },
+    };
+  }
+
   const found = await resolve(co);
   if (!found) return { title: "Nie znaleziono miasta" };
 
@@ -118,6 +142,9 @@ export default async function PoleasingowePage({ params }: { params: Promise<{ c
   // Kategoria przed miastem — patrz komentarz w generateMetadata.
   const k = znajdzKategorie(co);
   if (k) return <KategoriaWidok k={k} />;
+
+  const w = znajdzWojewodztwo(co);
+  if (w) return <WojewodztwoWidok w={w} />;
 
   const found = await resolve(co);
   if (!found) notFound();

@@ -94,6 +94,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Sea
     yearMax: one(sp.yearMax),
     mileageMax: one(sp.mileageMax),
     powerMin: one(sp.powerMin),
+    seatsMin: one(sp.seatsMin),
     fuel: one(sp.fuel),
     gearbox: one(sp.gearbox),
     body: one(sp.body),
@@ -113,6 +114,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Sea
     yearMax: numOrUndef(current.yearMax),
     mileageMax: numOrUndef(current.mileageMax),
     powerMin: numOrUndef(current.powerMin),
+    seatsMin: numOrUndef(current.seatsMin),
   };
 
   /*

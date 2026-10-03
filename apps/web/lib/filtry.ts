@@ -89,6 +89,15 @@ const pozostale: Kategoria[] = [
     filtry: { gearbox: "automatic" },
   },
   {
+    slug: "7-osobowe",
+    nazwa: "7-osobowe",
+    h1: "Samochody poleasingowe 7-osobowe",
+    opis:
+      "Auta po leasingu z co najmniej siedmioma miejscami: duże SUV-y, vany i busy osobowe. " +
+      "Tylko oferty, w których sprzedający podał liczbę miejsc.",
+    filtry: { seatsMin: 7 },
+  },
+  {
     slug: "okazje",
     nazwa: "Okazje",
     h1: "Okazje poleasingowe — ceny poniżej rynku",

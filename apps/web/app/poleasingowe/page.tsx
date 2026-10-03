@@ -5,6 +5,7 @@ import { GRUPY } from "@/lib/filtry";
 import { ikonaKategorii } from "@/lib/ikony";
 import { getCitiesWithCounts, getKategoriePodglad, getStats } from "@/lib/queries";
 import { groupBySlug, slugify } from "@/lib/slug";
+import { WOJEWODZTWA, wojewodztwoMiejsca } from "@/lib/wojewodztwa";
 import { MapPin } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -55,8 +56,10 @@ export const metadata: Metadata = {
  */
 export default async function CitiesPage() {
   await connection();
-  const [miasta, stats, podglad] = await Promise.all([
+  const [miasta, wszystkieMiejsca, stats, podglad] = await Promise.all([
     getCitiesWithCounts(),
+    // Prog 1: do regionu liczy sie kazde auto, takze z miejsca bez wlasnej strony.
+    getCitiesWithCounts(1),
     getStats(),
     getKategoriePodglad(),
   ]);
@@ -97,6 +100,16 @@ export default async function CitiesPage() {
   }));
 
   const wOfertach = grupy.reduce((n, g) => n + g.total, 0);
+
+  // Liczba aut w kazdym wojewodztwie — patrz lib/wojewodztwa.ts.
+  const wRegionie = new Map<string, number>();
+  for (const m of wszystkieMiejsca) {
+    const w = m.city ? wojewodztwoMiejsca(m.city) : null;
+    if (w) wRegionie.set(w.slug, (wRegionie.get(w.slug) ?? 0) + m.total);
+  }
+  const regiony = WOJEWODZTWA.map((w) => ({ ...w, total: wRegionie.get(w.slug) ?? 0 }))
+    .filter((w) => w.total > 0)
+    .sort((a, b) => b.total - a.total);
 
   return (
     <main className="mx-auto max-w-[1400px] px-4 py-6">
@@ -178,6 +191,35 @@ export default async function CitiesPage() {
           </ul>
         </section>
       ))}
+
+      <section className="mb-5">
+        <h2 className="mb-2 text-[13px] uppercase tracking-wide text-neutral-600">Dla kogo</h2>
+        <Link
+          href="/poleasingowe/dla-osoby-prywatnej"
+          className="inline-flex items-center gap-2 rounded-lg border border-[var(--color-line)] bg-[var(--color-panel)] px-3 py-2 text-[13px] text-neutral-200 transition-colors hover:border-neutral-600 hover:bg-[var(--color-ink)]"
+        >
+          Auta poleasingowe dla osoby prywatnej
+        </Link>
+      </section>
+
+      <h2 className="mb-3 mt-8 text-lg font-semibold text-neutral-100">
+        Według województwa ({regiony.length})
+      </h2>
+      <ul className="mb-2 grid grid-cols-[repeat(auto-fill,minmax(170px,1fr))] gap-2">
+        {regiony.map((w) => (
+          <li key={w.slug}>
+            <Link
+              href={`/poleasingowe/${w.slug}`}
+              className="group flex h-full flex-col justify-between gap-1 rounded-xl border border-[var(--color-line)] bg-[var(--color-panel)] px-3 py-2.5 transition-colors hover:border-neutral-600 hover:bg-[var(--color-ink)]"
+            >
+              <span className="text-sm font-medium leading-tight text-neutral-100">{w.nazwa}</span>
+              <span className="text-[11px] tabular-nums text-neutral-300">
+                {num.format(w.total)}
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
 
       <h2 className="mb-3 mt-8 text-lg font-semibold text-neutral-100">
         Według miasta ({grupy.length})

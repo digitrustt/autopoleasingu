@@ -82,6 +82,7 @@ function whereFor(f: Filters, modelWarianty?: string[]) {
   const yearMax = n(f.yearMax);
   const mileageMax = n(f.mileageMax);
   const powerMin = n(f.powerMin);
+  const seatsMin = n(f.seatsMin);
   const dealMin = n(f.dealMin);
 
   if (priceMin != null) parts.push(gte(listings.priceGross, priceMin));
@@ -90,6 +91,7 @@ function whereFor(f: Filters, modelWarianty?: string[]) {
   if (yearMax != null) parts.push(lte(listings.year, yearMax));
   if (mileageMax != null) parts.push(lte(listings.mileageKm, mileageMax));
   if (powerMin != null) parts.push(gte(listings.powerHp, powerMin));
+  if (seatsMin != null) parts.push(gte(listings.seats, seatsMin));
   if (dealMin != null) parts.push(gte(listings.dealScore, dealMin / 100));
 
   return and(...parts);

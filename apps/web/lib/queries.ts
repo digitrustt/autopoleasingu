@@ -16,6 +16,8 @@ export interface Filters {
   yearMax?: number;
   mileageMax?: number;
   powerMin?: number;
+  /** Minimalna liczba miejsc — strona "7-osobowe". Oferty bez tej danej wypadaja. */
+  seatsMin?: number;
   fuel?: string;
   gearbox?: string;
   body?: string;
@@ -116,6 +118,7 @@ function buildWhere(f: Filters) {
   if (f.yearMax) parts.push(lte(listings.year, f.yearMax));
   if (f.mileageMax) parts.push(lte(listings.mileageKm, f.mileageMax));
   if (f.powerMin) parts.push(gte(listings.powerHp, f.powerMin));
+  if (f.seatsMin) parts.push(gte(listings.seats, f.seatsMin));
   if (f.fuel) parts.push(eq(listings.fuel, f.fuel));
   if (f.gearbox) parts.push(eq(listings.gearbox, f.gearbox));
   if (f.body) parts.push(ilike(listings.body, `%${f.body}%`));

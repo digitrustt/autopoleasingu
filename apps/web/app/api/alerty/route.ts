@@ -20,6 +20,8 @@ const ALLOWED = [
    * z lib/queries, wiec worker dopasowuje je tak samo jak wyszukiwarka.
    */
   "city", "bodyGroup",
+  // Strona "7-osobowe" — bez tego zapis z niej bylby ogolnym newsletterem.
+  "seatsMin",
 ] as const;
 
 /**
