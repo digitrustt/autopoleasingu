@@ -20,6 +20,7 @@ const LINKS = [
   { href: "/porownaj", label: "Porównania" },
   { href: "/vin", label: "Sprawdź VIN" },
   { href: "/dane", label: "Dane rynkowe" },
+  { href: "/analizy/raport-rynku-poleasingowego", label: "Raport rynku" },
   { href: "/analizy/ten-sam-vin-dwie-ceny", label: "Ten sam VIN, dwie ceny" },
   { href: "/analizy/utrata-wartosci", label: "Utrata wartości" },
   { href: "/zrodla", label: "Źródła" },

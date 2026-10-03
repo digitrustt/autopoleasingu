@@ -1811,3 +1811,172 @@ export async function getKategoriePodglad() {
 
   return { nadwozia, paliwa, progi };
 }
+
+/* ────────────────────────────────────────────────────────────────────────────
+ * RAPORT RYNKU — /analizy/raport-rynku-poleasingowego
+ *
+ * Liczby dla mediow, wiec kazda musi wytrzymac pytanie "skad to wiecie".
+ * Dlatego wszedzie: tylko oferty "kup teraz" (stawka aukcji to nie cena),
+ * progi minimalnej proby i jawny okres obserwacji.
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+/** Od kiedy zaciag chodzi codziennie — wczesniejsze daty znikniec nie sa wiarygodne. */
+const RAPORT_OD = "2026-08-17";
+
+/**
+ * Linia modelowa w SQL — przyblizenie tego, co robia `rodzinyModeli`
+ * i `liniaModelowa` w @auta/core, ale liczone w bazie, bo mediana czasu
+ * wymaga surowych wierszy, a tych jest kilkanascie tysiecy.
+ *
+ * BMW 520d i "Seria 5" to ta sama linia, Mercedes "C 180" i "C Klasa" tez.
+ * U reszty marek model to pierwszy czlon nazwy, z wyjatkiem nazw dwuczlonowych
+ * ("Corolla Cross" to nie Corolla).
+ */
+const LINIA_SQL = sql.raw(`
+  case
+    when make = 'BMW' and model ~* '^seria\\s*\\d' then 'Seria ' || substring(model from '(?i)^seria\\s*(\\d)')
+    when make = 'BMW' and model ~ '^\\d\\d\\d(\\D|$)' then 'Seria ' || left(model, 1)
+    when make ilike 'mercedes%' and model ~* '^[a-z]\\s*-?\\s*klasa' then 'Klasa ' || upper(left(model, 1))
+    when make ilike 'mercedes%' and model ~ '^[A-Z]\\s+\\d{3}' then 'Klasa ' || left(model, 1)
+    when model ~* '^(santa fe|range rover \\w+|discovery sport|model \\w|grand \\w+|proace city|corolla cross|yaris cross|aygo x|transit \\w+)'
+      then initcap(substring(lower(model) from '^(santa fe|range rover \\w+|discovery sport|model \\w|grand \\w+|proace city|corolla cross|yaris cross|aygo x|transit \\w+)'))
+    else split_part(model, ' ', 1)
+  end
+`);
+
+/**
+ * Ile dni oferta wisi, zanim zniknie — mediana dla linii modelowej.
+ *
+ * "Zniknela" to nie zawsze "sprzedana": sprzedajacy mogl ja zdjac albo
+ * przeniesc. Raport mowi wiec o czasie w ofercie, nie o czasie sprzedazy.
+ * Zycie krotsze niz 12 h pomijamy — to poprawki ogloszen, nie auta.
+ */
+export async function getRaportCzasWOfercie(minProba = 40) {
+  const rows = await db.execute(sql`
+    with g as (
+      select make, ${LINIA_SQL} as linia,
+             extract(epoch from gone_at - first_seen_at) / 86400 as dni
+      from listings
+      where status = 'gone' and offer_kind = 'fixed'
+        and first_seen_at > ${RAPORT_OD}::date
+        and gone_at - first_seen_at > interval '12 hours'
+    )
+    select make, linia, count(*)::int as n,
+           percentile_cont(0.5) within group (order by dni)::numeric(6,1) as dni
+    from g
+    group by make, linia
+    having count(*) >= ${minProba}
+    order by dni
+  `);
+  return (rows as unknown as Record<string, unknown>[]).map((r) => ({
+    make: String(r.make),
+    linia: String(r.linia),
+    n: Number(r.n),
+    dni: Number(r.dni),
+  }));
+}
+
+/** Obnizki cen: jaka czesc ofert staniala i o ile. */
+export async function getRaportObnizki() {
+  const rows = await db.execute(sql`
+    with o as (
+      select e.listing_id, (e.old_price - e.new_price)::numeric / e.old_price as proc,
+             e.old_price - e.new_price as zl
+      from events e
+      join listings l on l.id = e.listing_id
+      where e.kind = 'price_drop' and l.offer_kind = 'fixed'
+        and e.old_price > 10000 and e.new_price > 0
+        -- Spadek o ponad polowe to blad w ogloszeniu, nie obnizka.
+        and (e.old_price - e.new_price)::numeric / e.old_price < 0.5
+    )
+    select
+      (select count(*) from listings where offer_kind = 'fixed' and price_gross is not null)::int as wszystkich,
+      count(distinct listing_id)::int as z_obnizka,
+      count(*)::int as obnizek,
+      (percentile_cont(0.5) within group (order by proc) * 100)::numeric(5,1) as mediana_proc,
+      percentile_cont(0.5) within group (order by zl)::int as mediana_zl
+    from o
+  `);
+  const r = (rows as unknown as Record<string, unknown>[])[0] ?? {};
+  return {
+    wszystkich: Number(r.wszystkich ?? 0),
+    zObnizka: Number(r.z_obnizka ?? 0),
+    obnizek: Number(r.obnizek ?? 0),
+    medianaProc: Number(r.mediana_proc ?? 0),
+    medianaZl: Number(r.mediana_zl ?? 0),
+  };
+}
+
+/** Udzial napedow w kolejnych rocznikach — widac na nim odwrot od diesla. */
+export async function getRaportNapedyWgRocznika() {
+  const rows = await db.execute(sql`
+    select year,
+      count(*)::int as n,
+      round(100.0 * count(*) filter (where fuel = 'diesel') / count(*), 1) as diesel,
+      round(100.0 * count(*) filter (where fuel = 'petrol') / count(*), 1) as benzyna,
+      round(100.0 * count(*) filter (where fuel in ('hybrid', 'phev')) / count(*), 1) as hybrydy,
+      round(100.0 * count(*) filter (where fuel = 'electric') / count(*), 1) as elektryki,
+      percentile_cont(0.5) within group (order by mileage_km) filter (where mileage_km > 1000)::int as przebieg,
+      percentile_cont(0.5) within group (order by price_gross) filter (where offer_kind = 'fixed')::int as cena
+    from listings
+    where status = 'active' and fuel is not null
+      and year between extract(year from now())::int - 7 and extract(year from now())::int - 1
+    group by year
+    having count(*) >= 100
+    order by year
+  `);
+  return (rows as unknown as Record<string, unknown>[]).map((r) => ({
+    year: Number(r.year),
+    n: Number(r.n),
+    diesel: Number(r.diesel),
+    benzyna: Number(r.benzyna),
+    hybrydy: Number(r.hybrydy),
+    elektryki: Number(r.elektryki),
+    przebieg: r.przebieg == null ? null : Number(r.przebieg),
+    cena: r.cena == null ? null : Number(r.cena),
+  }));
+}
+
+/** Rozklad cen i najczestsze modele — tlo raportu. */
+export async function getRaportPrzekroj() {
+  const [progi, top] = await Promise.all([
+    db.execute(sql`
+      select count(*)::int as n,
+        round(100.0 * count(*) filter (where price_gross <= 50000) / count(*), 1) as do50,
+        round(100.0 * count(*) filter (where price_gross <= 100000) / count(*), 1) as do100,
+        round(100.0 * count(*) filter (where price_gross > 200000) / count(*), 1) as ponad200,
+        percentile_cont(0.5) within group (order by price_gross)::int as mediana,
+        percentile_cont(0.5) within group (order by mileage_km)::int as przebieg,
+        percentile_cont(0.5) within group (order by year)::int as rocznik
+      from listings
+      where status = 'active' and offer_kind = 'fixed' and price_gross is not null
+    `),
+    db.execute(sql`
+      select make, ${LINIA_SQL} as linia, count(*)::int as n,
+        percentile_cont(0.5) within group (order by price_gross)::int as cena,
+        percentile_cont(0.5) within group (order by year)::int as rocznik
+      from listings
+      where status = 'active' and offer_kind = 'fixed' and price_gross is not null
+      group by make, linia
+      order by n desc
+      limit 15
+    `),
+  ]);
+  const p = (progi as unknown as Record<string, unknown>[])[0] ?? {};
+  return {
+    n: Number(p.n ?? 0),
+    do50: Number(p.do50 ?? 0),
+    do100: Number(p.do100 ?? 0),
+    ponad200: Number(p.ponad200 ?? 0),
+    mediana: Number(p.mediana ?? 0),
+    przebieg: Number(p.przebieg ?? 0),
+    rocznik: Number(p.rocznik ?? 0),
+    top: (top as unknown as Record<string, unknown>[]).map((r) => ({
+      make: String(r.make),
+      linia: String(r.linia),
+      n: Number(r.n),
+      cena: Number(r.cena),
+      rocznik: Number(r.rocznik),
+    })),
+  };
+}
