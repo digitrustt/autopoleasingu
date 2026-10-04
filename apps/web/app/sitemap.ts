@@ -1,6 +1,7 @@
 import { KATEGORIE } from "@/lib/filtry";
 import { makaMiastoHref, zgrupujParyMarkaMiasto } from "@/lib/marka-miasto";
 import { PARY } from "@/lib/pary";
+import { PORADNIKI } from "@/lib/poradniki";
 import { getMakeCityPairs, getSitemapEntries } from "@/lib/queries";
 import { makeHref, modelHref, modelKey, slugify } from "@/lib/slug";
 import { WOJEWODZTWA } from "@/lib/wojewodztwa";
@@ -80,6 +81,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "weekly",
       priority: 0.8,
     },
+    { url: `${BASE}/poradnik`, changeFrequency: "weekly", priority: 0.7 },
+    ...PORADNIKI.map((p) => ({
+      url: `${BASE}/poradnik/${p.slug}`,
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    })),
     { url: `${BASE}/regulamin`, changeFrequency: "yearly", priority: 0.2 },
     { url: `${BASE}/polityka-prywatnosci`, changeFrequency: "yearly", priority: 0.2 },
     { url: `${BASE}/cookies`, changeFrequency: "yearly", priority: 0.2 },
