@@ -53,6 +53,21 @@ const config: NextConfig = {
     return [
       { source: "/oferta/:id(\\d+)", headers: cdn },
       { source: "/vin/:vin", headers: cdn },
+      /*
+       * Strony z agregacjami po calej tabeli. Sa liczone na zadanie (patrz
+       * `connection()` w nich), wiec bez tego kazde wejscie odpalalo po kilka
+       * ciezkich zapytan — i to wlasnie one najczesciej trafialy na zerwane
+       * polaczenie i konczyly sie 504. Dane zmieniaja sie raz na dobe.
+       */
+      ...[
+        "/poleasingowe",
+        "/poleasingowe/dla-osoby-prywatnej",
+        "/dane",
+        "/zrodla",
+        "/vin",
+        "/analizy/:slug",
+        "/poradnik/:slug",
+      ].map((source) => ({ source, headers: cdn })),
     ];
   },
 
