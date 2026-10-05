@@ -248,12 +248,15 @@ export default async function PorownaniePage({
 }
 
 /*
- * generateStaticParams TU NIE MA swiadomie.
+ * Pusta lista, nie komplet sciezek.
  *
- * Sciezki znamy z gory, wiec kusi, zeby wygenerowac wszystkie 313 przy
- * buildzie. Probowalem: kazda strona to szesc zapytan do bazy, a Neon przy
- * takim rownoleglym natarciu przestawal wyrabiac sie w limicie 60 s na strone
- * i build sie wywracal. Renderujemy wiec na zadanie, z `revalidate` jak reszta
- * serwisu — pierwszy odwiedzajacy placi za jedno przeliczenie, kolejni dostaja
- * gotowe.
+ * Generowanie wszystkich par przy buildzie probowalem: kazda strona to szesc
+ * zapytan do bazy i build sie wywracal na limicie czasu. Ale CALKOWITY brak
+ * tej funkcji byl gorszy — patrz komentarz przy niej w app/[make]/page.tsx:
+ * bez niej `revalidate` nie dziala i strona liczy sie przy kazdym wejsciu.
+ * Pusta lista daje to, o co chodzilo od poczatku: pierwszy odwiedzajacy placi
+ * za jedno przeliczenie, kolejni dostaja gotowe.
  */
+export async function generateStaticParams() {
+  return [];
+}

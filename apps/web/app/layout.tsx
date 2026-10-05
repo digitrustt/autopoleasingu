@@ -6,6 +6,18 @@ import { ZapisPopup } from "@/components/ZapisPopup";
 import type { Metadata } from "next";
 import "./globals.css";
 
+/*
+ * Twardy limit czasu dla KAZDEJ trasy, nie tylko strony glownej.
+ *
+ * Bez niego zawieszony render (zerwane polaczenie z baza w uspionej instancji)
+ * trzymal funkcje do domyslnych 300 s: czlowiek patrzyl piec minut w pusty
+ * ekran i dostawal 502, a instancja z martwym polaczeniem wieszala kolejne
+ * wejscia. Zmierzone 5.10.2026: strony na zmiane odpowiadaly w 0,3 s albo
+ * wcale. Dwadziescia sekund to wielokrotny zapas na najciezsza strone,
+ * a zabita funkcja wstaje z nowymi polaczeniami.
+ */
+export const maxDuration = 20;
+
 export const metadata: Metadata = {
   title: "Auto po leasingu — sniper ofert poleasingowych",
   description:

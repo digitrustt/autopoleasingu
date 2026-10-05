@@ -28,6 +28,24 @@ import { notFound } from "next/navigation";
  */
 export const revalidate = 86_400;
 
+/*
+ * BEZ TEGO `revalidate` NIE DZIALA — i przez dwa miesiace nie dzialal.
+ *
+ * Trasa z parametrem w adresie, ktora nie eksportuje generateStaticParams,
+ * jest w Next 15 renderowana przy KAZDYM zadaniu; `revalidate` jest wtedy
+ * martwym zapisem. Zmierzone 5.10.2026 na produkcji: wszystkie takie strony
+ * oddawaly `cache-control: private, no-store` i `x-vercel-cache: MISS`, a
+ * jedyna trasa z ta funkcja ([make]/poleasingowe/[miasto]) szla z cache'u.
+ * Skutek: kazde wejscie robota = funkcja + zapytania do bazy, 586 tys.
+ * wywolan w miesiacu i przekroczony limit CPU na Vercelu (7 h 48 min z 4 h).
+ *
+ * Pusta lista znaczy: nic nie budujemy z gory (build nie dotyka bazy), a
+ * kazdy adres jest liczony przy pierwszym wejsciu i trzymany przez `revalidate`.
+ */
+export async function generateStaticParams() {
+  return [];
+}
+
 const pln = new Intl.NumberFormat("pl-PL", {
   style: "currency",
   currency: "PLN",

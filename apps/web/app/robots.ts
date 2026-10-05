@@ -45,7 +45,36 @@ import type { MetadataRoute } from "next";
  *
  * Wspolwinne odcieciu serwisu przez Vercela 21.09.2026 (10 h 14 min CPU).
  */
-const ZABRONIONE = ["/api/", "/alerty/", "/*/opengraph-image"];
+/*
+ * `/?` — strona glowna z parametrami, czyli filtry listy (`/?make=BMW&priceMax=…`).
+ * Celowo NIE `/*?`: pliki z /_next/ tez miewaja parametry w adresie, a robot
+ * odciety od stylow i skryptow nie wyrenderuje strony.
+ *
+ * Kombinacji sa tysiace, kazda prowadzi do strony glownej, ktora jest liczona
+ * przy kazdym wejsciu i jest najciezsza w serwisie. Adres kanoniczny wskazuje
+ * na "/", wiec w indeksie i tak nie ma z nich pozytku — a robot chodzacy po
+ * linkach filtrow i stronicowania mielil je bez konca. Frazy filtrowane
+ * obsluguja strony kategorii (/poleasingowe/…), ktore parametrow nie maja.
+ */
+const ZABRONIONE = ["/api/", "/alerty/", "/*/opengraph-image", "/?"];
+
+/*
+ * Roboty narzedzi SEO i hurtowe zbieracze. Nie przysylaja ani jednego
+ * czlowieka, a chodza po dziesiatkach tysiecy adresow. Wyszukiwarki i roboty
+ * modeli jezykowych zostaja — te realnie odsylaja ruch (patrz MODELE).
+ */
+const NIEPOTRZEBNE = [
+  "AhrefsBot",
+  "SemrushBot",
+  "MJ12bot",
+  "DotBot",
+  "DataForSeoBot",
+  "BLEXBot",
+  "Bytespider",
+  "PetalBot",
+  "serpstatbot",
+  "Barkrowler",
+];
 
 /** Crawlery modeli jezykowych i wyszukiwarek opartych na modelach. */
 const MODELE = [
@@ -63,7 +92,11 @@ export default function robots(): MetadataRoute.Robots {
   const regula = (userAgent: string) => ({ userAgent, allow: "/", disallow: ZABRONIONE });
 
   return {
-    rules: [regula("*"), ...MODELE.map(regula)],
+    rules: [
+      regula("*"),
+      ...MODELE.map(regula),
+      ...NIEPOTRZEBNE.map((userAgent) => ({ userAgent, disallow: "/" })),
+    ],
     sitemap: "https://autopoleasingu.pl/sitemap.xml",
     host: "https://autopoleasingu.pl",
   };
