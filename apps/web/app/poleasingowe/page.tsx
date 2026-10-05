@@ -56,13 +56,18 @@ export const metadata: Metadata = {
  */
 export default async function CitiesPage() {
   await connection();
-  const [miasta, wszystkieMiejsca, stats, podglad] = await Promise.all([
-    getCitiesWithCounts(),
-    // Prog 1: do regionu liczy sie kazde auto, takze z miejsca bez wlasnej strony.
-    getCitiesWithCounts(1),
-    getStats(),
-    getKategoriePodglad(),
-  ]);
+  /*
+   * JEDNO zapytanie o miejsca, nie dwa, i podglad kategorii dopiero po nim.
+   *
+   * Ta strona odpalala siedem zapytan naraz przy puli pieciu polaczen i jako
+   * jedyna w serwisie regularnie konczyla sie 504 (zmierzone 5.10.2026: dwa
+   * z trzech wejsc). Miasta z progiem 30 to po prostu podzbior wszystkich
+   * miejsc, wiec drugie grupowanie po calej tabeli bylo zbedne.
+   */
+  const [wszystkieMiejsca, stats] = await Promise.all([getCitiesWithCounts(1), getStats()]);
+  const miasta = wszystkieMiejsca.filter((m) => m.total >= 30);
+  const podglad = await getKategoriePodglad();
+
 
   const wgKlucza = new Map(podglad.nadwozia.map((n) => [n.klucz, n]));
   const wgPaliwa = new Map(podglad.paliwa.map((n) => [n.klucz, n]));

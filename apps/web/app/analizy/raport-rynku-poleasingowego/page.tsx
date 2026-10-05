@@ -48,13 +48,13 @@ export const metadata: Metadata = {
  */
 export default async function RaportRynku() {
   await connection();
-  const [stats, czas, obnizki, napedy, przekroj] = await Promise.all([
+  // W dwoch turach: szesc agregacji naraz przy puli pieciu polaczen konczylo sie 504.
+  const [stats, czas, obnizki] = await Promise.all([
     getStats(),
     getRaportCzasWOfercie(),
     getRaportObnizki(),
-    getRaportNapedyWgRocznika(),
-    getRaportPrzekroj(),
   ]);
+  const [napedy, przekroj] = await Promise.all([getRaportNapedyWgRocznika(), getRaportPrzekroj()]);
 
   const dzis = dzien.format(new Date());
   const najszybsze = czas.slice(0, 10);

@@ -44,12 +44,9 @@ const a = "underline decoration-dotted underline-offset-2 hover:text-accent";
  */
 export default async function CzyWarto() {
   await connection();
-  const [stats, lata, obnizki, przekroj] = await Promise.all([
-    getStats(),
-    getRaportNapedyWgRocznika(),
-    getRaportObnizki(),
-    getRaportPrzekroj(),
-  ]);
+  // W dwoch turach — patrz raport rynku: za duzo agregacji naraz konczylo sie 504.
+  const [stats, lata] = await Promise.all([getStats(), getRaportNapedyWgRocznika()]);
+  const [obnizki, przekroj] = await Promise.all([getRaportObnizki(), getRaportPrzekroj()]);
 
   const udzialObnizek = obnizki.wszystkich > 0 ? (obnizki.zObnizka / obnizki.wszystkich) * 100 : 0;
   // Trzylatek to typowy wiek auta wracajacego z leasingu.
