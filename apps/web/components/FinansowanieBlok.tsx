@@ -51,17 +51,23 @@ export function FinansowanieBlok({
 
   return (
     <div className="mt-3 rounded-lg border border-neutral-700 bg-[var(--color-ink)] p-3">
-      <a
-        href={href}
-        target="_blank"
+      <button
+        type="button"
         /*
-         * `sponsored` jest OBOWIAZKOWE: Google wymaga oznaczania linkow, za ktore
-         * dostajemy wynagrodzenie, a kara reczna spadlaby na cala domene — czyli
-         * na jedyny kanal, ktorym ten serwis rosnie.
+         * PRZYCISK, NIE ODNOSNIK. Do 7.10.2026 stal tu <a href> z adresem
+         * partnera i roboty chodzace po linkach wchodzily w niego z kazdej
+         * strony oferty: panel partnera pokazal ponad 10 tys. "klikniec"
+         * z jednej chmury (47.79.x.x), co kilka sekund, kazde na inna oferte.
+         * Taki ruch wyglada u partnera jak naciaganie klikniec i grozi
+         * zamknieciem konta. Adres otwieramy dopiero po prawdziwym kliknieciu,
+         * wiec w kodzie strony nie ma czego odwiedzic. Nie ma tez `rel`,
+         * bo nie ma linku — wyszukiwarka niczego tu nie widzi.
          */
-        rel="sponsored noopener noreferrer"
-        onClick={() => track("finansowanie_klik", { oferta: ofertaId, cena })}
-        className="group flex items-center justify-between gap-3"
+        onClick={() => {
+          track("finansowanie_klik", { oferta: ofertaId, cena });
+          window.open(href, "_blank", "noopener,noreferrer");
+        }}
+        className="group flex w-full items-center justify-between gap-3 text-left"
       >
         <span className="min-w-0">
           {/*
@@ -86,7 +92,7 @@ export function FinansowanieBlok({
           size={16}
           className="shrink-0 text-neutral-500 transition-colors group-hover:text-accent"
         />
-      </a>
+      </button>
     </div>
   );
 }

@@ -51,17 +51,14 @@ export function UbezpieczenieBlok({
 
   return (
     <div className="mt-3 rounded-lg border border-neutral-700 bg-[var(--color-ink)] p-3">
-      <a
-        href={href}
-        target="_blank"
-        /*
-         * `sponsored` jest OBOWIAZKOWE: Google wymaga oznaczania linkow, za ktore
-         * dostajemy wynagrodzenie, a kara reczna spadlaby na cala domene — czyli
-         * na jedyny kanal, ktorym ten serwis rosnie.
-         */
-        rel="sponsored noopener noreferrer"
-        onClick={() => track("oc_klik", { gdzie })}
-        className="group flex items-center justify-between gap-3"
+      <button
+        type="button"
+        // Przycisk zamiast odnosnika — patrz komentarz w FinansowanieBlok.
+        onClick={() => {
+          track("oc_klik", { gdzie });
+          window.open(href, "_blank", "noopener,noreferrer");
+        }}
+        className="group flex w-full items-center justify-between gap-3 text-left"
       >
         <span className="min-w-0">
           <span className="flex items-center gap-2 text-[13px] font-medium text-neutral-100">
@@ -82,7 +79,7 @@ export function UbezpieczenieBlok({
           size={16}
           className="shrink-0 text-neutral-500 transition-colors group-hover:text-accent"
         />
-      </a>
+      </button>
     </div>
   );
 }
