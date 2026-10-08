@@ -77,3 +77,26 @@ export function sasiedniePary(p: Para, limit = 8): Para[] {
     limit,
   );
 }
+
+/**
+ * Pary, w ktorych wystepuje dany model — do sekcji "Porownaj z" na stronie modelu.
+ *
+ * Do 9.10.2026 do porownan prowadzila JEDNA strona w serwisie (spis /porownaj).
+ * Search Console pokazal skutek: kilkaset porownan w stanie "wykryta, obecnie
+ * niezindeksowana", czyli Google znal adres, ale nie uznal go za wart wizyty.
+ * Link ze strony modelu mowi mu, ze porownanie nalezy do tego modelu.
+ *
+ * Dopasowanie po slugu, bo w bazie model bywa zapisany inaczej niz w parze.
+ */
+export function paryModelu(make: string, model: string, limit = 8): { para: Para; drugi: string }[] {
+  const klucz = slugify(`${make} ${model}`);
+  const wynik: { para: Para; drugi: string }[] = [];
+  for (const p of PARY) {
+    const ka = slugify(`${p.a.make} ${p.a.model}`);
+    const kb = slugify(`${p.b.make} ${p.b.model}`);
+    if (ka === klucz) wynik.push({ para: p, drugi: `${p.b.make} ${p.b.model}` });
+    else if (kb === klucz) wynik.push({ para: p, drugi: `${p.a.make} ${p.a.model}` });
+  }
+  // Obustronne najpierw — to pary, o ktore ludzie pytaja z obu stron.
+  return wynik.sort((x, y) => Number(y.para.obustronna) - Number(x.para.obustronna)).slice(0, limit);
+}

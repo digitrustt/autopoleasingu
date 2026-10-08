@@ -23,6 +23,7 @@ import { bodySpec, fuelSpec } from "@/lib/spec";
 import { CalendarRange, Gauge, Layers, SlidersHorizontal, TrendingDown } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { paryModelu } from "@/lib/pary";
 import { notFound } from "next/navigation";
 import { oferty } from "@/lib/format";
 
@@ -426,6 +427,30 @@ export default async function ModelPage({
           <ModelGrid make={make} models={siblings} />
         </section>
       )}
+
+      {(() => {
+        const pary = paryModelu(make, model);
+        if (pary.length === 0) return null;
+        return (
+          <section className="mb-8">
+            <h2 className="mb-3 text-lg font-semibold text-neutral-100">
+              Porównaj {make} {model} z innymi
+            </h2>
+            <ul className="flex flex-wrap gap-2">
+              {pary.map(({ para, drugi }) => (
+                <li key={para.slug}>
+                  <Link
+                    href={`/porownaj/${para.slug}`}
+                    className="rounded-lg border border-[var(--color-line)] bg-[var(--color-panel)] px-3 py-2 text-[13px] text-neutral-200 transition-colors hover:border-accent/70 hover:text-accent"
+                  >
+                    {make} {model} czy {drugi}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        );
+      })()}
 
       <ZapisPasek
         typ="model"
