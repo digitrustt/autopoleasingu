@@ -121,6 +121,8 @@ export function welcomeSubscription(email: string, token: string, label: string 
 }
 
 export interface AlertOffer {
+  /** Id oferty u nas — z niego powstaje link w mailu. Opcjonalne dla starych wywolan. */
+  id?: number;
   make: string;
   model: string;
   trim: string | null;
@@ -211,6 +213,19 @@ export function renderNewOffers(token: string, label: string | null, offers: Ale
        * style po <img>. Bez tego alt wychodzil niebieski i podkreslony — czyli
        * wygladal jak zepsuty link, a nie jak podpis.
        */
+      /*
+       * Link prowadzi na NASZA strone oferty, nie prosto do sprzedawcy.
+       *
+       * Do 9.10.2026 szedl do sprzedawcy i przez to nie bylo widac, czy
+       * ktokolwiek z zapisanych wraca: w 30 dni analityka nie zanotowala ani
+       * jednego wejscia z maila, mimo ponad 2 tys. wyslanych ofert. Na naszej
+       * stronie czlowiek dostaje historie ceny, porownanie z rynkiem i podobne
+       * auta, a do sprzedawcy ma jeden przycisk. `utm_*` pozwala to policzyc.
+       */
+      const link =
+        o.id != null
+          ? `${SITE}/oferta/${o.id}?utm_source=alert&utm_medium=email`
+          : o.url;
       const foto = o.thumbnailUrl
         ? `<img src="${esc(o.thumbnailUrl)}" width="140" height="94" alt="${esc(nazwa)}"
              style="display:block;width:140px;height:94px;object-fit:cover;border-radius:8px;border:0;background:#14181d;color:#6b7280;font-size:11px;text-decoration:none">`
@@ -219,10 +234,10 @@ export function renderNewOffers(token: string, label: string | null, offers: Ale
       return `<tr><td style="padding:14px 0;border-bottom:1px solid #232a32">
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
           <td width="140" valign="top" style="width:140px;padding-right:14px">
-            <a href="${esc(o.url)}" style="text-decoration:none">${foto}</a>
+            <a href="${esc(link)}" style="text-decoration:none">${foto}</a>
           </td>
           <td valign="top">
-            <a href="${esc(o.url)}" style="color:#e7ecf3;text-decoration:none;font-weight:700;font-size:16px;line-height:1.3">${esc(nazwa)}</a>
+            <a href="${esc(link)}" style="color:#e7ecf3;text-decoration:none;font-weight:700;font-size:16px;line-height:1.3">${esc(nazwa)}</a>
             ${o.trim ? `<div style="font-size:12px;color:#6b7280;padding-top:2px">${esc(o.trim)}</div>` : ""}
             <div style="font-size:13px;color:#8b95a1;padding-top:5px">${esc(spec)}</div>
             <div style="padding-top:7px;font-size:18px;font-weight:700;color:#e7ecf3">
