@@ -111,30 +111,52 @@ type Powod = "oferty" | "wyjscie";
  * "co trzecia" i "srednio w tydzien". Nie podnosic tych liczb bez ponownego
  * przeliczenia; to jedyne twarde zdania na tej nakladce.
  */
+/*
+ * WERSJA 2 TRESCI (8.10.2026). Poprzednia — trzy zdania o tym, ze oferty
+ * znikaja w tydzien — dala 1 zapis na 45 pokazan przed wyjsciem do sprzedawcy.
+ * Czlowiek, ktory wlasnie kliknal "Zobacz w ...", chce isc dalej i nie czyta
+ * akapitu. Teraz jest jedno pytanie i jedna obietnica, zaczepiona o CENE auta,
+ * ktore oglada: "dac znac, gdy pojawi sie tansze?".
+ *
+ * Obietnica jest prawdziwa, bo zapis dostaje filtr `priceMax` tuz ponizej tej
+ * ceny — worker wysle wylacznie tansze egzemplarze tego modelu. Nie obiecujemy
+ * powiadomien o obnizce TEGO auta, bo alerty sa o nowych ofertach.
+ */
+const WERSJA_TRESCI = 2;
+
+const zl = new Intl.NumberFormat("pl-PL", { maximumFractionDigits: 0 });
+
 function tresc(powod: Powod, k: KontekstWyjscia) {
+  const marka = {
+    ...(k.make ? { make: k.make } : {}),
+    ...(k.model ? { model: k.model } : {}),
+  };
+  if (powod === "wyjscie" && k.nazwa && k.cena) {
+    return {
+      tytul: `Dać znać, gdy pojawi się tańsze ${k.nazwa}?`,
+      opis:
+        `To kosztuje ${zl.format(k.cena)} zł. Sprawdzamy 26 źródeł codziennie — ` +
+        "napiszemy tylko wtedy, gdy trafi się tańsze.",
+      label: `${k.nazwa} taniej niż ${zl.format(k.cena)} zł`,
+      /* Patrz KontekstWyjscia.zdjecie — BMW oddaje zastepnik nie do odroznienia. */
+      zdjecie: k.zrodlo === "bmw" ? null : (k.zdjecie ?? null),
+      filters: { ...marka, priceMax: String(k.cena - 1) },
+    };
+  }
   if (powod === "wyjscie" && k.nazwa) {
     return {
       tytul: `Dać znać o kolejnych ${k.nazwa}?`,
-      opis:
-        `Ta oferta zniknie średnio w tydzień — co trzecia znika w siedem dni, ` +
-        `sprzedana albo zdjęta. Gdy w którymkolwiek z 26 źródeł pojawi się ` +
-        `następne ${k.nazwa}, dostaniesz maila tego samego dnia.`,
+      opis: "Sprawdzamy 26 źródeł codziennie — napiszemy, gdy pojawi się następne.",
       label: k.nazwa,
-      /* Patrz KontekstWyjscia.zdjecie — BMW oddaje zastepnik nie do odroznienia. */
       zdjecie: k.zrodlo === "bmw" ? null : (k.zdjecie ?? null),
       /* Zapis zawezony do TEGO auta — czlowiek nie wybiera niczego drugi raz. */
-      filters: {
-        ...(k.make ? { make: k.make } : {}),
-        ...(k.model ? { model: k.model } : {}),
-      },
+      filters: marka,
     };
   }
   if (powod === "wyjscie") {
     return {
       tytul: "Dać znać, gdy trafi się podobne?",
-      opis:
-        "Ta oferta zniknie średnio w tydzień — co trzecia znika w siedem dni. " +
-        "Jeśli Ci ucieknie, dowiesz się o następnej tego samego dnia, w którym się pojawi.",
+      opis: "Sprawdzamy 26 źródeł codziennie — napiszemy, gdy pojawi się coś nowego.",
       label: "Najlepsze nowe okazje",
       zdjecie: null,
       filters: {},
@@ -142,10 +164,7 @@ function tresc(powod: Powod, k: KontekstWyjscia) {
   }
   return {
     tytul: "Przysyłać Ci najlepsze okazje?",
-    opis:
-      "Co trzecia oferta znika w ciągu tygodnia — sprzedana albo zdjęta. Codziennie " +
-      "przeglądamy 26 źródeł i wysyłamy dwanaście ofert najbardziej odstających od ceny " +
-      "rynkowej. Jeden mail dziennie, nic poza tym.",
+    opis: "Raz dziennie dwanaście ofert najbardziej poniżej ceny rynkowej, z 26 źródeł.",
     label: "Najlepsze nowe okazje",
     zdjecie: null,
     filters: {},
@@ -176,7 +195,8 @@ export function ZapisPopup() {
     setPowod(p);
     setWidoczny(true);
     requestAnimationFrame(() => setWjechal(true));
-    track("popup_pokazany", { powod: p, ...dane });
+    // `wersja` pozwala porownac skutecznosc tresci — patrz WERSJA_TRESCI.
+    track("popup_pokazany", { powod: p, wersja: WERSJA_TRESCI, ...dane });
   }, []);
 
   /* WYZWALACZ 1: druga obejrzana oferta w tej sesji. */
