@@ -1304,6 +1304,9 @@ export async function getCityMakes(city: string | string[], limit = 80) {
       minPrice: sql<number | null>`min(${listings.priceGross}) filter (
         where ${listings.offerKind} = 'fixed'
       )::int`,
+      medianPrice: sql<number | null>`percentile_cont(0.5) within group (
+        order by ${listings.priceGross}
+      ) filter (where ${listings.offerKind} = 'fixed')::int`,
       /*
        * Zdjecie reprezentacyjne marki — najnowsza oferta, z pominieciem BMW.
        *

@@ -17,6 +17,8 @@ export interface MarkaKafelek {
   make: string;
   total: number;
   minPrice: number | null;
+  /** Mediana ceny ofert „kup teraz” tej marki w danym zestawie — opcjonalna. */
+  medianPrice?: number | null;
   thumb: string | null;
 }
 
@@ -79,6 +81,7 @@ export function MarkaGrid({ marki }: { marki: MarkaKafelek[] }) {
                 <span className="flex items-baseline gap-1.5 text-[11px] tabular-nums text-neutral-500">
                   <span className="text-neutral-300">{num.format(m.total)}</span>
                   {m.minPrice != null && <span>od {pln.format(m.minPrice)}</span>}
+                  {m.medianPrice != null && <span>mediana {pln.format(m.medianPrice)}</span>}
                 </span>
               </div>
             </Link>
