@@ -47,12 +47,37 @@ function when(v: string | Date | null): Date {
  * odpowiadaja na realne zapytania ("bmw x3 poleasingowy"), maja stabilna
  * tresc i nie znikaja z dnia na dzien.
  */
+/*
+ * ADRESY, KTORYCH NIE ZGLASZAMY, choc strony istnieja.
+ *
+ * Search Console (9.10.2026) pokazal w mapie strony rzeczy, ktore nie sa ani
+ * marka, ani modelem, ani miastem: marke "Other", model z cala specyfikacja
+ * silnika w nazwie ("berlingo-van-1-6-hdi-euro-5-1560ccm-…") i 26 "miast",
+ * ktore sa nazwami salonow ("w-j-wisniewski", "bielany-nowakowski-sp-z-o-o").
+ * Zrodla wpisuja takie rzeczy w pola marka, model i miejsce. Na domenie bez
+ * autorytetu kazdy zgloszony smiec zabiera wizyte robota dobrej stronie.
+ */
+const MARKA_SMIEC = /^(other|inne|inny|brak)$/;
+const MODEL_SMIEC = /(\d{3,4}-?ccm|euro-\d|-\d+km(-|$)|^other$)/;
+const MIEJSCE_SMIEC =
+  /(sp-z-o-o|sp-j|sp-k|wisniewski|nowakowski|car-arena|dobrygowski|romanowski|walder|carolina|professional|pewne-auto|kobos|sacar|jankowscy|anwa|dakar|carter|stolarz|jaworski|alta-|^ul-)/;
+
+const markaOk = (make: string) => !MARKA_SMIEC.test(slugify(make));
+const modelOk = (model: string) => {
+  const m = slugify(model);
+  return m.length <= 40 && !MODEL_SMIEC.test(m);
+};
+const miejsceOk = (city: string | null) => !MIEJSCE_SMIEC.test(slugify(city ?? ""));
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [{ makes, models, vins, cities, srcs }, makaMiastoPary] = await Promise.all([
-    getSitemapEntries(),
-    getMakeCityPairs(),
-  ]);
-  const markaMiasto = zgrupujParyMarkaMiasto(makaMiastoPary);
+  const [surowe, makaMiastoPary] = await Promise.all([getSitemapEntries(), getMakeCityPairs()]);
+  const { vins, srcs } = surowe;
+  const makes = surowe.makes.filter((m) => markaOk(m.make));
+  const models = surowe.models.filter((m) => markaOk(m.make) && modelOk(m.model));
+  const cities = surowe.cities.filter((c) => miejsceOk(c.city));
+  const markaMiasto = zgrupujParyMarkaMiasto(makaMiastoPary).filter(
+    (p) => markaOk(p.make) && miejsceOk(p.city),
+  );
 
   const statics: MetadataRoute.Sitemap = [
     { url: BASE, changeFrequency: "daily", priority: 1 },
