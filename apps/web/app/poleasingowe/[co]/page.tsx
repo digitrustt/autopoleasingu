@@ -16,6 +16,7 @@ import { shortSource, oferty } from "@/lib/format";
 import { groupBySlug, makeHref, resolveAliases, slugify } from "@/lib/slug";
 import { KategoriaWidok } from "@/components/KategoriaWidok";
 import { znajdzKategorie } from "@/lib/filtry";
+import { getCityModelRanking } from "@/lib/queries";
 import { WojewodztwoWidok, miejscaWojewodztwa } from "@/components/WojewodztwoWidok";
 import { znajdzWojewodztwo } from "@/lib/wojewodztwa";
 import { Building2, MapPin, SlidersHorizontal, TrendingDown } from "lucide-react";
@@ -177,6 +178,37 @@ export default async function PoleasingowePage({ params }: { params: Promise<{ c
 
   if (stats.total === 0) notFound();
 
+  /*
+   * Tresc unikalna dla miasta: modele, ktore tu realnie stoja, z medianami.
+   * Ta sama struktura dla kazdego miasta, ale liczby i kolejnosc sa wlasne —
+   * dlatego strona nie jest kopia innych.
+   */
+  const modele = await getCityModelRanking(warianty);
+  const pln0 = (v: number) => pln.format(v);
+  const pytania = [
+    {
+      q: `Jakie auta poleasingowe są najczęściej w mieście ${miasto}?`,
+      a: modele.length
+        ? `Najwięcej ofert w mieście ${miasto} ma ${modele[0].make} ${modele[0].model} (${num.format(modele[0].n)} aut). Mediana ceny tego modelu to ${pln0(modele[0].cena)}.`
+        : `W mieście ${miasto} nie ma jeszcze modelu z co najmniej trzema ofertami.`,
+    },
+    {
+      q: `Ile kosztuje auto poleasingowe w mieście ${miasto}?`,
+      a: stats.medianPrice
+        ? `Mediana ceny ofert „kup teraz” w mieście ${miasto} to ${pln0(stats.medianPrice)}, a najtańsza oferta kosztuje ${stats.minPrice ? pln0(stats.minPrice) : "—"}.`
+        : `Ceny w mieście ${miasto} pokazujemy przy każdej ofercie.`,
+    },
+  ];
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: pytania.map((f) => ({
+      "@type": "Question",
+      name: f.q,
+      acceptedAnswer: { "@type": "Answer", text: f.a },
+    })),
+  };
+
   // Najblizsze miasta na liscie — proste linkowanie poziome miedzy stronami miast.
   /*
    * BEZ .slice(0, 20). Miast w bazie jest 115 i dwadziescia pierwszych to byla
@@ -199,6 +231,65 @@ export default async function PoleasingowePage({ params }: { params: Promise<{ c
         {num.format(stats.makes)} marek, {num.format(stats.deals)} ofert poniżej mediany rynkowej.
         Ceny porównujemy z medianą dla tego samego rocznika, przebiegu i napędu.
       </p>
+
+      {modele.length > 0 && (
+        <section className="mb-8">
+          <script
+            type="application/ld+json"
+            // biome-ignore lint/security/noDangerouslySetInnerHtml: dane strukturalne, tresc wlasna
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          />
+          <h2 className="mb-1 text-lg font-semibold text-neutral-100">
+            Najczęściej wystawiane modele w mieście {miasto}
+          </h2>
+          <p className="mb-3 max-w-[72ch] text-[13px] leading-relaxed text-neutral-500">
+            Modele z co najmniej trzema ofertami „kup teraz” w tym mieście. Mediana ceny, rocznika i
+            przebiegu liczona z tych ofert.
+          </p>
+          <div className="overflow-x-auto rounded-xl border border-[var(--color-line)]">
+            <table className="w-full min-w-[480px] text-sm">
+              <thead>
+                <tr className="border-b border-[var(--color-line)] text-left text-[11px] uppercase tracking-wide text-neutral-600">
+                  <th className="px-4 py-2.5 font-medium">Model</th>
+                  <th className="px-4 py-2.5 text-right font-medium">Ofert</th>
+                  <th className="px-4 py-2.5 text-right font-medium">Mediana ceny</th>
+                  <th className="px-4 py-2.5 text-right font-medium">Rocznik</th>
+                  <th className="px-4 py-2.5 text-right font-medium">Przebieg</th>
+                </tr>
+              </thead>
+              <tbody>
+                {modele.map((m) => (
+                  <tr key={`${m.make}-${m.model}`} className="border-b border-[var(--color-line)] last:border-0">
+                    <td className="px-4 py-2 font-medium text-neutral-200">
+                      <Link href={`/${slugify(m.make)}/${slugify(m.model)}`} className="hover:text-accent">
+                        {m.make} {m.model}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-2 text-right tabular-nums text-neutral-400">{num.format(m.n)}</td>
+                    <td className="px-4 py-2 text-right font-semibold tabular-nums text-neutral-100">{pln0(m.cena)}</td>
+                    <td className="px-4 py-2 text-right tabular-nums text-neutral-500">{m.rocznik ?? "—"}</td>
+                    <td className="px-4 py-2 text-right tabular-nums text-neutral-500">
+                      {m.przebieg != null ? `${num.format(m.przebieg)} km` : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
+      <section className="mb-8 max-w-[80ch]">
+        <h2 className="mb-3 text-lg font-semibold text-neutral-100">Pytania o auta w mieście {miasto}</h2>
+        <dl className="space-y-3">
+          {pytania.map((f) => (
+            <div key={f.q} className="rounded-xl border border-[var(--color-line)] bg-[var(--color-panel)] px-4 py-3">
+              <dt className="text-[15px] font-medium text-neutral-100">{f.q}</dt>
+              <dd className="mt-1 text-sm leading-relaxed text-neutral-400">{f.a}</dd>
+            </div>
+          ))}
+        </dl>
+      </section>
 
       <StatStrip
         items={[

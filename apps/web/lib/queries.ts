@@ -1980,3 +1980,34 @@ export async function getRaportPrzekroj() {
     })),
   };
 }
+
+/**
+ * Modele najczesciej wystawiane w miescie — tresc strony miasta.
+ *
+ * Liczone z ofert "kup teraz" w tym miescie, z progiem 3 ofert na model, zeby
+ * mediana nie opierala sie na jednym aucie. Zapytanie jest lekkie (jedno
+ * grupowanie po miescie), a strona i tak ma revalidate.
+ */
+export async function getCityModelRanking(city: string | string[], limit = 8) {
+  const rows = await db.execute(sql`
+    select make, model, count(*)::int as n,
+      percentile_cont(0.5) within group (order by price_gross)::int as cena,
+      percentile_cont(0.5) within group (order by year)::int as rocznik,
+      percentile_cont(0.5) within group (order by mileage_km)::int as przebieg
+    from listings
+    where status = 'active' and offer_kind = 'fixed' and price_gross is not null
+      and ${Array.isArray(city) ? sql`city in ${city}` : sql`city = ${city}`}
+    group by make, model
+    having count(*) >= 3
+    order by n desc
+    limit ${limit}
+  `);
+  return (rows as unknown as Record<string, unknown>[]).map((r) => ({
+    make: String(r.make),
+    model: String(r.model),
+    n: Number(r.n),
+    cena: Number(r.cena),
+    rocznik: r.rocznik == null ? null : Number(r.rocznik),
+    przebieg: r.przebieg == null ? null : Number(r.przebieg),
+  }));
+}
