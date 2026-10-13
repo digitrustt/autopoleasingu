@@ -66,7 +66,7 @@ export default async function RaportRynku() {
 
   return (
     <main className="mx-auto max-w-[860px] px-4 py-6">
-      <Crumbs items={[{ label: "Analizy" }, { label: "Raport rynku poleasingowego" }]} />
+      <Crumbs items={[{ label: "Raport rynku poleasingowego" }]} />
 
       <h1 className="flex flex-wrap items-center gap-2 text-2xl font-bold tracking-tight text-neutral-100">
         <FileChartColumn size={22} className="text-neutral-600" />

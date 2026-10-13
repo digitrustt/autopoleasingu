@@ -74,7 +74,7 @@ export default async function Analiza() {
 
   return (
     <main className="mx-auto max-w-[860px] px-4 py-6">
-      <Crumbs items={[{ label: "Analizy" }, { label: "Ten sam VIN, dwie ceny" }]} />
+      <Crumbs items={[{ label: "Ten sam VIN, dwie ceny" }]} />
 
       <h1 className="text-2xl font-bold tracking-tight text-neutral-100">
         Ten sam samochód, dwie ceny
