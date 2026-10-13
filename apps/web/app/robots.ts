@@ -56,7 +56,14 @@ import type { MetadataRoute } from "next";
  * linkach filtrow i stronicowania mielil je bez konca. Frazy filtrowane
  * obsluguja strony kategorii (/poleasingowe/…), ktore parametrow nie maja.
  */
-const ZABRONIONE = ["/api/", "/alerty/", "/*/opengraph-image", "/?"];
+/*
+ * `_rsc` — techniczne adresy, ktorymi Next doladowuje dane przy przechodzeniu
+ * miedzy stronami. Statystyki indeksowania (14.10.2026) pokazaly, ze 53% zadan
+ * Googlebota to "inny typ pliku", a tylko 27% to HTML: robot marnowal ponad
+ * polowe wizyt na cos, czego i tak nie indeksuje. Wzorzec jest waski celowo —
+ * pliki z /_next/ zostaja dostepne, bo bez nich robot nie wyrenderuje strony.
+ */
+const ZABRONIONE = ["/api/", "/alerty/", "/*/opengraph-image", "/?", "/*?_rsc=", "/*&_rsc="];
 
 /*
  * Roboty narzedzi SEO i hurtowe zbieracze. Nie przysylaja ani jednego
