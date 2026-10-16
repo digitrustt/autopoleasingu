@@ -351,6 +351,11 @@ export default async function OfferPage({ params }: { params: Promise<{ id: stri
             />
           </div>
 
+          {/* Raport historii po VIN — patrz HistoriaBlok (nie przy Automarkecie). */}
+          {!gone && (
+            <HistoriaBlok vin={o.vin} gdzie="oferta" sourceId={o.sourceId} nazwa={name} wariant="duzy" />
+          )}
+
           <section className="mt-6">
             {/*
               Bez szesciu pol, ktore stoja juz w skrocie przy cenie. Powtorzone
@@ -682,9 +687,6 @@ export default async function OfferPage({ params }: { params: Promise<{ id: stri
             ) : (
               <UbezpieczenieBlok gdzie={gone ? "oferta-sprzedana" : "oferta-bez-ceny"} nazwa={name} />
             )}
-
-            {/* Raport historii po VIN — patrz HistoriaBlok (nie przy Automarkecie). */}
-            {!gone && <HistoriaBlok vin={o.vin} gdzie="oferta" sourceId={o.sourceId} nazwa={name} />}
 
             {/*
               Zapis w kolumnie decyzyjnej, nie na dole strony.

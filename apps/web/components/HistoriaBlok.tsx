@@ -1,7 +1,7 @@
 "use client";
 
 import { track } from "@/components/Analytics";
-import { ArrowUpRight, FileSearch } from "lucide-react";
+import { ArrowUpRight, FileSearch, ShieldCheck } from "lucide-react";
 
 /**
  * Raport historii pojazdu u partnera (carVertical) — przy VIN-ie.
@@ -27,12 +27,19 @@ export function HistoriaBlok({
   gdzie,
   sourceId,
   nazwa,
+  wariant = "kolumna",
 }: {
   vin: string | null;
   /** Skad klikniecie — do pomiaru, ktore miejsce sprzedaje. */
   gdzie: string;
   sourceId?: string | null;
   nazwa?: string | null;
+  /**
+   * "duzy" — szeroki blok pod zdjeciem oferty, z akcentowym przyciskiem.
+   * Tam patrzy kazdy, kto oglada auto, a w bocznej kolumnie ginal miedzy
+   * finansowaniem a zapisem (decyzja wlasciciela, 16.10.2026).
+   */
+  wariant?: "kolumna" | "duzy";
 }) {
   const bazowy = process.env.NEXT_PUBLIC_AFILIACJA_HISTORIA;
   const kod = process.env.NEXT_PUBLIC_AFILIACJA_HISTORIA_KOD;
@@ -45,27 +52,65 @@ export function HistoriaBlok({
    */
   const href = vin ? bazowy.replace("{vin}", encodeURIComponent(vin)) : bazowy.replace("{vin}", "");
 
+  const otworz = () => {
+    track("historia_klik", { gdzie, vin: vin ?? null, zrodlo: sourceId ?? null, wariant });
+    window.open(href, "_blank", "noopener,noreferrer");
+  };
+
+  if (wariant === "duzy") {
+    return (
+      <section className="mt-4 flex flex-col gap-3 rounded-xl border border-accent/40 bg-accent/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-start gap-3">
+          <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent/15 text-accent">
+            <ShieldCheck size={18} />
+          </span>
+          <div className="min-w-0">
+            <p className="flex flex-wrap items-center gap-2 text-[15px] font-semibold text-neutral-100">
+              Sprawdź historię tego auta przed zakupem
+              {kod && (
+                <span className="rounded-full bg-accent px-2 py-0.5 text-[11px] font-semibold text-black">
+                  20% taniej
+                </span>
+              )}
+            </p>
+            <p className="mt-0.5 text-[13px] leading-relaxed text-neutral-400">
+              Szkody, prawdziwy przebieg, kradzieże i rejestracje za granicą — raport po numerze VIN
+              {kod ? `, z kodem ${kod}` : ""}.{" "}
+              <span className="text-neutral-600">Link partnerski.</span>
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={otworz}
+          className="flex shrink-0 items-center justify-center gap-1.5 rounded-lg bg-accent px-4 py-2.5 text-sm font-medium text-black transition-colors hover:bg-white"
+        >
+          Sprawdź historię
+          <ArrowUpRight size={15} />
+        </button>
+      </section>
+    );
+  }
+
   return (
     <div className="mt-3 rounded-lg border border-neutral-700 bg-[var(--color-ink)] p-3">
       <button
         type="button"
-        onClick={() => {
-          track("historia_klik", { gdzie, vin: vin ?? null, zrodlo: sourceId ?? null });
-          window.open(href, "_blank", "noopener,noreferrer");
-        }}
+        onClick={otworz}
         className="group flex w-full items-center justify-between gap-3 text-left"
       >
         <span className="min-w-0">
           <span className="flex items-center gap-2 text-[13px] font-medium text-neutral-100">
             <FileSearch size={15} className="shrink-0 text-neutral-400" />
-            <span className="truncate">
-              {nazwa ? `Sprawdź historię: ${nazwa}` : "Sprawdź historię tego auta"}
-            </span>
+            <span className="truncate">Sprawdź historię tego auta</span>
+            {kod && (
+              <span className="shrink-0 rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-semibold text-black">
+                −20%
+              </span>
+            )}
           </span>
           <span className="mt-0.5 block text-[12px] text-neutral-500">
-            Szkody, przebiegi, kradzieże po VIN
-            {kod ? ` · kod ${kod} = 20% taniej` : ""} ·{" "}
-            <span className="text-neutral-600">link partnerski</span>
+            Szkody, przebiegi, kradzieże po VIN · <span className="text-neutral-600">link partnerski</span>
           </span>
         </span>
         <ArrowUpRight
