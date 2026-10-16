@@ -12,6 +12,11 @@ import { ArrowUpRight, FileSearch, ShieldCheck } from "lucide-react";
  * prawdziwy. Warunki z 16.10.2026: 4 € za sprzedany raport, 20% rabatu dla
  * kupujacego.
  *
+ * UMOWA (16.10.2026): tresc o carVertical uzgadniamy z nimi przed publikacja
+ * (pkt 1.1), przy linku musi byc jasne, ze usluge sprzedaje carVertical
+ * (pkt 1.3), a w trakcie umowy nie promujemy innych dostawcow raportow
+ * historii (pkt 5) — dlatego nie pokazujemy tu np. etykiety autoDNA.
+ *
  * NIE POKAZUJEMY PRZY AUTOMARKECIE. Automarket daje w ogloszeniu bezplatny
  * raport autoDNA, wiec nikt nie zaplaci za drugi — a przycisk tylko by mylil.
  *
@@ -74,9 +79,11 @@ export function HistoriaBlok({
               )}
             </p>
             <p className="mt-0.5 text-[13px] leading-relaxed text-neutral-400">
-              Szkody, prawdziwy przebieg, kradzieże i rejestracje za granicą — raport po numerze VIN
-              {kod ? `, z kodem ${kod}` : ""}.{" "}
-              <span className="text-neutral-600">Link partnerski.</span>
+              Raport historii pojazdu carVertical po numerze VIN: szkody, przebiegi, kradzieże
+              {kod ? `. Z kodem ${kod} 20% taniej` : ""}.{" "}
+              <span className="text-neutral-600">
+                Usługę sprzedaje carVertical; to link partnerski.
+              </span>
             </p>
           </div>
         </div>
@@ -110,7 +117,7 @@ export function HistoriaBlok({
             )}
           </span>
           <span className="mt-0.5 block text-[12px] text-neutral-500">
-            Szkody, przebiegi, kradzieże po VIN · <span className="text-neutral-600">link partnerski</span>
+            Raport carVertical po VIN · <span className="text-neutral-600">link partnerski</span>
           </span>
         </span>
         <ArrowUpRight
