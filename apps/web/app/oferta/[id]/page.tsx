@@ -3,6 +3,7 @@ import { CarImage } from "@/components/CarImage";
 import { Crumbs } from "@/components/Crumbs";
 import { daneStrukturalnePojazdu } from "@/lib/dane-strukturalne";
 import { FinansowanieBlok } from "@/components/FinansowanieBlok";
+import { HistoriaBlok } from "@/components/HistoriaBlok";
 import { UbezpieczenieBlok } from "@/components/UbezpieczenieBlok";
 import { ZapisForm } from "@/components/ZapisForm";
 import { ZapisPasek } from "@/components/ZapisPasek";
@@ -681,6 +682,9 @@ export default async function OfferPage({ params }: { params: Promise<{ id: stri
             ) : (
               <UbezpieczenieBlok gdzie={gone ? "oferta-sprzedana" : "oferta-bez-ceny"} nazwa={name} />
             )}
+
+            {/* Raport historii po VIN — patrz HistoriaBlok (nie przy Automarkecie). */}
+            {!gone && <HistoriaBlok vin={o.vin} gdzie="oferta" sourceId={o.sourceId} nazwa={name} />}
 
             {/*
               Zapis w kolumnie decyzyjnej, nie na dole strony.

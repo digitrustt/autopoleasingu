@@ -1,5 +1,6 @@
 import { PriceHistory } from "@/components/PriceHistory";
 import { UbezpieczenieBlok } from "@/components/UbezpieczenieBlok";
+import { HistoriaBlok } from "@/components/HistoriaBlok";
 import { Valuation } from "@/components/Valuation";
 import { VehicleHistory } from "@/components/VehicleHistory";
 import { shortSource } from "@/lib/format";
@@ -287,6 +288,11 @@ export default async function VinPage({ params }: { params: Promise<{ vin: strin
         samej sztuki.
       */}
       <div className="mb-6">
+        <HistoriaBlok
+          vin={vin}
+          gdzie="vin"
+          nazwa={spec.make ? `${spec.make} ${spec.model ?? ""}`.trim() : null}
+        />
         <UbezpieczenieBlok
           gdzie="vin"
           nazwa={spec.make ? `${spec.make} ${spec.model ?? ""}`.trim() : null}
