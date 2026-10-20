@@ -63,7 +63,20 @@ import type { MetadataRoute } from "next";
  * polowe wizyt na cos, czego i tak nie indeksuje. Wzorzec jest waski celowo —
  * pliki z /_next/ zostaja dostepne, bo bez nich robot nie wyrenderuje strony.
  */
-const ZABRONIONE = ["/api/", "/alerty/", "/*/opengraph-image", "/?", "/*?_rsc=", "/*&_rsc="];
+/*
+ * `/wycena-samochodu?` — strony modeli linkuja do wyceny z wypelnionymi polami
+ * (?marka=&model=). To ta sama strona; kilkaset wariantow adresu tylko
+ * mieliloby funkcje. Kanoniczny adres bez parametrow zostaje otwarty.
+ */
+const ZABRONIONE = [
+  "/api/",
+  "/alerty/",
+  "/*/opengraph-image",
+  "/?",
+  "/*?_rsc=",
+  "/*&_rsc=",
+  "/wycena-samochodu?",
+];
 
 /*
  * Roboty narzedzi SEO i hurtowe zbieracze. Nie przysylaja ani jednego

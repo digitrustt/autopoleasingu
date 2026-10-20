@@ -1063,11 +1063,18 @@ export type ModelCard = Awaited<ReturnType<typeof getModelCards>>[number];
  * Same aukcje pomijamy: cena aukcyjna to biezaca oferta w licytacji, wiec na
  * wykresie ceny rynkowej lezalaby duzo za nisko i psula caly obraz.
  */
-export async function getScatter(make: string, model: string | string[], limit = 400) {
+export async function getScatter(
+  make: string,
+  model: string | string[],
+  limit = 400,
+  /** Tylko jeden rocznik — dla wyceny, gdzie mieszanie rocznikow psuje obraz. */
+  year?: number,
+) {
   const where = and(
     LIVE,
     eq(listings.make, make),
     modelMatches(model),
+    year != null ? eq(listings.year, year) : undefined,
     eq(listings.offerKind, "fixed"),
     isNotNull(listings.mileageKm),
   );
@@ -1620,17 +1627,24 @@ export async function getWmiMake(vin: string): Promise<string | null> {
  *
  * Do kalkulatora PCC (urzad liczy podatek od wartosci rynkowej) i wyceny.
  */
-export async function getCenaRynkowa(make: string, modele: string[], year: number, km?: number) {
+export async function getCenaRynkowa(
+  make: string,
+  modele: string[],
+  year: number,
+  km?: number,
+  fuel?: string,
+) {
   if (modele.length === 0) return null;
   const przebieg =
     km != null ? sql`and mileage_km between ${km - 25_000} and ${km + 25_000}` : sql``;
+  const paliwo = fuel ? sql`and fuel = ${fuel}` : sql``;
   const rows = (await db.execute(sql`
     with unikalne as (
       select distinct on (coalesce(vin, 'id:' || id)) price_gross
       from ${listings}
       where make = ${make} and model in ${modele} and year = ${year}
         and price_gross is not null and offer_kind = 'fixed'
-        and status in ('active', 'gone') ${przebieg}
+        and status in ('active', 'gone') ${przebieg} ${paliwo}
       order by coalesce(vin, 'id:' || id), price_gross asc
     )
     select count(*)::int as n,
@@ -1641,6 +1655,44 @@ export async function getCenaRynkowa(make: string, modele: string[], year: numbe
   `)) as unknown as { n: number; mediana: number | null; p25: number | null; p75: number | null }[];
   const r = rows[0];
   return r && r.n > 0 ? r : null;
+}
+
+/**
+ * Tabela na strone wyceny: najpopularniejsze modele i mediana ceny ofert
+ * "kup teraz" w kazdym z ostatnich `lat` rocznikow (aktywne i sprzedane,
+ * dedup po VIN jak w wycenie). Komorka z mniej niz 5 autami zostaje pusta.
+ */
+export async function getCenyPopularnych(modeli = 12, lat = 6) {
+  const odRoku = new Date().getFullYear() - lat;
+  const rows = (await db.execute(sql`
+    with top as (
+      select make, model from ${listings}
+      where status = 'active' and offer_kind = 'fixed'
+      group by 1, 2 order by count(*) desc limit ${modeli}
+    ),
+    unikalne as (
+      select distinct on (coalesce(l.vin, 'id:' || l.id)) l.make, l.model, l.year, l.price_gross
+      from ${listings} l join top t on t.make = l.make and t.model = l.model
+      where l.price_gross is not null and l.offer_kind = 'fixed'
+        and l.status in ('active', 'gone') and l.year > ${odRoku}
+      order by coalesce(l.vin, 'id:' || l.id), l.price_gross asc
+    )
+    select make, model, year, count(*)::int as n,
+      round(percentile_cont(0.5) within group (order by price_gross))::int as mediana
+    from unikalne group by 1, 2, 3
+  `)) as unknown as { make: string; model: string; year: number; n: number; mediana: number }[];
+
+  const lata = Array.from({ length: lat }, (_, i) => odRoku + lat - i);
+  const modele = new Map<string, { make: string; model: string; ceny: (number | null)[]; razem: number }>();
+  for (const r of rows) {
+    const k = `${r.make}|${r.model}`;
+    const m = modele.get(k) ?? { make: r.make, model: r.model, ceny: lata.map(() => null), razem: 0 };
+    const i = lata.indexOf(r.year);
+    if (i >= 0 && r.n >= 5) m.ceny[i] = r.mediana;
+    m.razem += r.n;
+    modele.set(k, m);
+  }
+  return { lata, modele: [...modele.values()].sort((a, b) => b.razem - a.razem) };
 }
 
 export interface WmiStat {

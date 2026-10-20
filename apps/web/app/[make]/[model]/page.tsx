@@ -395,6 +395,18 @@ export default async function ModelPage({
         </section>
       )}
 
+      {/* Wycena z wypelniona marka i modelem — patrz WycenaAuta. */}
+      <p className="-mt-4 mb-8 text-[13px] text-neutral-400">
+        Masz {name}?{" "}
+        <Link
+          href={`/wycena-samochodu?marka=${encodeURIComponent(make)}&model=${slugify(model)}`}
+          className="underline decoration-dotted underline-offset-2 hover:text-accent"
+        >
+          Wyceń swoje auto
+        </Link>{" "}
+        — po roczniku i przebiegu, na tych samych ofertach.
+      </p>
+
       <section className="mb-8">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
           <h2 className="flex items-center gap-2 text-lg font-semibold text-neutral-100">

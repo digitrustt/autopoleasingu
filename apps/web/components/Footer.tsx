@@ -20,6 +20,7 @@ const LINKS = [
   { href: "/porownaj", label: "Porównania" },
   { href: "/vin", label: "Sprawdź VIN" },
   { href: "/kalkulator-pcc-samochodu", label: "Kalkulator PCC" },
+  { href: "/wycena-samochodu", label: "Wycena auta" },
   { href: "/dane", label: "Dane rynkowe" },
   { href: "/poradnik", label: "Poradniki" },
   { href: "/analizy/raport-rynku-poleasingowego", label: "Raport rynku" },

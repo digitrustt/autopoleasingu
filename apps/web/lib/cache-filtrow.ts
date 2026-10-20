@@ -1,4 +1,11 @@
-import { getMakes, getModelsForFilter, getSources, getStats, getWmiStaty } from "@/lib/queries";
+import {
+  getCenyPopularnych,
+  getMakes,
+  getModelsForFilter,
+  getSources,
+  getStats,
+  getWmiStaty,
+} from "@/lib/queries";
 import { unstable_cache } from "next/cache";
 
 /**
@@ -62,6 +69,12 @@ export const filtryModeli = (make?: string) =>
  * tabeli, a zmieniaja sie tylko z nowymi numerami. Doba wystarcza z zapasem.
  */
 export const wmiStaty = unstable_cache(async () => getWmiStaty(), ["wmi-staty"], {
+  revalidate: 86_400,
+  tags: ["oferty"],
+});
+
+/** Tabela popularnych modeli na stronie wyceny — agregacja po calej tabeli, doba. */
+export const cenyPopularnych = unstable_cache(async () => getCenyPopularnych(), ["ceny-popularnych"], {
   revalidate: 86_400,
   tags: ["oferty"],
 });

@@ -97,6 +97,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
     { url: `${BASE}/vin`, changeFrequency: "weekly", priority: 0.7 },
     { url: `${BASE}/kalkulator-pcc-samochodu`, changeFrequency: "monthly", priority: 0.7 },
+    { url: `${BASE}/wycena-samochodu`, changeFrequency: "weekly", priority: 0.8 },
     // Strony VIN marek — patrz app/vin/marka/[make]; tylko marki z danymi.
     ...wgMarek(staty).map((m) => ({
       url: `${BASE}${vinMarkiHref(m.make)}`,
