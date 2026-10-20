@@ -67,6 +67,7 @@ const config: NextConfig = {
         "/vin",
         "/analizy/:slug",
         "/poradnik/:slug",
+        "/wycena-samochodu",
       ].map((source) => ({ source, headers: cdn })),
     ];
   },
