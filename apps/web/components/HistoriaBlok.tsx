@@ -28,6 +28,23 @@ import { ArrowUpRight, FileSearch, ShieldCheck } from "lucide-react";
  * ida ze zmiennych srodowiskowych, zeby po podpisaniu umowy wystarczylo je
  * wpisac na Vercelu, bez zmian w kodzie.
  */
+export const KOD_HISTORII = process.env.NEXT_PUBLIC_AFILIACJA_HISTORIA_KOD;
+
+/**
+ * Dwa linki od carVertical (19.10.2026): ogolny i z VIN-em. W tym drugim VIN
+ * idzie w `sub3` (szablon `{vin}`), a ich przekierowanie wklada go do
+ * formularza na carvertical.com/pl/precheck — czlowiek nie przepisuje numeru.
+ * Kod rabatowy dokleja samo przekierowanie (`voucher=`), sprawdzone curl-em.
+ *
+ * null = link nieskonfigurowany, nic nie pokazujemy.
+ */
+export function linkHistorii(vin: string | null | undefined): string | null {
+  const bazowy = process.env.NEXT_PUBLIC_AFILIACJA_HISTORIA;
+  const zVinem = process.env.NEXT_PUBLIC_AFILIACJA_HISTORIA_VIN;
+  if (!bazowy) return null;
+  return vin && zVinem ? zVinem.replace("{vin}", encodeURIComponent(vin)) : bazowy;
+}
+
 export function HistoriaBlok({
   vin,
   gdzie,
@@ -47,18 +64,9 @@ export function HistoriaBlok({
    */
   wariant?: "kolumna" | "duzy";
 }) {
-  const bazowy = process.env.NEXT_PUBLIC_AFILIACJA_HISTORIA;
-  const zVinem = process.env.NEXT_PUBLIC_AFILIACJA_HISTORIA_VIN;
-  const kod = process.env.NEXT_PUBLIC_AFILIACJA_HISTORIA_KOD;
-  if (!bazowy) return null;
-
-  /*
-   * Dwa linki od carVertical (19.10.2026): ogolny i z VIN-em. W tym drugim VIN
-   * idzie w `sub3` (szablon `{vin}`), a ich przekierowanie wklada go do
-   * formularza na carvertical.com/pl/precheck — czlowiek nie przepisuje numeru.
-   * Kod rabatowy dokleja samo przekierowanie (`voucher=`), sprawdzone curl-em.
-   */
-  const href = vin && zVinem ? zVinem.replace("{vin}", encodeURIComponent(vin)) : bazowy;
+  const kod = KOD_HISTORII;
+  const href = linkHistorii(vin);
+  if (!href) return null;
 
   const otworz = () => {
     track("historia_klik", { gdzie, vin: vin ?? null, zrodlo: sourceId ?? null, wariant });

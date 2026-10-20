@@ -40,6 +40,8 @@ export interface KontekstWyjscia {
   /** Identyfikator zrodla — sluzy wylacznie do odsiania zastepnikow BMW. */
   zrodlo?: string | null;
   cena?: number | null;
+  /** Gdy jest — nakladka proponuje raport historii carVertical po tym VIN-ie. */
+  vin?: string | null;
 }
 
 export function zglosWyjscie(kontekst: KontekstWyjscia = {}): void {

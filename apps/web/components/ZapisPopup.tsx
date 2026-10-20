@@ -1,6 +1,7 @@
 "use client";
 
 import { track } from "@/components/Analytics";
+import { KOD_HISTORII, linkHistorii } from "@/components/HistoriaBlok";
 import { ZapisForm } from "@/components/ZapisForm";
 import { banerWidoczny } from "@/lib/consent";
 import {
@@ -10,7 +11,7 @@ import {
   type PrzedWyjsciem,
   SYGNAL_PRZED_WYJSCIEM,
 } from "@/lib/zapis-sygnal";
-import { Bell, X } from "lucide-react";
+import { ArrowUpRight, Bell, ShieldCheck, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -287,6 +288,21 @@ export function ZapisPopup() {
 
   const t = tresc(powod, kontekst);
 
+  /*
+   * Raport historii carVertical (20.10.2026). Wyjscie do sprzedawcy to moment,
+   * w ktorym czlowiek za chwile dzwoni i jedzie ogladac auto — wtedy pytanie
+   * "czy bylo rozbite" jest najbardziej na miejscu. Tylko z VIN-em, bo wtedy
+   * link od razu wypelnia ich formularz.
+   *
+   * Klikniecie otwiera carVertical w nowej karcie i NIE zamyka nakladki: do
+   * sprzedawcy dalej prowadzi zapis, krzyzyk albo "przejdz bez zapisu".
+   * Dwa okna z jednego klikniecia zablokowalaby przegladarka.
+   *
+   * Tresc przepisana z bloku przy ofercie (HistoriaBlok) — umowa wymaga
+   * uzgadniania tresci o carVertical z nimi przed publikacja (pkt 1.1).
+   */
+  const historia = powod === "wyjscie" && kontekst.vin ? linkHistorii(kontekst.vin) : null;
+
   return (
     <div
       className={`fixed inset-0 z-50 flex items-end justify-center p-4 transition-opacity duration-150 sm:items-center ${
@@ -317,6 +333,46 @@ export function ZapisPopup() {
         >
           <X size={16} />
         </button>
+
+        {historia && (
+          <section className="mb-5 mr-8 rounded-xl border border-accent/40 bg-accent/5 p-4">
+            <p className="flex flex-wrap items-center gap-2 text-[15px] font-semibold text-neutral-100">
+              <ShieldCheck size={16} className="shrink-0 text-accent" />
+              Sprawdź historię tego auta przed zakupem
+              {KOD_HISTORII && (
+                <span className="rounded-full bg-accent px-2 py-0.5 text-[11px] font-semibold text-black">
+                  20% taniej
+                </span>
+              )}
+            </p>
+            <p className="mt-1 text-[13px] leading-relaxed text-neutral-400">
+              Raport historii pojazdu carVertical po numerze VIN: szkody, przebiegi, kradzieże
+              {KOD_HISTORII
+                ? `. Z kodem ${KOD_HISTORII} 20% taniej (dolicza się sam po kliknięciu)`
+                : ""}
+              .{" "}
+              <span className="text-neutral-600">
+                Usługę sprzedaje carVertical; to link partnerski.
+              </span>
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                track("historia_klik", {
+                  gdzie: "popup",
+                  vin: kontekst.vin ?? null,
+                  zrodlo: kontekst.zrodlo ?? null,
+                  wariant: "popup",
+                });
+                window.open(historia, "_blank", "noopener,noreferrer");
+              }}
+              className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg bg-accent px-4 py-2.5 text-sm font-medium text-black transition-colors hover:bg-white"
+            >
+              Sprawdź historię
+              <ArrowUpRight size={15} />
+            </button>
+          </section>
+        )}
 
         {/*
           Zdjecie auta, ktore czlowiek wlasnie oglada, zamiast ikonki dzwonka.
@@ -353,7 +409,8 @@ export function ZapisPopup() {
             typ={`popup-${powod}`}
             label={t.label}
             filters={t.filters}
-            autoFocus
+            /* Klawiatura na telefonie zaslonilaby blok raportu historii. */
+            autoFocus={!historia}
             przycisk={doOferty ? "Powiadom i przejdź" : "Powiadom mnie"}
             onSubmitStart={przejdz}
             onDone={() => {

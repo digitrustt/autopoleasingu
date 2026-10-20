@@ -651,6 +651,7 @@ export default async function OfferPage({ params }: { params: Promise<{ id: stri
                 zdjecie: o.thumbnailUrl,
                 zrodlo: o.sourceId,
                 cena: o.priceGross,
+                vin: o.vin,
               }}
               offer={{
                 id: o.id,
