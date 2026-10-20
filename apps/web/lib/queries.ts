@@ -1610,6 +1610,39 @@ export async function getWmiMake(vin: string): Promise<string | null> {
   return rows[0].n / suma > 0.95 ? rows[0].make : null;
 }
 
+/**
+ * Cena rynkowa auta: mediana i kwartyle cen "kup teraz" z ofert aktywnych
+ * i sprzedanych, dla marki, modelu (wszystkie pisownie) i rocznika.
+ * Opcjonalnie zawezona do przebiegu +-25 tys. km.
+ *
+ * Ten sam dedup po VIN co w wycenie (worker/src/revalue.ts): ta sama sztuka
+ * wystawiona w trzech miejscach liczy sie raz, po najnizszej cenie.
+ *
+ * Do kalkulatora PCC (urzad liczy podatek od wartosci rynkowej) i wyceny.
+ */
+export async function getCenaRynkowa(make: string, modele: string[], year: number, km?: number) {
+  if (modele.length === 0) return null;
+  const przebieg =
+    km != null ? sql`and mileage_km between ${km - 25_000} and ${km + 25_000}` : sql``;
+  const rows = (await db.execute(sql`
+    with unikalne as (
+      select distinct on (coalesce(vin, 'id:' || id)) price_gross
+      from ${listings}
+      where make = ${make} and model in ${modele} and year = ${year}
+        and price_gross is not null and offer_kind = 'fixed'
+        and status in ('active', 'gone') ${przebieg}
+      order by coalesce(vin, 'id:' || id), price_gross asc
+    )
+    select count(*)::int as n,
+      round(percentile_cont(0.5) within group (order by price_gross))::int as mediana,
+      round(percentile_cont(0.25) within group (order by price_gross))::int as p25,
+      round(percentile_cont(0.75) within group (order by price_gross))::int as p75
+    from unikalne
+  `)) as unknown as { n: number; mediana: number | null; p25: number | null; p75: number | null }[];
+  const r = rows[0];
+  return r && r.n > 0 ? r : null;
+}
+
 export interface WmiStat {
   wmi: string;
   make: string;
