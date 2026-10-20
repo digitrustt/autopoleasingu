@@ -47,15 +47,18 @@ export function HistoriaBlok({
   wariant?: "kolumna" | "duzy";
 }) {
   const bazowy = process.env.NEXT_PUBLIC_AFILIACJA_HISTORIA;
+  const zVinem = process.env.NEXT_PUBLIC_AFILIACJA_HISTORIA_VIN;
   const kod = process.env.NEXT_PUBLIC_AFILIACJA_HISTORIA_KOD;
   if (!bazowy) return null;
   if (sourceId === "automarket") return null;
 
   /*
-   * VIN doklejamy, jesli partner przyjmuje go w adresie (`{vin}` w szablonie).
-   * Bez tego czlowiek wpisze go sam na stronie partnera — dziala, ale gorzej.
+   * Dwa linki od carVertical (19.10.2026): ogolny i z VIN-em. W tym drugim VIN
+   * idzie w `sub3` (szablon `{vin}`), a ich przekierowanie wklada go do
+   * formularza na carvertical.com/pl/precheck — czlowiek nie przepisuje numeru.
+   * Kod rabatowy dokleja samo przekierowanie (`voucher=`), sprawdzone curl-em.
    */
-  const href = vin ? bazowy.replace("{vin}", encodeURIComponent(vin)) : bazowy.replace("{vin}", "");
+  const href = vin && zVinem ? zVinem.replace("{vin}", encodeURIComponent(vin)) : bazowy;
 
   const otworz = () => {
     track("historia_klik", { gdzie, vin: vin ?? null, zrodlo: sourceId ?? null, wariant });
@@ -80,7 +83,7 @@ export function HistoriaBlok({
             </p>
             <p className="mt-0.5 text-[13px] leading-relaxed text-neutral-400">
               Raport historii pojazdu carVertical po numerze VIN: szkody, przebiegi, kradzieże
-              {kod ? `. Z kodem ${kod} 20% taniej` : ""}.{" "}
+              {kod ? `. Z kodem ${kod} 20% taniej (dolicza się sam po kliknięciu)` : ""}.{" "}
               <span className="text-neutral-600">
                 Usługę sprzedaje carVertical; to link partnerski.
               </span>
