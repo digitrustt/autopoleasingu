@@ -1,4 +1,5 @@
 import { BackButton } from "@/components/BackButton";
+import { BiezacaOferta } from "@/components/BiezacaOferta";
 import { CarImage } from "@/components/CarImage";
 import { Crumbs } from "@/components/Crumbs";
 import { daneStrukturalnePojazdu } from "@/lib/dane-strukturalne";
@@ -353,7 +354,11 @@ export default async function OfferPage({ params }: { params: Promise<{ id: stri
 
           {/* Raport historii po VIN — patrz HistoriaBlok. */}
           {!gone && (
-            <HistoriaBlok vin={o.vin} gdzie="oferta" sourceId={o.sourceId} nazwa={name} wariant="duzy" />
+            <>
+              <HistoriaBlok vin={o.vin} gdzie="oferta" sourceId={o.sourceId} nazwa={name} wariant="duzy" />
+              {/* VIN dla nakladki zapisu po drugiej ofercie — patrz ZapisPopup. */}
+              <BiezacaOferta vin={o.vin} />
+            </>
           )}
 
           <section className="mt-6">

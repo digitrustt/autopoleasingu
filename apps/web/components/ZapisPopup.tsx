@@ -10,6 +10,7 @@ import {
   type KontekstWyjscia,
   type PrzedWyjsciem,
   SYGNAL_PRZED_WYJSCIEM,
+  biezacaOferta,
 } from "@/lib/zapis-sygnal";
 import { ArrowUpRight, Bell, ShieldCheck, X } from "lucide-react";
 import { usePathname } from "next/navigation";
@@ -216,7 +217,11 @@ export function ZapisPopup() {
      * Sekunda zwloki. Nakladka wjezdzajaca w trakcie ladowania tresci laduje
      * na czyms, czego czlowiek jeszcze nie przeczytal, i zamyka sie odruchowo.
      */
-    const t = setTimeout(() => pokaz("oferty", { obejrzane: obejrzane.size }), 1000);
+    const t = setTimeout(() => {
+      // VIN otwartego auta — zeby nakladka mogla zaproponowac raport historii.
+      setKontekst(biezacaOferta() ?? {});
+      pokaz("oferty", { obejrzane: obejrzane.size });
+    }, 1000);
     return () => clearTimeout(t);
   }, [pathname, pokaz]);
 
@@ -292,7 +297,8 @@ export function ZapisPopup() {
    * Raport historii carVertical (20.10.2026). Wyjscie do sprzedawcy to moment,
    * w ktorym czlowiek za chwile dzwoni i jedzie ogladac auto — wtedy pytanie
    * "czy bylo rozbite" jest najbardziej na miejscu. Tylko z VIN-em, bo wtedy
-   * link od razu wypelnia ich formularz.
+   * link od razu wypelnia ich formularz. Pokazujemy tez po drugiej obejrzanej
+   * ofercie — wtedy VIN przychodzi z BiezacaOferta.
    *
    * Klikniecie otwiera carVertical w nowej karcie i NIE zamyka nakladki: do
    * sprzedawcy dalej prowadzi zapis, krzyzyk albo "przejdz bez zapisu".
@@ -301,7 +307,7 @@ export function ZapisPopup() {
    * Tresc przepisana z bloku przy ofercie (HistoriaBlok) — umowa wymaga
    * uzgadniania tresci o carVertical z nimi przed publikacja (pkt 1.1).
    */
-  const historia = powod === "wyjscie" && kontekst.vin ? linkHistorii(kontekst.vin) : null;
+  const historia = kontekst.vin ? linkHistorii(kontekst.vin) : null;
 
   return (
     <div
@@ -363,6 +369,7 @@ export function ZapisPopup() {
                   vin: kontekst.vin ?? null,
                   zrodlo: kontekst.zrodlo ?? null,
                   wariant: "popup",
+                  powod,
                 });
                 window.open(historia, "_blank", "noopener,noreferrer");
               }}

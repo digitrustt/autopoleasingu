@@ -44,6 +44,21 @@ export interface KontekstWyjscia {
   vin?: string | null;
 }
 
+/**
+ * Auto z otwartej strony oferty — dla wyzwalacza "druga obejrzana oferta",
+ * ktory nie ma klikniecia, z ktorego moglby wziac kontekst. Ustawia go
+ * BiezacaOferta zamontowana na stronie oferty; nakladka czyta sekunde pozniej.
+ */
+let biezaca: KontekstWyjscia | null = null;
+
+export function ustawBiezacaOferte(k: KontekstWyjscia | null): void {
+  biezaca = k;
+}
+
+export function biezacaOferta(): KontekstWyjscia | null {
+  return biezaca;
+}
+
 export function zglosWyjscie(kontekst: KontekstWyjscia = {}): void {
   window.dispatchEvent(new CustomEvent(SYGNAL_WYJSCIA, { detail: kontekst }));
 }
