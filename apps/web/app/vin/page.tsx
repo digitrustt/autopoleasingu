@@ -173,7 +173,15 @@ export default async function VinLanding() {
             <h3 className="mb-1 font-medium text-neutral-200">Ile znaków ma VIN?</h3>
             <p>
               Siedemnaście: litery i cyfry, bez liter I, O i Q, żeby nie myliły się z 1 i 0.
-              Pierwsze trzy znaki oznaczają producenta.
+              Pierwsze trzy znaki oznaczają producenta, a 10. — rok modelowy, choć nie u każdej
+              marki:{" "}
+              <Link
+                href="/poradnik/rok-produkcji-z-vin"
+                className="underline decoration-dotted underline-offset-2 hover:text-accent"
+              >
+                jak odczytać rok produkcji z VIN
+              </Link>
+              .
             </p>
           </div>
           <div>

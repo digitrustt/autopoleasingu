@@ -4,8 +4,10 @@ import { HistoriaBlok } from "@/components/HistoriaBlok";
 import { Valuation } from "@/components/Valuation";
 import { VehicleHistory } from "@/components/VehicleHistory";
 import { shortSource } from "@/lib/format";
+import { VinDekoder } from "@/components/VinDekoder";
 import { VinSzukaj } from "@/components/VinSzukaj";
 import { getVinHistory, getWmiMake } from "@/lib/queries";
+import { poprawnyVin } from "@/lib/vin";
 import type { Metadata } from "next";
 import {
   ArrowLeft,
@@ -111,6 +113,8 @@ async function BrakVin({ numer }: { numer: string }) {
         ktorego nie mamy — najczesciej z ogloszenia, ktore oglada gdzie indziej.
         To najbardziej konkretna potrzeba, jaka ta strona widzi.
       */}
+      {poprawnyVin(numer) && <VinDekoder vin={numer} />}
+
       <div className="mb-4">
         <HistoriaBlok vin={numer} gdzie="vin-brak" wariant="duzy" />
       </div>
@@ -297,6 +301,8 @@ export default async function VinPage({ params }: { params: Promise<{ vin: strin
         firstRegistrationAt={firstRegistrationAt}
         mileageSpread={mileageSpread}
       />
+
+      <VinDekoder vin={data.vin} />
 
       {/*
         OC zaraz pod historia pojazdu, bo to ten sam krok mysli: czlowiek

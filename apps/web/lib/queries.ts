@@ -2,6 +2,7 @@ import { BODY_GROUPS } from "@auta/core";
 import { db, events, listingSnapshots, listings, sources } from "@auta/db";
 import { and, asc, desc, eq, gte, ilike, inArray, isNotNull, lte, or, sql } from "drizzle-orm";
 import { groupBySlug } from "@/lib/slug";
+import { KODY_ROKU } from "@/lib/vin";
 
 export interface Filters {
   q?: string;
@@ -1607,6 +1608,58 @@ export async function getWmiMake(vin: string): Promise<string | null> {
   if (rows.length === 0) return null;
   const suma = rows.reduce((n, r) => n + r.n, 0);
   return rows[0].n / suma > 0.95 ? rows[0].make : null;
+}
+
+export interface WmiStat {
+  wmi: string;
+  make: string;
+  /** Liczba roznych VIN-ow z tym kodem i znanym rocznikiem. */
+  n: number;
+  /** Udzial VIN-ow, w ktorych 10. znak daje rocznik albo rocznik + 1. */
+  zgodnosc: number;
+  /** Udzial trafien, w ktorych 10. znak daje rocznik + 1 (rok modelowy pozniejszy). */
+  rokPozniej: number;
+}
+
+/**
+ * Czy kod producenta (pierwsze trzy znaki VIN) zapisuje rok w 10. znaku —
+ * zmierzone na naszych ofertach, a nie przepisane z tabelki.
+ *
+ * Rok modelowy bywa o rok pozniejszy niz rocznik (auto z jesieni 2024 jest
+ * modelem 2025), wiec trafieniem jest rocznik albo rocznik + 1.
+ *
+ * Tylko kody z co najmniej 30 numerami i jedna marka na 95%+ — reszta to
+ * smieci ze zrodel ("XXX", "000", "123") albo za malo danych na wniosek.
+ * Liczy sie po calej tabeli, dlatego woluj przez `wmiStaty` (bufor na dobe).
+ */
+export async function getWmiStaty(): Promise<WmiStat[]> {
+  const rows = (await db.execute(sql`
+    select upper(left(vin, 3)) as wmi, make, upper(substr(vin, 10, 1)) as k, year,
+           count(distinct vin)::int as n
+    from ${listings}
+    where vin ~* '^[A-HJ-NPR-Z0-9]{17}$' and year is not null
+    group by 1, 2, 3, 4
+  `)) as unknown as { wmi: string; make: string; k: string; year: number; n: number }[];
+
+  const kody = new Map(KODY_ROKU);
+  const wg = new Map<string, { marki: Map<string, number>; n: number; ok: number; plus: number }>();
+  for (const r of rows) {
+    const w = wg.get(r.wmi) ?? { marki: new Map(), n: 0, ok: 0, plus: 0 };
+    w.marki.set(r.make, (w.marki.get(r.make) ?? 0) + r.n);
+    w.n += r.n;
+    const rok = kody.get(r.k);
+    if (rok === r.year || rok === r.year + 1) w.ok += r.n;
+    if (rok === r.year + 1) w.plus += r.n;
+    wg.set(r.wmi, w);
+  }
+
+  const out: WmiStat[] = [];
+  for (const [wmi, w] of wg) {
+    const [make, ile] = [...w.marki].sort((a, b) => b[1] - a[1])[0];
+    if (w.n < 30 || ile / w.n < 0.95) continue;
+    out.push({ wmi, make, n: w.n, zgodnosc: w.ok / w.n, rokPozniej: w.ok ? w.plus / w.ok : 0 });
+  }
+  return out.sort((a, b) => b.n - a.n);
 }
 
 /* ────────────────────────────────────────────────────────────────────────────

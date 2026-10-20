@@ -1,4 +1,4 @@
-import { getMakes, getModelsForFilter, getSources, getStats } from "@/lib/queries";
+import { getMakes, getModelsForFilter, getSources, getStats, getWmiStaty } from "@/lib/queries";
 import { unstable_cache } from "next/cache";
 
 /**
@@ -56,3 +56,12 @@ export const filtryModeli = (make?: string) =>
     revalidate: GODZINA,
     tags: ["oferty"],
   })();
+
+/**
+ * Statystyki kodow producenta VIN (patrz getWmiStaty) — agregacja po calej
+ * tabeli, a zmieniaja sie tylko z nowymi numerami. Doba wystarcza z zapasem.
+ */
+export const wmiStaty = unstable_cache(async () => getWmiStaty(), ["wmi-staty"], {
+  revalidate: 86_400,
+  tags: ["oferty"],
+});

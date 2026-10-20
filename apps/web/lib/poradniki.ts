@@ -9,6 +9,11 @@ export const PORADNIKI: { slug: string; tytul: string; opis: string }[] = [
     opis: "Zalety i wady policzone na realnych ofertach: przebiegi, ceny i obniżki.",
   },
   {
+    slug: "rok-produkcji-z-vin",
+    tytul: "Jak odczytać rok produkcji z VIN",
+    opis: "Tabela kodów i sprawdzenie na tysiącach numerów: u których marek to nie działa.",
+  },
+  {
     slug: "aukcje-pko-leasing",
     tytul: "Aukcje PKO Leasing — jak licytować",
     opis: "Kto może kupować, terminy zapłaty i odbioru, prowizja, cena netto i brutto.",
