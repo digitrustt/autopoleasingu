@@ -351,7 +351,7 @@ export default async function OfferPage({ params }: { params: Promise<{ id: stri
             />
           </div>
 
-          {/* Raport historii po VIN — patrz HistoriaBlok (nie przy Automarkecie). */}
+          {/* Raport historii po VIN — patrz HistoriaBlok. */}
           {!gone && (
             <HistoriaBlok vin={o.vin} gdzie="oferta" sourceId={o.sourceId} nazwa={name} wariant="duzy" />
           )}

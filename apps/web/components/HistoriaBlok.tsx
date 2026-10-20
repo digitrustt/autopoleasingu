@@ -17,8 +17,9 @@ import { ArrowUpRight, FileSearch, ShieldCheck } from "lucide-react";
  * (pkt 1.3), a w trakcie umowy nie promujemy innych dostawcow raportow
  * historii (pkt 5) — dlatego nie pokazujemy tu np. etykiety autoDNA.
  *
- * NIE POKAZUJEMY PRZY AUTOMARKECIE. Automarket daje w ogloszeniu bezplatny
- * raport autoDNA, wiec nikt nie zaplaci za drugi — a przycisk tylko by mylil.
+ * POKAZUJEMY TEZ PRZY AUTOMARKECIE (decyzja wlasciciela, 20.10.2026). Automarket
+ * daje w ogloszeniu bezplatny raport autoDNA, ale kto chce drugiego zrodla,
+ * niech ma wybor — przycisk niczego nie wymusza.
  *
  * PRZYCISK, NIE ODNOSNIK — z tego samego powodu co w FinansowanieBlok: roboty
  * wchodzily w kazdy link partnerski na stronie i nabijaly tysiace klikniec.
@@ -50,7 +51,6 @@ export function HistoriaBlok({
   const zVinem = process.env.NEXT_PUBLIC_AFILIACJA_HISTORIA_VIN;
   const kod = process.env.NEXT_PUBLIC_AFILIACJA_HISTORIA_KOD;
   if (!bazowy) return null;
-  if (sourceId === "automarket") return null;
 
   /*
    * Dwa linki od carVertical (19.10.2026): ogolny i z VIN-em. W tym drugim VIN

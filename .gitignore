@@ -13,3 +13,4 @@ fixtures/*.html
 
 # Robocze listy fraz do Planera slow kluczowych — nie naleza do repo.
 /seo/
+.env*.local
