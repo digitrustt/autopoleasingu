@@ -77,12 +77,12 @@ export default async function VinMarki({ params }: { params: Promise<{ make: str
 
   const rokZdanie =
     m.werdykt === "zapisuje"
-      ? `U ${m.make} 10. znak VIN-u oznacza rok modelowy — na ${num.format(m.n)} numerach z naszej bazy zgadza się z rocznikiem w ${proc(m.zgodnosc)} przypadków (czasem rok modelowy jest o jeden późniejszy, to normalne).`
+      ? `U marki ${m.make} 10. znak VIN-u oznacza rok modelowy — na ${num.format(m.n)} numerach z naszej bazy zgadza się z rocznikiem w ${proc(m.zgodnosc)} przypadków (czasem rok modelowy jest o jeden późniejszy, to normalne).`
       : m.werdykt === "nie-zapisuje"
-        ? `U ${m.make} roku z VIN-u nie odczytasz. Standardowa tabelka kodów trafia w rocznik tylko w ${proc(m.zgodnosc)} z ${num.format(m.n)} numerów z naszej bazy — ten producent zapisuje w 10. znaku coś innego. Rocznik sprawdź w dowodzie rejestracyjnym.`
+        ? `U marki ${m.make} roku z VIN-u nie odczytasz. Standardowa tabelka kodów trafia w rocznik tylko w ${proc(m.zgodnosc)} z ${num.format(m.n)} numerów z naszej bazy — ten producent zapisuje w 10. znaku coś innego. Rocznik sprawdź w dowodzie rejestracyjnym.`
         : m.werdykt === "nie-zawsze"
-          ? `U ${m.make} rok z 10. znaku zgadza się w ${proc(m.zgodnosc)} z ${num.format(m.n)} numerów — część modeli stosuje zapis, część nie. Traktuj go jako wskazówkę, nie dowód.`
-          : `U ${m.make} zależy to od fabryki, czyli od pierwszych trzech znaków numeru — szczegóły w tabeli niżej.`;
+          ? `U marki ${m.make} rok z 10. znaku zgadza się w ${proc(m.zgodnosc)} z ${num.format(m.n)} numerów — część modeli stosuje zapis, część nie. Traktuj go jako wskazówkę, nie dowód.`
+          : `U marki ${m.make} zależy to od fabryki, czyli od pierwszych trzech znaków numeru — szczegóły w tabeli niżej.`;
 
   const pytania: Pytanie[] = [
     {
@@ -162,7 +162,7 @@ export default async function VinMarki({ params }: { params: Promise<{ make: str
         </Sekcja>
 
         {dane.blizniaki.length > 0 && (
-          <Sekcja tytul={`Ten sam ${m.make} u kilku sprzedawców`}>
+          <Sekcja tytul={`Te same auta ${m.make} u kilku sprzedawców`}>
             <p>
               {num.format(dane.ileBlizniakow)} egzemplarzy {m.make} stoi teraz w więcej niż jednym
               miejscu naraz — z tym samym numerem VIN, często po różnych cenach. Największe różnice:
