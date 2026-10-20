@@ -16,6 +16,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { oferty } from "@/lib/format";
+import { wmiStaty } from "@/lib/cache-filtrow";
+import { vinMarkiHref, wgMarek } from "@/lib/vin";
 
 /*
  * Odswiezanie RAZ NA DOBE, nie co godzine.
@@ -104,15 +106,18 @@ export default async function MakePage({ params }: { params: Promise<{ make: str
   if (!found) notFound();
   const { make } = found;
 
-  const [stats, models, bodies, best] = await Promise.all([
+  const [stats, models, bodies, best, staty] = await Promise.all([
     getSegmentStats(make),
     getModelCards(make),
     getBodyBreakdown(make),
     // Najlepsze okazje marki — to one maja sprzedac te strone czytelnikowi.
     getListings({ make, sort: "deal_desc", withPrice: "1" }, 1, 12),
+    wmiStaty(),
   ]);
 
   if (stats.total === 0) notFound();
+  // Strona VIN tej marki istnieje tylko, gdy mamy dosc numerow — patrz wgMarek.
+  const maVin = wgMarek(staty).some((m) => m.make === make);
 
   const featured = models.slice(0, CARDS);
   const rest = models.slice(CARDS);
@@ -221,6 +226,19 @@ export default async function MakePage({ params }: { params: Promise<{ make: str
             ))}
           </div>
         </section>
+      )}
+
+      {maVin && (
+        <p className="mt-8 text-[13px] text-neutral-400">
+          Masz numer nadwozia?{" "}
+          <Link
+            href={vinMarkiHref(make)}
+            className="underline decoration-dotted underline-offset-2 hover:text-accent"
+          >
+            Sprawdź VIN {make}
+          </Link>{" "}
+          — kody producenta, rok z numeru i te same auta u kilku sprzedawców.
+        </p>
       )}
     </main>
   );

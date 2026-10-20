@@ -1662,6 +1662,48 @@ export async function getWmiStaty(): Promise<WmiStat[]> {
   return out.sort((a, b) => b.n - a.n);
 }
 
+/**
+ * Dane do strony VIN marki (/vin/marka/[make]): ile numerow mamy i ktore
+ * egzemplarze stoja rownoczesnie u kilku sprzedawcow, od najwiekszej
+ * roznicy ceny. Roznica tylko miedzy cenami "kup teraz" — patrz getVinHistory.
+ */
+export async function getVinMarka(make: string) {
+  const ok = sql`${listings.vin} ~* '^[A-HJ-NPR-Z0-9]{17}$'`;
+  const [[liczby], blizniaki, ileBl] = await Promise.all([
+    db
+      .select({
+        wszystkie: sql<number>`count(distinct ${listings.vin})::int`,
+        aktywne: sql<number>`count(distinct ${listings.vin}) filter (where ${listings.status} = 'active')::int`,
+      })
+      .from(listings)
+      .where(and(eq(listings.make, make), ok)),
+    db
+      .select({
+        vin: sql<string>`${listings.vin}`,
+        model: sql<string>`min(${listings.model})`,
+        year: sql<number | null>`min(${listings.year})`,
+        miejsc: sql<number>`count(*)::int`,
+        roznica: sql<number | null>`(max(${listings.priceGross}) filter (where ${listings.offerKind} = 'fixed')
+          - min(${listings.priceGross}) filter (where ${listings.offerKind} = 'fixed'))::int`,
+      })
+      .from(listings)
+      .where(and(eq(listings.make, make), eq(listings.status, "active"), ok))
+      .groupBy(listings.vin)
+      .having(sql`count(*) > 1`)
+      .orderBy(sql`5 desc nulls last`)
+      .limit(12),
+    db.execute(sql`
+      select count(*)::int as n from (
+        select 1 from ${listings}
+        where ${listings.make} = ${make} and ${listings.status} = 'active' and ${ok}
+        group by ${listings.vin} having count(*) > 1
+      ) t
+    `),
+  ]);
+  const ileBlizniakow = (ileBl as unknown as { n: number }[])[0]?.n ?? 0;
+  return { ...liczby, blizniaki, ileBlizniakow };
+}
+
 /* ────────────────────────────────────────────────────────────────────────────
  * Dane rynkowe — /dane
  *

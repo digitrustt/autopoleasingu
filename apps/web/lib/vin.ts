@@ -1,3 +1,6 @@
+import type { WmiStat } from "@/lib/queries";
+import { slugify } from "@/lib/slug";
+
 /**
  * Odczyt numeru VIN bez bazy: kraj z pierwszych dwoch znakow i rok modelowy
  * z dziesiatego. Czy dany producent NAPRAWDE zapisuje rok w 10. znaku,
@@ -89,4 +92,49 @@ export function werdykt(zgodnosc: number): Werdykt {
   if (zgodnosc >= 0.9) return "zapisuje";
   if (zgodnosc <= 0.2) return "nie-zapisuje";
   return "nie-zawsze";
+}
+
+export interface Marka {
+  make: string;
+  n: number;
+  zgodnosc: number;
+  rokPozniej: number;
+  kody: WmiStat[];
+  werdykt: Werdykt | "zalezy";
+}
+
+/** Kody producenta zebrane w marki; zgodnosc wazona liczba numerow. */
+export function wgMarek(staty: WmiStat[]): Marka[] {
+  const m = new Map<string, WmiStat[]>();
+  for (const s of staty) m.set(s.make, [...(m.get(s.make) ?? []), s]);
+  return [...m]
+    .map(([make, kody]) => {
+      const n = kody.reduce((x, k) => x + k.n, 0);
+      const ok = kody.reduce((x, k) => x + k.n * k.zgodnosc, 0);
+      const plus = kody.reduce((x, k) => x + k.n * k.zgodnosc * k.rokPozniej, 0);
+      const werdykty = new Set(kody.filter((k) => k.n >= 100).map((k) => werdykt(k.zgodnosc)));
+      return {
+        make,
+        n,
+        zgodnosc: ok / n,
+        rokPozniej: ok ? plus / ok : 0,
+        kody,
+        werdykt: werdykty.size > 1 ? ("zalezy" as const) : werdykt(ok / n),
+      };
+    })
+    .filter((x) => x.n >= 100)
+    .sort((x, y) => y.n - x.n);
+}
+
+export const OPIS_WERDYKTU: Record<Marka["werdykt"], { tekst: string; kolor: string }> = {
+  zapisuje: { tekst: "działa", kolor: "text-emerald-400" },
+  "nie-zapisuje": { tekst: "nie działa", kolor: "text-red-400" },
+  "nie-zawsze": { tekst: "nie zawsze", kolor: "text-amber-400" },
+  zalezy: { tekst: "zależy od fabryki", kolor: "text-amber-400" },
+};
+
+
+/** Strona VIN marki, np. "BMW" -> "/vin/marka/bmw". */
+export function vinMarkiHref(make: string): string {
+  return `/vin/marka/${slugify(make)}`;
 }

@@ -14,6 +14,16 @@ export const PORADNIKI: { slug: string; tytul: string; opis: string }[] = [
     opis: "Tabela kodów i sprawdzenie na tysiącach numerów: u których marek to nie działa.",
   },
   {
+    slug: "gdzie-jest-numer-vin",
+    tytul: "Gdzie jest numer VIN w samochodzie",
+    opis: "Dowód rejestracyjny, szyba, tabliczka, nadwozie — i jak sprawdzić, czy się zgadzają.",
+  },
+  {
+    slug: "kody-producentow-vin",
+    tytul: "Kody producentów w VIN (WMI)",
+    opis: "Tabela kodów z naszej bazy: marka, kraj i czy 10. znak to u nich rok.",
+  },
+  {
     slug: "aukcje-pko-leasing",
     tytul: "Aukcje PKO Leasing — jak licytować",
     opis: "Kto może kupować, terminy zapłaty i odbioru, prowizja, cena netto i brutto.",

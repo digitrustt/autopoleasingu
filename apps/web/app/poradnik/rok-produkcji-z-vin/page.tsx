@@ -3,8 +3,7 @@ import { HistoriaBlok } from "@/components/HistoriaBlok";
 import { Faq, Lista, Sekcja, Uwaga, type Pytanie } from "@/components/Poradnik";
 import { VinSzukaj } from "@/components/VinSzukaj";
 import { wmiStaty } from "@/lib/cache-filtrow";
-import type { WmiStat } from "@/lib/queries";
-import { KODY_ROKU, type Werdykt, werdykt } from "@/lib/vin";
+import { KODY_ROKU, type Marka, OPIS_WERDYKTU as OPIS, wgMarek } from "@/lib/vin";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
@@ -22,45 +21,6 @@ export const metadata: Metadata = {
     "Który znak VIN oznacza rok, tabela kodów 2001–2030 i wynik sprawdzenia na dziesiątkach " +
     "tysięcy numerów: u Skody czy Volvo działa, u BMW, Toyoty i Renault — nie.",
   alternates: { canonical: "/poradnik/rok-produkcji-z-vin" },
-};
-
-interface Marka {
-  make: string;
-  n: number;
-  zgodnosc: number;
-  rokPozniej: number;
-  kody: WmiStat[];
-  werdykt: Werdykt | "zalezy";
-}
-
-/** Kody producenta zebrane w marki; zgodnosc wazona liczba numerow. */
-function wgMarek(staty: WmiStat[]): Marka[] {
-  const m = new Map<string, WmiStat[]>();
-  for (const s of staty) m.set(s.make, [...(m.get(s.make) ?? []), s]);
-  return [...m]
-    .map(([make, kody]) => {
-      const n = kody.reduce((x, k) => x + k.n, 0);
-      const ok = kody.reduce((x, k) => x + k.n * k.zgodnosc, 0);
-      const plus = kody.reduce((x, k) => x + k.n * k.zgodnosc * k.rokPozniej, 0);
-      const werdykty = new Set(kody.filter((k) => k.n >= 100).map((k) => werdykt(k.zgodnosc)));
-      return {
-        make,
-        n,
-        zgodnosc: ok / n,
-        rokPozniej: ok ? plus / ok : 0,
-        kody,
-        werdykt: werdykty.size > 1 ? ("zalezy" as const) : werdykt(ok / n),
-      };
-    })
-    .filter((x) => x.n >= 100)
-    .sort((x, y) => y.n - x.n);
-}
-
-const OPIS: Record<Marka["werdykt"], { tekst: string; kolor: string }> = {
-  zapisuje: { tekst: "działa", kolor: "text-emerald-400" },
-  "nie-zapisuje": { tekst: "nie działa", kolor: "text-red-400" },
-  "nie-zawsze": { tekst: "nie zawsze", kolor: "text-amber-400" },
-  zalezy: { tekst: "zależy od fabryki", kolor: "text-amber-400" },
 };
 
 /**

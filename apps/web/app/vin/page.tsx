@@ -2,7 +2,9 @@ import { UbezpieczenieBlok } from "@/components/UbezpieczenieBlok";
 import { Crumbs } from "@/components/Crumbs";
 import { HistoriaBlok } from "@/components/HistoriaBlok";
 import { VinSzukaj } from "@/components/VinSzukaj";
+import { wmiStaty } from "@/lib/cache-filtrow";
 import { getStats } from "@/lib/queries";
+import { vinMarkiHref, wgMarek } from "@/lib/vin";
 import { db, listings } from "@auta/db";
 import { and, eq, isNotNull, sql } from "drizzle-orm";
 import { CircleCheck, CircleSlash, Copy } from "lucide-react";
@@ -58,7 +60,7 @@ export const metadata: Metadata = {
  */
 export default async function VinLanding() {
   await connection();
-  const [stats, [vinStats]] = await Promise.all([
+  const [stats, [vinStats], staty] = await Promise.all([
     getStats(),
     db
       .select({
@@ -67,6 +69,7 @@ export default async function VinLanding() {
       })
       .from(listings)
       .where(and(eq(listings.status, "active"), isNotNull(listings.vin))),
+    wmiStaty(),
   ]);
 
   return (
@@ -152,6 +155,40 @@ export default async function VinLanding() {
           .
         </span>
       </p>
+
+      {/*
+        Linki do stron VIN marek i poradnikow — jedyna droga, ktora robot
+        dochodzi do nich z centrum tematu, a czlowiek szukajacy "VIN BMW"
+        dostaje strone o swojej marce.
+      */}
+      <section className="mt-10 border-t border-[var(--color-line)] pt-6">
+        <h2 className="mb-3 text-lg font-semibold text-neutral-100">Sprawdź VIN według marki</h2>
+        <div className="flex flex-wrap gap-2">
+          {wgMarek(staty).map((m) => (
+            <Link
+              key={m.make}
+              href={vinMarkiHref(m.make)}
+              className="rounded-lg border border-[var(--color-line)] bg-[var(--color-panel)] px-3 py-1.5 text-[13px] text-neutral-300 transition-colors hover:border-neutral-600 hover:text-neutral-100"
+            >
+              VIN {m.make}
+            </Link>
+          ))}
+        </div>
+        <p className="mt-4 text-[13px] leading-relaxed text-neutral-400">
+          Poradniki:{" "}
+          <Link href="/poradnik/rok-produkcji-z-vin" className="underline decoration-dotted underline-offset-2 hover:text-accent">
+            rok produkcji z VIN
+          </Link>
+          {" · "}
+          <Link href="/poradnik/gdzie-jest-numer-vin" className="underline decoration-dotted underline-offset-2 hover:text-accent">
+            gdzie jest numer VIN
+          </Link>
+          {" · "}
+          <Link href="/poradnik/kody-producentow-vin" className="underline decoration-dotted underline-offset-2 hover:text-accent">
+            kody producentów (WMI)
+          </Link>
+        </p>
+      </section>
 
       {/*
         Pytania pod frazy, z ktorymi ludzie przychodza: "gdzie jest VIN",

@@ -4,6 +4,8 @@ import { PARY } from "@/lib/pary";
 import { PORADNIKI } from "@/lib/poradniki";
 import { getMakeCityPairs, getSitemapEntries } from "@/lib/queries";
 import { makeHref, modelHref, modelKey, slugify } from "@/lib/slug";
+import { wmiStaty } from "@/lib/cache-filtrow";
+import { vinMarkiHref, wgMarek } from "@/lib/vin";
 import { WOJEWODZTWA } from "@/lib/wojewodztwa";
 import type { MetadataRoute } from "next";
 
@@ -70,7 +72,11 @@ const modelOk = (model: string) => {
 const miejsceOk = (city: string | null) => !MIEJSCE_SMIEC.test(slugify(city ?? ""));
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [surowe, makaMiastoPary] = await Promise.all([getSitemapEntries(), getMakeCityPairs()]);
+  const [surowe, makaMiastoPary, staty] = await Promise.all([
+    getSitemapEntries(),
+    getMakeCityPairs(),
+    wmiStaty(),
+  ]);
   const { vins, srcs } = surowe;
   const makes = surowe.makes.filter((m) => markaOk(m.make));
   const models = surowe.models.filter((m) => markaOk(m.make) && modelOk(m.model));
@@ -89,7 +95,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "weekly",
       priority: 0.8,
     },
-    { url: `${BASE}/vin`, changeFrequency: "weekly", priority: 0.6 },
+    { url: `${BASE}/vin`, changeFrequency: "weekly", priority: 0.7 },
+    // Strony VIN marek — patrz app/vin/marka/[make]; tylko marki z danymi.
+    ...wgMarek(staty).map((m) => ({
+      url: `${BASE}${vinMarkiHref(m.make)}`,
+      changeFrequency: "weekly" as const,
+      priority: 0.6,
+    })),
     { url: `${BASE}/dane`, changeFrequency: "daily", priority: 0.8 },
     {
       url: `${BASE}/analizy/ten-sam-vin-dwie-ceny`,

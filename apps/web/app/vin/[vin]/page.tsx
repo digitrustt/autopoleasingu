@@ -5,6 +5,7 @@ import { Valuation } from "@/components/Valuation";
 import { VehicleHistory } from "@/components/VehicleHistory";
 import { shortSource } from "@/lib/format";
 import { VinDekoder } from "@/components/VinDekoder";
+import { daneStrukturalnePojazdu } from "@/lib/dane-strukturalne";
 import { VinSzukaj } from "@/components/VinSzukaj";
 import { getVinHistory, getWmiMake } from "@/lib/queries";
 import { poprawnyVin } from "@/lib/vin";
@@ -229,6 +230,24 @@ export default async function VinPage({ params }: { params: Promise<{ vin: strin
         <ArrowLeft size={15} />
         Wróć do listy
       </Link>
+
+      {/*
+        Dane strukturalne pojazdu z numerem VIN. BEZ ceny: strona VIN-u zbiera
+        kilka wystawien tej samej sztuki, a cena nalezy do konkretnej oferty
+        (tam jest w JSON-LD strony oferty).
+      */}
+      <script
+        type="application/ld+json"
+        // biome-ignore lint/security/noDangerouslySetInnerHtml: dane strukturalne, tresc wlasna
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(
+            daneStrukturalnePojazdu(
+              { ...spec, vin: data.vin, priceGross: null },
+              `https://autopoleasingu.pl/vin/${data.vin}`,
+            ),
+          ),
+        }}
+      />
 
       <header className="mb-6">
         <h1 className="text-2xl font-bold tracking-tight">
