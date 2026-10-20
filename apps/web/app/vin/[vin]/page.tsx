@@ -69,6 +69,15 @@ function daysPl(n: number): string {
   return `${n} ${few ? "dni" : "dni"}`;
 }
 
+/** 1 wystawienie, 2-4 wystawienia, 5+ wystawień (ale 12-14 wystawień). */
+function wystawienia(n: number): string {
+  if (n === 1) return "1 wystawienie";
+  const last = n % 10;
+  const lastTwo = n % 100;
+  const few = last >= 2 && last <= 4 && !(lastTwo >= 12 && lastTwo <= 14);
+  return `${n} ${few ? "wystawienia" : "wystawień"}`;
+}
+
 /** Wynik dla VIN-u, ktorego nie mamy — z tym, co mimo wszystko da sie powiedziec. */
 async function BrakVin({ numer }: { numer: string }) {
   const marka = await getWmiMake(numer);
@@ -164,7 +173,7 @@ export async function generateMetadata({
     description:
       `Historia ofert i cen dla VIN ${numer}` +
       (nazwa ? ` (${nazwa})` : "") +
-      `: ${data.listings.length} wystawień w śledzonych źródłach poleasingowych.`,
+      `: ${wystawienia(data.listings.length)} w śledzonych źródłach poleasingowych.`,
     alternates: { canonical: `/vin/${numer}` },
   };
 }
