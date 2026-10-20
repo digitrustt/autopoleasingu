@@ -140,6 +140,13 @@ export async function generateMetadata({
     `${name}` +
     (konkret ? `: ${konkret}` : "") +
     (o.priceGross && !sprzedane ? `, ${pln.format(o.priceGross)}` : "") +
+    /*
+     * VIN przed nazwa zrodla (20.10.2026). Kupujacy wpisuja w Google numer
+     * z ogloszenia — czesto tego samego auta odsprzedawanego po aukcji
+     * leasingowej — a Google pogrubia w opisie trafienie. Zrodlo idzie na
+     * koniec, bo tam opis jest ucinany i nikt go nie potrzebuje do klikniecia.
+     */
+    (o.vin ? `. VIN ${o.vin}` : "") +
     `. Oferta poleasingowa z ${shortSource(o.sourceName)}.`;
 
   return {
@@ -352,14 +359,21 @@ export default async function OfferPage({ params }: { params: Promise<{ id: stri
             />
           </div>
 
-          {/* Raport historii po VIN — patrz HistoriaBlok. */}
-          {!gone && (
-            <>
-              <HistoriaBlok vin={o.vin} gdzie="oferta" sourceId={o.sourceId} nazwa={name} wariant="duzy" />
-              {/* VIN dla nakladki zapisu po drugiej ofercie — patrz ZapisPopup. */}
-              <BiezacaOferta vin={o.vin} />
-            </>
-          )}
+          {/*
+            Raport historii po VIN — patrz HistoriaBlok. Takze przy sprzedanych
+            (20.10.2026): to 42% wejsc na oferty, a sprzedane auto z leasingu
+            czesto wraca do sprzedazy u handlarza i ktos wpisuje jego VIN
+            w Google. `gdzie` rozdziela klikniecia w PostHogu.
+          */}
+          <HistoriaBlok
+            vin={o.vin}
+            gdzie={gone ? "oferta-sprzedana" : "oferta"}
+            sourceId={o.sourceId}
+            nazwa={name}
+            wariant="duzy"
+          />
+          {/* VIN dla nakladki zapisu po drugiej ofercie — patrz ZapisPopup. */}
+          <BiezacaOferta vin={o.vin} />
 
           <section className="mt-6">
             {/*

@@ -97,10 +97,19 @@ async function BrakVin({ numer }: { numer: string }) {
         )}
       </p>
 
+      {/*
+        Raport historii z TYM numerem (20.10.2026). Czlowiek wlasnie wpisal VIN,
+        ktorego nie mamy — najczesciej z ogloszenia, ktore oglada gdzie indziej.
+        To najbardziej konkretna potrzeba, jaka ta strona widzi.
+      */}
+      <div className="mb-4">
+        <HistoriaBlok vin={numer} gdzie="vin-brak" wariant="duzy" />
+      </div>
+
       <div className="mb-6 rounded-xl border border-[var(--color-line)] bg-[var(--color-panel)] p-4">
         <p className="text-[13px] leading-relaxed text-neutral-400">
-          Historii wypadkowej, przebiegu z odczytów i liczby właścicieli nie mamy i nie
-          udajemy, że mamy. Te dane są w{" "}
+          Historii wypadkowej, przebiegu z odczytów i liczby właścicieli sami nie mamy.
+          Podstawowe dane z polskiego CEPiK-u są bezpłatnie w{" "}
           <a
             href="https://historiapojazdu.gov.pl"
             target="_blank"
@@ -109,8 +118,8 @@ async function BrakVin({ numer }: { numer: string }) {
           >
             historiapojazdu.gov.pl
           </a>{" "}
-          — oficjalnie i bezpłatnie, potrzebny jest VIN, numer rejestracyjny i data pierwszej
-          rejestracji.
+          — potrzebny jest VIN, numer rejestracyjny i data pierwszej rejestracji. Szkody,
+          przebiegi i kradzieże po samym VIN-ie pokazuje płatny raport carVertical powyżej.
         </p>
       </div>
 
@@ -155,7 +164,7 @@ export async function generateMetadata({
     description:
       `Historia ofert i cen dla VIN ${numer}` +
       (nazwa ? ` (${nazwa})` : "") +
-      `: ${data.listings.length} wystawien w sledzonych zrodlach poleasingowych.`,
+      `: ${data.listings.length} wystawień w śledzonych źródłach poleasingowych.`,
     alternates: { canonical: `/vin/${numer}` },
   };
 }
@@ -291,6 +300,7 @@ export default async function VinPage({ params }: { params: Promise<{ vin: strin
         <HistoriaBlok
           vin={vin}
           gdzie="vin"
+          wariant="duzy"
           nazwa={spec.make ? `${spec.make} ${spec.model ?? ""}`.trim() : null}
         />
         <UbezpieczenieBlok

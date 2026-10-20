@@ -1,5 +1,6 @@
 import { UbezpieczenieBlok } from "@/components/UbezpieczenieBlok";
 import { Crumbs } from "@/components/Crumbs";
+import { HistoriaBlok } from "@/components/HistoriaBlok";
 import { VinSzukaj } from "@/components/VinSzukaj";
 import { getStats } from "@/lib/queries";
 import { db, listings } from "@auta/db";
@@ -23,10 +24,15 @@ export const revalidate = 86_400;
 const num = new Intl.NumberFormat("pl-PL");
 
 export const metadata: Metadata = {
-  title: "Sprawdź VIN — czy to auto stoi gdzieś taniej",
+  /*
+   * Pod "sprawdz VIN" i "historia pojazdu VIN" (20.10.2026). Wczesniejszy
+   * tytul mowil tylko o porownaniu cen, a ludzie wpisuja te frazy po historie.
+   * Teraz mozemy ja uczciwie zaoferowac — raport carVertical na stronie.
+   */
+  title: "Sprawdź VIN — historia pojazdu i ceny tego samego auta",
   description:
-    "Wklej VIN i sprawdź, czy ten sam egzemplarz nie jest wystawiony w innym miejscu po innej " +
-    "cenie. Porównujemy 26 źródeł poleasingowych po numerze nadwozia.",
+    "Wpisz VIN: sprawdzimy, czy ten sam egzemplarz stoi gdzieś taniej w 26 źródłach " +
+    "poleasingowych, i pokażemy, gdzie sprawdzić historię — szkody, przebiegi, kradzieże.",
   alternates: { canonical: "/vin" },
 };
 
@@ -68,7 +74,7 @@ export default async function VinLanding() {
       <Crumbs items={[{ label: "Sprawdź VIN" }]} />
 
       <h1 className="text-2xl font-bold tracking-tight text-neutral-100">
-        Czy to auto stoi gdzieś taniej?
+        Sprawdź VIN: historia i cena auta
       </h1>
       <p className="mb-5 mt-1 text-sm leading-relaxed text-neutral-400">
         Wklej numer VIN. Sprawdzimy, czy ten sam egzemplarz nie jest wystawiony równocześnie
@@ -110,7 +116,7 @@ export default async function VinLanding() {
             <li>Liczby właścicieli i zdarzeń rejestracyjnych</li>
           </ul>
           <p className="mt-2 text-[13px] leading-relaxed text-neutral-500">
-            Tego szukaj w{" "}
+            Podstawowe dane z CEPiK-u są bezpłatnie w{" "}
             <a
               href="https://historiapojazdu.gov.pl"
               target="_blank"
@@ -118,11 +124,13 @@ export default async function VinLanding() {
               className="underline decoration-dotted underline-offset-2 hover:text-accent"
             >
               historiapojazdu.gov.pl
-            </a>{" "}
-            — oficjalnie i bezpłatnie.
+            </a>
+            , a szkody, przebiegi i kradzieże pokazuje płatny raport carVertical poniżej.
           </p>
         </div>
       </div>
+
+      <HistoriaBlok vin={null} gdzie="vin-strona" wariant="duzy" />
 
       {/*
         OC pod sekcja "czego nie powiemy", bo to ta sama mysl: mowimy wprost,
@@ -144,6 +152,62 @@ export default async function VinLanding() {
           .
         </span>
       </p>
+
+      {/*
+        Pytania pod frazy, z ktorymi ludzie przychodza: "gdzie jest VIN",
+        "sprawdz historie auta za darmo", "raport VIN". Odpowiedzi tylko z tego,
+        co wiemy na pewno — bez obiecywania danych, ktorych nie mamy.
+      */}
+      <section className="mt-10 border-t border-[var(--color-line)] pt-6">
+        <h2 className="mb-4 text-lg font-semibold text-neutral-100">Pytania o VIN</h2>
+        <div className="flex flex-col gap-5 text-[14px] leading-relaxed text-neutral-400">
+          <div>
+            <h3 className="mb-1 font-medium text-neutral-200">Gdzie znaleźć numer VIN?</h3>
+            <p>
+              W dowodzie rejestracyjnym (pole E), na tabliczce znamionowej auta i zwykle pod
+              przednią szybą po stronie kierowcy. Przy autach poleasingowych VIN często jest też
+              wprost w ogłoszeniu — w naszych ofertach pokazujemy go w danych technicznych.
+            </p>
+          </div>
+          <div>
+            <h3 className="mb-1 font-medium text-neutral-200">Ile znaków ma VIN?</h3>
+            <p>
+              Siedemnaście: litery i cyfry, bez liter I, O i Q, żeby nie myliły się z 1 i 0.
+              Pierwsze trzy znaki oznaczają producenta.
+            </p>
+          </div>
+          <div>
+            <h3 className="mb-1 font-medium text-neutral-200">
+              Jak sprawdzić historię auta po VIN za darmo?
+            </h3>
+            <p>
+              W rządowym serwisie historiapojazdu.gov.pl. Oprócz VIN-u potrzebny jest numer
+              rejestracyjny i data pierwszej rejestracji, a dane pochodzą z polskiej Centralnej
+              Ewidencji Pojazdów.
+            </p>
+          </div>
+          <div>
+            <h3 className="mb-1 font-medium text-neutral-200">Co pokazuje płatny raport VIN?</h3>
+            <p>
+              Raport carVertical po samym numerze VIN pokazuje szkody, przebiegi i kradzieże.
+              Usługę sprzedaje carVertical; to link partnerski, a z kodem z przycisku wyżej
+              raport jest 20% tańszy.
+            </p>
+          </div>
+          <div>
+            <h3 className="mb-1 font-medium text-neutral-200">
+              Po co sprawdzać VIN auta poleasingowego?
+            </h3>
+            <p>
+              Ten sam egzemplarz bywa wystawiony równocześnie przez leasingodawcę i dealera,
+              po różnych cenach — w wyszukiwarce wyżej zobaczysz wszystkie jego wystawienia.
+              A auto kupione na aukcji poleasingowej często wraca do sprzedaży u handlarza:
+              jeśli było w naszej bazie, po VIN-ie sprawdzisz, za ile i z jakim przebiegiem
+              wystawiano je wcześniej.
+            </p>
+          </div>
+        </div>
+      </section>
     </main>
   );
 }
