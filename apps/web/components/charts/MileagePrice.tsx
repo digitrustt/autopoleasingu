@@ -39,10 +39,13 @@ const H = 240;
 export function MileagePrice({
   dane,
   highlight,
+  znacznik,
 }: {
   dane: ScatterData;
   /** Id oferty, ktora ma byc wyrozniona — uzywane na stronie oferty. */
   highlight?: number;
+  /** Przebieg do zaznaczenia pionowa linia — "twoje auto" na stronie wyceny. */
+  znacznik?: number;
 }) {
   const id = useId();
   const svgRef = useRef<SVGSVGElement>(null);
@@ -174,6 +177,19 @@ export function MileagePrice({
                 strokeOpacity={0.75}
                 strokeWidth={2}
                 strokeDasharray="6 5"
+                vectorEffect="non-scaling-stroke"
+              />
+            )}
+
+            {znacznik != null && znacznik >= xMin && znacznik <= xMax && (
+              <line
+                x1={sx(znacznik)}
+                x2={sx(znacznik)}
+                y1={0}
+                y2={H}
+                stroke="var(--color-accent)"
+                strokeWidth={1.5}
+                strokeDasharray="3 4"
                 vectorEffect="non-scaling-stroke"
               />
             )}

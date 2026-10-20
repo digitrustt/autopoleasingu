@@ -25,7 +25,16 @@ export interface YearBar {
  * wiec skladaja sie z tekstu, ktory ma byc zaznaczalny i czytany przez
  * czytniki ekranu. SVG wymagaloby recznego pozycjonowania kazdego napisu.
  */
-export function YearBars({ rows, skala }: { rows: YearBar[]; skala?: number }) {
+export function YearBars({
+  rows,
+  skala,
+  wyrozniony,
+}: {
+  rows: YearBar[];
+  skala?: number;
+  /** Rocznik do wyroznienia — np. auto wyceniane na /wycena-samochodu. */
+  wyrozniony?: number;
+}) {
   /*
    * `skala` pozwala narzucic WSPOLNE maksimum dwóm wykresom stojacym obok
    * siebie. Bez tego kazda kolumna na stronie porownania skalowala sie wlasnym
@@ -42,7 +51,11 @@ export function YearBars({ rows, skala }: { rows: YearBar[]; skala?: number }) {
     <ol className="flex flex-col gap-1.5">
       {ordered.map((r) => (
         <li key={r.year} className="group flex items-center gap-3">
-          <span className="w-11 shrink-0 text-right text-[13px] tabular-nums text-neutral-500">
+          <span
+            className={`w-11 shrink-0 text-right text-[13px] tabular-nums ${
+              r.year === wyrozniony ? "font-semibold text-neutral-100" : "text-neutral-500"
+            }`}
+          >
             {r.year}
           </span>
 
@@ -55,7 +68,9 @@ export function YearBars({ rows, skala }: { rows: YearBar[]; skala?: number }) {
               prosta: dlugosc ma sie czytac od jednej linii bazowej.
             */}
             <span
-              className="absolute inset-y-0 left-0 rounded-r-[4px] bg-[var(--chart-1-dim)] transition-colors group-hover:bg-[var(--chart-1)]"
+              className={`absolute inset-y-0 left-0 rounded-r-[4px] transition-colors group-hover:bg-[var(--chart-1)] ${
+                r.year === wyrozniony ? "bg-[var(--chart-1)]" : "bg-[var(--chart-1-dim)]"
+              }`}
               style={{ width: `${Math.max(4, (r.medianPrice / max) * 100)}%` }}
             />
             {/*

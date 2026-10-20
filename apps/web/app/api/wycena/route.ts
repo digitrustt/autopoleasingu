@@ -63,7 +63,8 @@ export async function GET(req: Request) {
       km,
       cena,
       rocznik,
-      lata: lata.map(({ year, total, medianPrice }) => ({ year, n: total, mediana: medianPrice })),
+      // Ksztalt YearBar — idzie prosto do wykresu slupkowego roczników.
+      lata,
       wykres,
       // Tylko pola potrzebne do listy — bez dat, ktore JSON i tak zamienia w napisy.
       podobne: oferty.map((o) => ({
@@ -73,6 +74,8 @@ export async function GET(req: Request) {
         km: o.mileageKm,
         cena: o.priceGross,
         miasto: o.city,
+        zdjecie: o.thumbnailUrl,
+        zrodlo: o.sourceName,
       })),
     },
     { headers: CACHE_DOBA },

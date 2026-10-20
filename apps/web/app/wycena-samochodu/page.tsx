@@ -1,8 +1,9 @@
 import { Crumbs } from "@/components/Crumbs";
-import { Faq, Lista, Sekcja, Uwaga, type Pytanie } from "@/components/Poradnik";
-import { WycenaAuta } from "@/components/WycenaAuta";
+import { Faq, type Pytanie } from "@/components/Poradnik";
+import { type SzybkiWybor, WycenaAuta } from "@/components/WycenaAuta";
 import { cenyPopularnych, filtryMarek, statystykiNaglowka } from "@/lib/cache-filtrow";
-import { modelHref } from "@/lib/slug";
+import { modelHref, slugify } from "@/lib/slug";
+import { BadgeCheck, Database, Fingerprint } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
@@ -48,6 +49,13 @@ const pytania: Pytanie[] = [
   },
 ];
 
+const METODA: [string, string][] = [
+  ["Prawdziwe oferty", "Kilkadziesiąt źródeł poleasingowych zbieranych codziennie — leasingodawcy, dealerzy, aukcje."],
+  ["Tylko „kup teraz”", "Licytacje pomijamy — ich cena to bieżąca stawka, która jeszcze urośnie."],
+  ["Jedno auto, jeden głos", "Ten sam VIN wystawiony w kilku miejscach liczymy raz, po najniższej cenie."],
+  ["Mediana, nie średnia", "Jedna przeszacowana oferta nie przesuwa wyniku. Poniżej 5 aut nie zgadujemy."],
+];
+
 /**
  * "Wycena samochodu", "ile warte jest moje auto".
  *
@@ -55,8 +63,10 @@ const pytania: Pytanie[] = [
  * tabel. My mamy prawdziwe ceny dziesiatek tysiecy ofert i nic nie chcemy
  * w zamian — to jest cala przewaga i tekst ma ja mowic wprost.
  *
- * Tabela popularnych modeli jest renderowana na serwerze, zeby strona miala
- * tresc z liczbami takze dla robota, ktory nie wypelni formularza.
+ * H1 i opis renderuja sie tu, na serwerze, i ida do WycenaAuta jako `children`
+ * — uklad (naglowek obok formularza) trzyma komponent kliencki. Tabela
+ * popularnych modeli tez jest z serwera, zeby strona miala tresc z liczbami
+ * dla robota, ktory nie wypelni formularza.
  */
 export default async function WycenaStrona() {
   await connection();
@@ -66,98 +76,130 @@ export default async function WycenaStrona() {
     cenyPopularnych(),
   ]);
 
+  // Przyklady do jednego klikniecia: typowe auto z leasingu — cztery lata, ok. 90 tys. km.
+  const rokPrzykladu = popularne.lata[Math.min(4, popularne.lata.length - 1)];
+  const iRok = popularne.lata.indexOf(rokPrzykladu);
+  const szybkie: SzybkiWybor[] = popularne.modele
+    .filter((m) => m.ceny[iRok] != null)
+    .slice(0, 4)
+    .map((m) => ({
+      etykieta: `${m.make} ${m.model} ${rokPrzykladu}`,
+      marka: m.make,
+      model: slugify(m.model),
+      rok: rokPrzykladu,
+      km: 90_000,
+    }));
+
   return (
-    <main className="mx-auto max-w-[1000px] px-4 py-6">
+    <main className="mx-auto max-w-[1200px] px-4 py-6">
       <Crumbs items={[{ label: "Wycena samochodu" }]} />
 
-      <h1 className="mb-2 text-2xl font-bold tracking-tight text-neutral-100">
-        Wycena samochodu — ile warte jest twoje auto
-      </h1>
-      <p className="mb-6 max-w-[72ch] text-[15px] leading-relaxed text-neutral-400">
-        Wycena na prawdziwych cenach, nie z tabelki: porównujemy twoje auto z ofertami tego samego modelu,
-        rocznika i przebiegu z naszej bazy — dziś {num.format(stats.active)} aktualnych ofert, plus te
-        już sprzedane. Bez telefonu i maila.
-      </p>
+      <WycenaAuta marki={marki} szybkie={szybkie}>
+        <h1 className="text-3xl font-bold tracking-tight text-neutral-100 sm:text-4xl">
+          Ile warte jest twoje auto?
+        </h1>
+        <p className="mt-3 max-w-[56ch] text-[15px] leading-relaxed text-neutral-400">
+          Wycena samochodu na prawdziwych cenach, nie z tabelki: porównujemy twoje auto z ofertami tego samego
+          modelu, rocznika i przebiegu. Wynik w sekundę.
+        </p>
+        <ul className="mt-6 flex flex-col gap-3 text-[14px] text-neutral-300">
+          <li className="flex items-center gap-3">
+            <Database size={18} className="shrink-0 text-[var(--chart-1)]" />
+            <span>
+              <strong className="font-semibold text-neutral-100">{num.format(stats.active)}</strong> aktualnych ofert
+              i dziesiątki tysięcy sprzedanych
+            </span>
+          </li>
+          <li className="flex items-center gap-3">
+            <Fingerprint size={18} className="shrink-0 text-[var(--chart-1)]" />
+            <span>To samo auto w kilku serwisach liczymy raz — po numerze VIN</span>
+          </li>
+          <li className="flex items-center gap-3">
+            <BadgeCheck size={18} className="shrink-0 text-[var(--chart-1)]" />
+            <span>Bez telefonu, maila i rejestracji</span>
+          </li>
+        </ul>
+      </WycenaAuta>
 
-      <WycenaAuta marki={marki} />
-
-      <div className="mt-12">
-        <Sekcja tytul="Ile kosztują popularne modele — mediana cen ofert">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[640px] text-left text-[13px]">
-              <thead className="text-neutral-500">
-                <tr className="border-b border-[var(--color-line)]">
-                  <th className="py-2 pr-3 font-medium">Model</th>
-                  {popularne.lata.map((y) => (
-                    <th key={y} className="py-2 pr-3 text-right font-medium">
-                      {y}
-                    </th>
+      <section className="mt-16">
+        <h2 className="text-xl font-semibold text-neutral-100">Ile kosztują popularne modele</h2>
+        <p className="mb-4 mt-1 text-[13px] text-neutral-500">
+          Mediana cen ofert „kup teraz” według rocznika, z ofert aktualnych i sprzedanych. Puste pole — mniej niż
+          pięć aut. Odświeżane raz na dobę.
+        </p>
+        <div className="overflow-x-auto rounded-xl border border-[var(--color-line)]">
+          <table className="w-full min-w-[720px] text-sm">
+            <thead>
+              <tr className="border-b border-[var(--color-line)] bg-[var(--color-panel)] text-left text-[11px] uppercase tracking-wide text-neutral-600">
+                <th className="sticky left-0 bg-[var(--color-panel)] px-4 py-2.5 font-medium">Model</th>
+                {popularne.lata.map((y) => (
+                  <th key={y} className="px-4 py-2.5 text-right font-medium">
+                    {y}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {popularne.modele.map((m) => (
+                <tr
+                  key={`${m.make}|${m.model}`}
+                  className="border-b border-[var(--color-line)] last:border-0 hover:bg-[var(--color-panel)]"
+                >
+                  <td className="sticky left-0 bg-[var(--color-ink)] px-4 py-2.5 font-medium">
+                    <Link href={modelHref(m.make, m.model)} className="text-neutral-200 hover:text-accent">
+                      {m.make} {m.model}
+                    </Link>
+                  </td>
+                  {m.ceny.map((c, i) => (
+                    <td key={popularne.lata[i]} className="px-4 py-2.5 text-right tabular-nums text-neutral-300">
+                      {c != null ? zl.format(c) : <span className="text-neutral-700">—</span>}
+                    </td>
                   ))}
                 </tr>
-              </thead>
-              <tbody>
-                {popularne.modele.map((m) => (
-                  <tr key={`${m.make}|${m.model}`} className="border-b border-[var(--color-line)]/60">
-                    <td className="py-2 pr-3">
-                      <Link href={modelHref(m.make, m.model)} className="text-neutral-200 hover:text-accent">
-                        {m.make} {m.model}
-                      </Link>
-                    </td>
-                    {m.ceny.map((c, i) => (
-                      <td key={popularne.lata[i]} className="py-2 pr-3 text-right text-neutral-300">
-                        {c != null ? zl.format(c) : <span className="text-neutral-600">—</span>}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <p className="text-[13px] text-neutral-500">
-            Mediana cen ofert „kup teraz” według rocznika, z ofert aktualnych i sprzedanych; puste pole — mniej
-            niż pięć aut. Odświeżane raz na dobę.
-          </p>
-        </Sekcja>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
 
-        <Sekcja tytul="Skąd biorą się te liczby">
-          <Lista>
-            <li>
-              Oferty aut poleasingowych z{" "}
-              <Link href="/zrodla" className={a}>
-                kilkudziesięciu źródeł
-              </Link>{" "}
-              zbierane codziennie — leasingodawcy, dealerzy, platformy aukcyjne.
-            </li>
-            <li>Tylko ceny „kup teraz” — licytacje pomijamy, bo ich cena jeszcze rośnie.</li>
-            <li>Ten sam egzemplarz (ten sam VIN) wystawiony w kilku miejscach liczymy raz, po najniższej cenie.</li>
-            <li>Auta podobne do twojego: ten sam model i rocznik, przebieg ±25 tys. km, opcjonalnie to samo paliwo.</li>
-            <li>Mediana zamiast średniej — jedna przeszacowana oferta nie przesuwa wyniku.</li>
-          </Lista>
-        </Sekcja>
-
-        <Uwaga>
-          Wycena pokazuje, za ile podobne auta są wystawiane przez firmy. Nie widzi stanu twojego egzemplarza:
-          historii serwisowej, uszkodzeń, wyposażenia. Sprzedając prywatnie, licz się z ceną niższą od mediany,
-          a w skupie — wyraźnie niższą.
-        </Uwaga>
-
-        <Faq pytania={pytania} />
-
-        <p className="text-[14px] text-neutral-400">
-          Zobacz też:{" "}
-          <Link href="/analizy/utrata-wartosci" className={a}>
-            utrata wartości aut po roczniku
-          </Link>{" "}
-          ·{" "}
-          <Link href="/kalkulator-pcc-samochodu" className={a}>
-            kalkulator PCC i opłat rejestracyjnych
-          </Link>{" "}
-          ·{" "}
-          <Link href="/vin" className={a}>
-            sprawdź VIN
+      <section className="mt-14">
+        <h2 className="mb-4 text-xl font-semibold text-neutral-100">Skąd biorą się te liczby</h2>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {METODA.map(([t, o]) => (
+            <div key={t} className="rounded-xl border border-[var(--color-line)] bg-[var(--color-panel)] p-4">
+              <p className="font-medium text-neutral-100">{t}</p>
+              <p className="mt-1 text-[13px] leading-relaxed text-neutral-400">{o}</p>
+            </div>
+          ))}
+        </div>
+        <p className="mt-4 max-w-[80ch] text-[13px] leading-relaxed text-neutral-500">
+          Wycena nie widzi stanu twojego egzemplarza — historii serwisowej, uszkodzeń, wyposażenia. Pełna lista
+          źródeł:{" "}
+          <Link href="/zrodla" className={a}>
+            skąd bierzemy oferty
           </Link>
+          .
         </p>
+      </section>
+
+      <div className="mt-14">
+        <Faq pytania={pytania} />
       </div>
+
+      <p className="text-[14px] text-neutral-400">
+        Zobacz też:{" "}
+        <Link href="/analizy/utrata-wartosci" className={a}>
+          utrata wartości aut po roczniku
+        </Link>{" "}
+        ·{" "}
+        <Link href="/kalkulator-pcc-samochodu" className={a}>
+          kalkulator PCC i opłat rejestracyjnych
+        </Link>{" "}
+        ·{" "}
+        <Link href="/vin" className={a}>
+          sprawdź VIN
+        </Link>
+      </p>
     </main>
   );
 }
