@@ -67,13 +67,33 @@ export async function generateMetadata({
   const { statsA, statsB } = await dane(p);
   const nazwaA = `${p.a.make} ${p.a.model}`;
   const nazwaB = `${p.b.make} ${p.b.model}`;
-  const title = `${nazwaA} czy ${nazwaB} — ceny po leasingu`;
+  /*
+   * TYTUL I OPIS POD PYTANIE, NIE POD NASZ TEMAT (21.10.2026).
+   *
+   * Search Console, 28 dni: strony porownan mialy ~7 tys. wyswietlen (35%
+   * wszystkich) na pozycjach 7–9 i CTR ~0,4%. Ludzie wpisuja "sportage vs
+   * rav4", "czym sie rozni", "ktory lepszy" — a wynik mowil "ceny po
+   * leasingu", czyli odpowiadal na pytanie, ktorego nikt nie zadal. Teraz
+   * tytul mowi "porownanie", a opis od razu daje werdykt z liczbami.
+   */
+  const dlugi = `${nazwaA} czy ${nazwaB}? Porównanie: ceny, przebiegi, roczniki`;
+  const title = dlugi.length <= 70 ? dlugi : `${nazwaA} vs ${nazwaB} — porównanie cen i przebiegów`;
+  const pA = statsA.medianPrice;
+  const pB = statsB.medianPrice;
+  const kmA = statsA.medianMileage;
+  const kmB = statsB.medianMileage;
   const description =
-    `Porównanie cen ${nazwaA} i ${nazwaB} po leasingu: ` +
-    (statsA.medianPrice ? `mediana ${pln.format(statsA.medianPrice)} ` : "") +
-    `(${num.format(statsA.total)} ofert) kontra ` +
-    (statsB.medianPrice ? `${pln.format(statsB.medianPrice)} ` : "") +
-    `(${num.format(statsB.total)} ofert). Dane z 26 źródeł, aktualizowane codziennie.`;
+    pA != null && pB != null
+      ? `${nazwaA} vs ${nazwaB}: mediana ceny ${pln.format(pA)} kontra ${pln.format(pB)}` +
+        (pA !== pB
+          ? ` — ${pln.format(Math.abs(pA - pB))} różnicy na korzyść ${pA < pB ? nazwaA : nazwaB}`
+          : "") +
+        (kmA != null && kmB != null
+          ? `. Typowy przebieg: ${num.format(kmA)} km kontra ${num.format(kmB)} km`
+          : "") +
+        `. Porównanie ${num.format(statsA.total + statsB.total)} ofert, aktualizowane codziennie.`
+      : `Porównanie ${nazwaA} i ${nazwaB} na ofertach poleasingowych: ${num.format(statsA.total)} kontra ` +
+        `${num.format(statsB.total)} ofert, ceny według rocznika. Dane z 26 źródeł, aktualizowane codziennie.`;
 
   return {
     title,
