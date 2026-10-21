@@ -46,7 +46,12 @@ export interface MercedesCard {
 }
 
 function parseCard(card: string): MercedesCard | null {
-  const link = card.match(/href="(vehicle\?[^"]+)"/);
+  /*
+   * Link bywa wzgledny ("vehicle?...") albo — od wrzesnia 2026 — pelny
+   * ("https://certified.mercedes-benz.pl/vehicle?..."). Sam wzgledny wzorzec
+   * odrzucal wszystkie karty i discover zwracal pusto od 15.09 do 21.10.
+   */
+  const link = card.match(/href="(?:https:\/\/certified\.mercedes-benz\.pl\/)?(vehicle\?[^"]+)"/);
   const idMatch = link?.[1].match(/vehicle=(\d+)/);
   if (!link || !idMatch) return null;
 
