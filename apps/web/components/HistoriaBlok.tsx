@@ -2,6 +2,7 @@
 
 import { track } from "@/components/Analytics";
 import { ArrowUpRight, FileSearch, ShieldCheck } from "lucide-react";
+import { otworzPartnera } from "@/lib/wyjscie";
 
 /**
  * Raport historii pojazdu u partnera (carVertical) — przy VIN-ie.
@@ -70,7 +71,7 @@ export function HistoriaBlok({
 
   const otworz = () => {
     track("historia_klik", { gdzie, vin: vin ?? null, zrodlo: sourceId ?? null, wariant });
-    window.open(href, "_blank", "noopener,noreferrer");
+    otworzPartnera(href);
   };
 
   if (wariant === "duzy") {

@@ -16,6 +16,7 @@ import {
 import { ArrowUpRight, Bell, Briefcase, Landmark, ShieldCheck, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { otworzPartnera } from "@/lib/wyjscie";
 
 /**
  * Nakladka z propozycja zapisu. Dwa wyzwalacze: druga obejrzana oferta ALBO
@@ -370,7 +371,7 @@ export function ZapisPopup() {
             type="button"
             onClick={() => {
               track("finansowanie_klik", { gdzie: "popup", powod, oferta: kontekst.id ?? null });
-              window.open(kredyt, "_blank", "noopener,noreferrer");
+              otworzPartnera(kredyt);
             }}
             className="group flex w-full items-center gap-3 p-4 text-left transition-colors hover:bg-[var(--color-panel)]"
           >
@@ -393,7 +394,7 @@ export function ZapisPopup() {
               type="button"
               onClick={() => {
                 track("leasing_klik", { gdzie: "popup", powod, oferta: kontekst.id ?? null });
-                window.open(leasing, "_blank", "noopener,noreferrer");
+                otworzPartnera(leasing);
               }}
               className={`group flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-[13px] transition-colors hover:bg-[var(--color-panel)] ${
                 kredyt ? "border-t border-[var(--color-line)]" : ""
@@ -442,7 +443,7 @@ export function ZapisPopup() {
                   wariant: "popup",
                   powod,
                 });
-                window.open(historia, "_blank", "noopener,noreferrer");
+                otworzPartnera(historia);
               }}
               className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg bg-accent px-4 py-2.5 text-sm font-medium text-black transition-colors hover:bg-white"
             >

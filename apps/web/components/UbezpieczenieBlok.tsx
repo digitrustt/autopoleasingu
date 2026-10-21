@@ -2,6 +2,7 @@
 
 import { track } from "@/components/Analytics";
 import { ArrowUpRight, ShieldCheck } from "lucide-react";
+import { otworzPartnera } from "@/lib/wyjscie";
 
 /**
  * Link partnerski do porownywarki OC/AC.
@@ -56,7 +57,7 @@ export function UbezpieczenieBlok({
         // Przycisk zamiast odnosnika — patrz komentarz w FinansowanieBlok.
         onClick={() => {
           track("oc_klik", { gdzie });
-          window.open(href, "_blank", "noopener,noreferrer");
+          otworzPartnera(href);
         }}
         className="group flex w-full items-center justify-between gap-3 text-left"
       >

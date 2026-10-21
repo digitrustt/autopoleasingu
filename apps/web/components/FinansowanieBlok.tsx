@@ -2,6 +2,7 @@
 
 import { track } from "@/components/Analytics";
 import { ArrowUpRight, Briefcase, Landmark } from "lucide-react";
+import { otworzPartnera } from "@/lib/wyjscie";
 
 /**
  * Link partnerski do kredytu samochodowego, pod przyciskiem wyjscia do sprzedawcy.
@@ -88,7 +89,7 @@ export function FinansowanieBlok({
          */
         onClick={() => {
           track("finansowanie_klik", { oferta: ofertaId, cena });
-          window.open(href, "_blank", "noopener,noreferrer");
+          otworzPartnera(href);
         }}
         className="group flex w-full items-center justify-between gap-3 text-left"
       >
@@ -127,7 +128,7 @@ export function FinansowanieBlok({
           type="button"
           onClick={() => {
             track("leasing_klik", { oferta: ofertaId, cena, gdzie: "oferta" });
-            window.open(leasing, "_blank", "noopener,noreferrer");
+            otworzPartnera(leasing);
           }}
           className={`group flex w-full items-center justify-between gap-3 text-left ${
             href ? "border-t border-neutral-800 pt-3" : ""

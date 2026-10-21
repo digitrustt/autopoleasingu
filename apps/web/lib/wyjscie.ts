@@ -44,3 +44,23 @@ export function adresWyjscia(url: string, sourceId: string | null): string {
     return url;
   }
 }
+
+/**
+ * Otwiera strone partnera (kredyt, leasing, raport, OC) w nowej karcie, a gdy
+ * przegladarka ja zablokuje — w tej samej.
+ *
+ * DLACZEGO (22.10.2026): przyciski partnerow wolaly window.open z cechami
+ * "noopener,noreferrer". Z `noopener` window.open ZAWSZE zwraca null, wiec nie
+ * dalo sie poznac, ze karta sie nie otworzyla. PostHog: Chrome na Androidzie
+ * z wejsciem z Google, 10 klikniec w leasing w 11 sekund na jednej ofercie —
+ * przycisk nic nie robil, czlowiek klikal w kolko. Przycisk do sprzedawcy
+ * (ZapisPopup.przejdz) mial juz ten zapas; teraz maja go wszystkie.
+ *
+ * Bez cech okna dostajemy uchwyt, a `opener = null` daje to samo
+ * bezpieczenstwo co `noopener`.
+ */
+export function otworzPartnera(href: string): void {
+  const okno = window.open(href, "_blank");
+  if (okno) okno.opener = null;
+  else window.location.href = href;
+}
