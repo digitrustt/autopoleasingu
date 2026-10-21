@@ -82,8 +82,13 @@ export interface VtpConfig {
   pattern: string;
   /** Publiczna witryna marki — Origin/Referer oraz baza adresow ofert. */
   site: string;
-  /** Sciezka listy ofert na witrynie; adres oferty budujemy z jej parametrem. */
-  offerPath: string;
+  /**
+   * Poczatek adresu oferty; doklejamy `carid`. Zmienione 21.10.2026: stary
+   * format ".../szczegoly?car=<key>" zwracal 404 na wszystkich ofertach SEAT-a
+   * i CUPRY (sklepy przeszly na ".../w/offer/used/<carid>", CUPRA dodatkowo
+   * na cupra.com). Sprawdzone w przegladarce: przebieg na stronie = w bazie.
+   */
+  offerBase: string;
   /** Marka do wpisania w bazie. Stock jest dedykowany marce, wiec jest stala. */
   make: string;
 }
@@ -155,7 +160,7 @@ function collect(cfg: VtpConfig, res: VtpResponse, into: Map<string, ListingRef>
     into.set(car.carid, {
       sourceId: cfg.id,
       externalId: car.carid,
-      url: `${cfg.site}${cfg.offerPath}${encodeURIComponent(car.key)}`,
+      url: `${cfg.offerBase}${encodeURIComponent(car.carid)}`,
       payload: car,
     });
     fresh++;
@@ -265,7 +270,7 @@ export const seat = makeVtpAdapter({
   stockType: "stplgwb",
   pattern: "seatwebfe",
   site: "https://www.seat.pl",
-  offerPath: "/oferta/auta-od-reki/szczegoly?car=",
+  offerBase: "https://www.seat.pl/oferta/auta-od-reki/w/offer/used/",
   make: "Seat",
 });
 
@@ -275,6 +280,6 @@ export const cupra = makeVtpAdapter({
   stockType: "cuplgwb",
   pattern: "cuprawebfe",
   site: "https://www.cupraofficial.pl",
-  offerPath: "/oferta/cupra-approved/szczegoly?car=",
+  offerBase: "https://www.cupra.com/pl-pl/oferta/samochody/w/offer/used/",
   make: "Cupra",
 });
