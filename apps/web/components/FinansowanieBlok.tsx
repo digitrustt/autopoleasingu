@@ -27,6 +27,18 @@ import { ArrowUpRight, Landmark } from "lucide-react";
  * decyzji) — to warunki innej kampanii i przeniesienie ich tutaj byloby
  * wprowadzaniem w blad.
  */
+/**
+ * Link partnera kredytu z etykieta, ktora wraca w raporcie sieci (`etykieta_`).
+ * Etykieta mowi, KTORE miejsce i KTORE auto dalo konwersje — "oferta-123"
+ * z bloku przy ofercie, "popup-oferta-123" z nakladki przed wyjsciem.
+ * null = link nieskonfigurowany.
+ */
+export function linkKredytu(etykieta: string): string | null {
+  const bazowy = process.env.NEXT_PUBLIC_AFILIACJA_KREDYT;
+  if (!bazowy) return null;
+  return `${bazowy}${bazowy.includes("?") ? "&" : "?"}etykieta_=${encodeURIComponent(etykieta)}`;
+}
+
 export function FinansowanieBlok({
   ofertaId,
   cena,
@@ -37,17 +49,13 @@ export function FinansowanieBlok({
   /** "BMW Seria 3" — nazwa TEGO auta, nie ogolnik. Patrz komentarz nizej. */
   nazwa: string;
 }) {
-  const bazowy = process.env.NEXT_PUBLIC_AFILIACJA_KREDYT;
-  // Bez skonfigurowanego linku nie renderujemy nic — lepiej brak sekcji niz martwy odnosnik.
-  if (!bazowy) return null;
-
   /*
-   * `etykieta_` wraca w raporcie sieci, wiec wysylamy w niej identyfikator oferty.
-   * Dzieki temu po konwersji wiadomo, KTORE auto ja wygenerowalo — czy kredyty
-   * biora ogladajacy auta za 250 tys., czy za 60 tys. Bez tego mielibysmy sama
-   * liczbe umow bez informacji, gdzie je postawic.
+   * Identyfikator oferty w etykiecie: po konwersji wiadomo, KTORE auto ja
+   * wygenerowalo — czy kredyty biora ogladajacy auta za 250 tys., czy za 60 tys.
    */
-  const href = `${bazowy}${bazowy.includes("?") ? "&" : "?"}etykieta_=oferta-${ofertaId}`;
+  const href = linkKredytu(`oferta-${ofertaId}`);
+  // Bez skonfigurowanego linku nie renderujemy nic — lepiej brak sekcji niz martwy odnosnik.
+  if (!href) return null;
 
   return (
     <div className="mt-3 rounded-lg border border-neutral-700 bg-[var(--color-ink)] p-3">

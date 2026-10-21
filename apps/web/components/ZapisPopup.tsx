@@ -1,6 +1,7 @@
 "use client";
 
 import { track } from "@/components/Analytics";
+import { linkKredytu } from "@/components/FinansowanieBlok";
 import { KOD_HISTORII, linkHistorii } from "@/components/HistoriaBlok";
 import { ZapisForm } from "@/components/ZapisForm";
 import { banerWidoczny } from "@/lib/consent";
@@ -12,7 +13,7 @@ import {
   SYGNAL_PRZED_WYJSCIEM,
   biezacaOferta,
 } from "@/lib/zapis-sygnal";
-import { ArrowUpRight, Bell, ShieldCheck, X } from "lucide-react";
+import { ArrowUpRight, Bell, Landmark, ShieldCheck, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -309,6 +310,21 @@ export function ZapisPopup() {
    */
   const historia = kontekst.vin ? linkHistorii(kontekst.vin) : null;
 
+  /*
+   * Kredyt (21.10.2026) — NAD raportem, bo jedno klikniecie jest warte
+   * kilkadziesiat razy wiecej (prowizja od kwoty kredytu przy medianie
+   * ~120 tys. zl, kontra 4 EUR za raport). PostHog, 30 dni: 1374 wyjscia do
+   * sprzedawcy i tylko 19 klikniec w kredyt z bocznej kolumny oferty — czyli
+   * moment decyzji byl, a propozycji w nim nie bylo.
+   *
+   * Te same warunki co FinansowanieBlok (oferta aktywna, cena "kup teraz")
+   * i ta sama zasada: ZADNEJ kwoty raty — liczba uruchamia obowiazek RRSO
+   * i przykladu reprezentatywnego. Etykieta "popup-oferta-ID" rozdziela
+   * konwersje z nakladki od tych z bloku przy ofercie w raporcie sieci.
+   */
+  const kredyt =
+    kontekst.kredyt && kontekst.id != null ? linkKredytu(`popup-oferta-${kontekst.id}`) : null;
+
   return (
     <div
       className={`fixed inset-0 z-50 flex items-end justify-center p-4 transition-opacity duration-150 sm:items-center ${
@@ -327,7 +343,11 @@ export function ZapisPopup() {
         role="dialog"
         aria-modal="true"
         aria-labelledby="zapis-popup-tytul"
-        className={`relative w-full max-w-[460px] rounded-2xl border border-[var(--color-line)] bg-[var(--color-panel)] p-6 shadow-2xl transition-transform duration-150 ${
+        /*
+          max-h + przewijanie: z rata, raportem i zapisem okno bywa wyzsze niz
+          ekran malego telefonu — bez tego "przejdz bez zapisu" wypadal poza ekran.
+        */
+        className={`relative max-h-[calc(100dvh-2rem)] w-full max-w-[460px] overflow-y-auto rounded-2xl border border-[var(--color-line)] bg-[var(--color-panel)] p-6 shadow-2xl transition-transform duration-150 ${
           wjechal ? "translate-y-0" : "translate-y-2"
         }`}
       >
@@ -340,8 +360,34 @@ export function ZapisPopup() {
           <X size={16} />
         </button>
 
+        {kredyt && (
+          <button
+            type="button"
+            onClick={() => {
+              track("finansowanie_klik", { gdzie: "popup", powod, oferta: kontekst.id ?? null });
+              window.open(kredyt, "_blank", "noopener,noreferrer");
+            }}
+            className="group mb-3 mr-8 flex w-[calc(100%-2rem)] items-center gap-3 rounded-xl border border-[var(--color-line)] bg-[var(--color-ink)] p-4 text-left transition-colors hover:border-neutral-500"
+          >
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--color-panel)] text-neutral-200">
+              <Landmark size={17} />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[15px] font-semibold text-neutral-100">
+                {kontekst.nazwa ? `Sfinansuj to ${kontekst.nazwa}` : "Sfinansuj to auto"}
+              </span>
+              <span className="mt-0.5 block text-[13px] text-neutral-400">
+                Sprawdź swoją ratę online · <span className="text-neutral-600">link partnerski</span>
+              </span>
+            </span>
+            <ArrowUpRight size={17} className="shrink-0 text-neutral-500 transition-colors group-hover:text-accent" />
+          </button>
+        )}
+
         {historia && (
-          <section className="mb-5 mr-8 rounded-xl border border-accent/40 bg-accent/5 p-4">
+          <section
+            className={`mb-5 rounded-xl border border-accent/40 bg-accent/5 p-4 ${kredyt ? "" : "mr-8"}`}
+          >
             <p className="flex flex-wrap items-center gap-2 text-[15px] font-semibold text-neutral-100">
               <ShieldCheck size={16} className="shrink-0 text-accent" />
               Sprawdź historię tego auta przed zakupem
@@ -417,7 +463,7 @@ export function ZapisPopup() {
             label={t.label}
             filters={t.filters}
             /* Klawiatura na telefonie zaslonilaby blok raportu historii. */
-            autoFocus={!historia}
+            autoFocus={!historia && !kredyt}
             przycisk={doOferty ? "Powiadom i przejdź" : "Powiadom mnie"}
             onSubmitStart={przejdz}
             onDone={() => {

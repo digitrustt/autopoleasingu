@@ -373,7 +373,7 @@ export default async function OfferPage({ params }: { params: Promise<{ id: stri
             wariant="duzy"
           />
           {/* VIN dla nakladki zapisu po drugiej ofercie — patrz ZapisPopup. */}
-          <BiezacaOferta vin={o.vin} />
+          <BiezacaOferta vin={o.vin} id={o.id} nazwa={name} kredyt={!gone && o.priceGross != null} />
 
           <section className="mt-6">
             {/*
@@ -671,6 +671,9 @@ export default async function OfferPage({ params }: { params: Promise<{ id: stri
                 zrodlo: o.sourceId,
                 cena: o.priceGross,
                 vin: o.vin,
+                id: o.id,
+                // Te same warunki co FinansowanieBlok przy cenie.
+                kredyt: !gone && o.priceGross != null,
               }}
               offer={{
                 id: o.id,

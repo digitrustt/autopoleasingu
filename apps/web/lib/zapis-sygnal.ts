@@ -42,6 +42,10 @@ export interface KontekstWyjscia {
   cena?: number | null;
   /** Gdy jest — nakladka proponuje raport historii carVertical po tym VIN-ie. */
   vin?: string | null;
+  /** Id oferty — do etykiety linku kredytu (ktora oferta dala konwersje). */
+  id?: number;
+  /** true = oferta aktywna z cena "kup teraz": nakladka proponuje sprawdzenie raty. */
+  kredyt?: boolean;
 }
 
 /**
