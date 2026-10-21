@@ -16,6 +16,7 @@ import { WOJEWODZTWA, type Wojewodztwo, wojewodztwoMiejsca } from "@/lib/wojewod
 import { Building2, Map as MapIcon, MapPin, TrendingDown } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { nazwaGlowna, slugMiasta } from "@/lib/miasta";
 
 const pln = new Intl.NumberFormat("pl-PL", {
   style: "currency",
@@ -38,11 +39,11 @@ export async function miejscaWojewodztwa(w: Wojewodztwo) {
 
   const miasta = new Map<string, { city: string; total: number }>();
   for (const m of moje) {
-    const key = slugify(m.city ?? "");
+    const key = slugMiasta(m.city ?? "");
     const juz = miasta.get(key);
     // Zapytanie sortuje malejaco, wiec pierwszy wariant jest dominujacy.
     if (juz) juz.total += m.total;
-    else miasta.set(key, { city: m.city ?? "", total: m.total });
+    else miasta.set(key, { city: nazwaGlowna(m.city ?? ""), total: m.total });
   }
 
   return {

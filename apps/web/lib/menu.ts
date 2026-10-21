@@ -1,3 +1,4 @@
+import { nazwaGlowna } from "@/lib/miasta";
 import { getCitiesWithCounts, getMakesWithCounts, getSources } from "@/lib/queries";
 import { unstable_cache } from "next/cache";
 
@@ -23,7 +24,20 @@ export const getMenuData = unstable_cache(
     ]);
     return {
       marki: marki.slice(0, 24),
-      miasta: miasta.slice(0, 16),
+      // Warianty jednego miasta ("Warszawa", "Zeran") jako jedna pozycja — patrz lib/miasta.ts.
+      miasta: [
+        ...miasta
+          .reduce((acc, m) => {
+            const nazwa = nazwaGlowna(m.city ?? "");
+            const juz = acc.get(nazwa);
+            if (juz) juz.total += m.total;
+            else acc.set(nazwa, { ...m, city: nazwa });
+            return acc;
+          }, new Map<string, (typeof miasta)[number]>())
+          .values(),
+      ]
+        .sort((a, b) => b.total - a.total)
+        .slice(0, 16),
       zrodla: zrodla.filter((z) => z.active > 0).slice(0, 10),
     };
   },

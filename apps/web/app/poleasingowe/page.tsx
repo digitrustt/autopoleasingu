@@ -10,6 +10,7 @@ import { MapPin } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
+import { nazwaGlowna, slugMiasta } from "@/lib/miasta";
 
 /*
  * Odswiezanie RAZ NA DOBE, nie co godzine.
@@ -98,8 +99,8 @@ export default async function CitiesPage() {
   ];
 
   // Warianty zapisu tej samej nazwy scalamy — patrz strona miasta.
-  const grupy = [...groupBySlug(miasta, (m) => m.city ?? "").values()].map((g) => ({
-    city: g[0].city ?? "",
+  const grupy = [...groupBySlug(miasta, (m) => nazwaGlowna(m.city ?? "")).values()].map((g) => ({
+    city: nazwaGlowna(g[0].city ?? ""),
     total: g.reduce((n, x) => n + x.total, 0),
     minPrice: g.map((x) => x.minPrice).filter((v): v is number => v != null).sort((a, b) => a - b)[0] ?? null,
   }));
@@ -241,7 +242,7 @@ export default async function CitiesPage() {
         {grupy.map((m) => (
           <li key={m.city}>
             <Link
-              href={`/poleasingowe/${slugify(m.city)}`}
+              href={`/poleasingowe/${slugMiasta(m.city)}`}
               className="group flex h-full flex-col justify-between gap-1 rounded-xl border border-[var(--color-line)] bg-[var(--color-panel)] px-3 py-2.5 transition-colors hover:border-neutral-600 hover:bg-[var(--color-ink)]"
             >
               <span className="text-sm font-medium leading-tight text-neutral-100">{m.city}</span>

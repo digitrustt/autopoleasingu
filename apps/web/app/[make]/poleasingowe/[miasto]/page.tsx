@@ -4,7 +4,8 @@ import { MiastaLista } from "@/components/MiastaLista";
 import { OfferCard } from "@/components/OfferCard";
 import { StatStrip } from "@/components/StatStrip";
 import { ZapisPasek } from "@/components/ZapisPasek";
-import { zgrupujParyMarkaMiasto } from "@/lib/marka-miasto";
+import { makaMiastoHref, zgrupujParyMarkaMiasto } from "@/lib/marka-miasto";
+import { slugMiasta } from "@/lib/miasta";
 import {
   getCityMakes,
   getListings,
@@ -15,7 +16,7 @@ import {
 import { makeHref, resolveSlug, slugify } from "@/lib/slug";
 import { Building2, MapPin, TrendingDown } from "lucide-react";
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { oferty } from "@/lib/format";
 
 /*
@@ -64,6 +65,28 @@ async function resolve(makeSlug: string, miastoSlug: string) {
   const inneParyTejMarki = wszystkie.filter((p) => p.make === make && p.citySlug !== para.citySlug);
 
   return { make, para, inneParyTejMarki };
+}
+
+/**
+ * Wariant miasta, ktory mial wlasna strone (patrz lib/miasta.ts), przekierowujemy
+ * na pare z miastem glownym — ale tylko gdy ta istnieje (przekracza prog),
+ * inaczej przekierowanie prowadziloby prosto na 404.
+ */
+async function przekierowanie(makeSlug: string, miastoSlug: string): Promise<string | null> {
+  const [makes, pary] = await Promise.all([getMakesWithCounts(), getMakeCityPairs()]);
+  const make = resolveSlug(
+    makes.map((m) => m.make),
+    makeSlug,
+  );
+  if (!make) return null;
+  const s = slugify(miastoSlug);
+  const wariant = pary.find(
+    (p) => p.make === make && p.city && slugify(p.city) === s && slugMiasta(p.city) !== s,
+  );
+  if (!wariant?.city) return null;
+  const cel = slugMiasta(wariant.city);
+  const istnieje = zgrupujParyMarkaMiasto(pary).some((p) => p.make === make && p.citySlug === cel);
+  return istnieje ? makaMiastoHref(make, wariant.city) : null;
 }
 
 export async function generateMetadata({
@@ -117,7 +140,12 @@ export default async function MarkaMiastoPage({
 }) {
   const { make: makeSlug, miasto: miastoSlug } = await params;
   const found = await resolve(makeSlug, miastoSlug);
-  if (!found) notFound();
+  if (!found) {
+    // Stary adres wariantu ("/bmw/poleasingowe/zeran") -> strona miasta glownego.
+    const docelowy = await przekierowanie(makeSlug, miastoSlug);
+    if (docelowy) permanentRedirect(docelowy);
+    notFound();
+  }
   const { make, para, inneParyTejMarki } = found;
 
   const [stats, oferty, inneMarki] = await Promise.all([

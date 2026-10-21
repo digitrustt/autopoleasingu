@@ -9,6 +9,7 @@ import { getFilterCities, getFilterMakes, getFilterStats, getListings } from "@/
 import { makeHref, slugify } from "@/lib/slug";
 import { Layers, MapPin, SlidersHorizontal, TrendingDown } from "lucide-react";
 import Link from "next/link";
+import { slugMiasta } from "@/lib/miasta";
 
 const pln = new Intl.NumberFormat("pl-PL", {
   style: "currency",
@@ -90,7 +91,7 @@ export async function KategoriaWidok({ k }: { k: Kategoria }) {
           <MiastaLista
             miasta={miasta.map((m) => ({
               city: m.city ?? "",
-              href: `/poleasingowe/${slugify(m.city ?? "")}`,
+              href: `/poleasingowe/${slugMiasta(m.city ?? "")}`,
               total: m.total,
             }))}
           />

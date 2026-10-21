@@ -6,6 +6,7 @@ import { ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { slugMiasta } from "@/lib/miasta";
 
 /**
  * Rozwijane menu w naglowku.
@@ -149,7 +150,7 @@ export function MegaMenu({
               {dane.miasta.map((m) => (
                 <li key={m.city}>
                   <Link
-                    href={`/poleasingowe/${slugify(m.city ?? "")}`}
+                    href={`/poleasingowe/${slugMiasta(m.city ?? "")}`}
                     className="flex items-baseline justify-between gap-2 rounded-lg px-2.5 py-2 text-[13px] text-neutral-300 transition-colors hover:bg-white/[0.06] hover:text-neutral-50"
                   >
                     <span className="truncate">{m.city}</span>

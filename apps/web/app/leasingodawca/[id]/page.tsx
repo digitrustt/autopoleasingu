@@ -16,6 +16,7 @@ import { ArrowUpRight, Building2, Gavel, MapPin, SlidersHorizontal, TrendingDown
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { slugMiasta } from "@/lib/miasta";
 
 /*
  * Odswiezanie RAZ NA DOBE, nie co godzine.
@@ -169,7 +170,7 @@ export default async function SourcePage({ params }: { params: Promise<{ id: str
           <MiastaLista
             miasta={miasta.map((m) => ({
               city: m.city ?? "",
-              href: `/poleasingowe/${slugify(m.city ?? "")}`,
+              href: `/poleasingowe/${slugMiasta(m.city ?? "")}`,
               total: m.total,
             }))}
           />

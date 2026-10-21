@@ -8,6 +8,7 @@ import { wmiStaty } from "@/lib/cache-filtrow";
 import { vinMarkiHref, wgMarek } from "@/lib/vin";
 import { WOJEWODZTWA } from "@/lib/wojewodztwa";
 import type { MetadataRoute } from "next";
+import { slugMiasta } from "@/lib/miasta";
 
 const BASE = "https://autopoleasingu.pl";
 
@@ -217,7 +218,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...[
       ...cities
         .reduce((acc, c) => {
-          const key = slugify(c.city ?? "");
+          const key = slugMiasta(c.city ?? "");
           if (key && !acc.has(key)) acc.set(key, { key, updated: c.updated });
           return acc;
         }, new Map<string, { key: string; updated: string }>())

@@ -22,7 +22,8 @@ import { znajdzWojewodztwo } from "@/lib/wojewodztwa";
 import { Building2, MapPin, SlidersHorizontal, TrendingDown } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
+import { nazwaGlowna, slugMiasta } from "@/lib/miasta";
 
 /*
  * Odswiezanie RAZ NA DOBE, nie co godzine.
@@ -69,17 +70,29 @@ const num = new Intl.NumberFormat("pl-PL");
  */
 async function resolve(slug: string) {
   const miasta = await getCitiesWithCounts();
-  const grupy = groupBySlug(miasta, (m) => m.city ?? "");
+  // Grupowanie po miescie glownym, nie po samym zapisie — patrz lib/miasta.ts.
+  const grupy = groupBySlug(miasta, (m) => nazwaGlowna(m.city ?? ""));
   const grupa = grupy.get(slugify(slug));
   if (!grupa || grupa.length === 0) return null;
 
   const nazwy = grupa.map((g) => g.city).filter((c): c is string => c != null);
   return {
-    // Wariant o najwiekszej liczbie ofert — zapytanie sortuje malejaco.
-    miasto: nazwy[0],
+    miasto: nazwaGlowna(nazwy[0]),
     warianty: nazwy,
     wszystkie: miasta,
   };
+}
+
+/**
+ * Adresy wariantow, ktore do 21.10.2026 mialy wlasne strony ("warszawa-bemowo",
+ * "zeran", "poznan-lawica"), przekierowujemy na stale na miasto glowne — Google
+ * je zna i przenosi ich sygnaly na strone docelowa, zamiast gubic je na 404.
+ */
+async function przekierowanieMiasta(slug: string): Promise<string | null> {
+  const s = slugify(slug);
+  const miasta = await getCitiesWithCounts(1);
+  const wariant = miasta.find((m) => m.city && slugify(m.city) === s && slugMiasta(m.city) !== s);
+  return wariant?.city ? slugMiasta(wariant.city) : null;
 }
 
 export async function generateMetadata({
@@ -166,7 +179,12 @@ export default async function PoleasingowePage({ params }: { params: Promise<{ c
   if (w) return <WojewodztwoWidok w={w} />;
 
   const found = await resolve(co);
-  if (!found) notFound();
+  if (!found) {
+    // Stary adres wariantu ("warszawa-bemowo") -> strona miasta glownego.
+    const docelowy = await przekierowanieMiasta(co);
+    if (docelowy) permanentRedirect(`/poleasingowe/${docelowy}`);
+    notFound();
+  }
   const { miasto, warianty, wszystkie } = found;
 
   const [stats, marki, sprzedawcy, oferty] = await Promise.all([
@@ -215,7 +233,7 @@ export default async function PoleasingowePage({ params }: { params: Promise<{ c
    * arbitralna granica, za ktora reszta znikala bez zadnego sposobu dojscia.
    * Przyciecie robi teraz MiastaLista, ktora daje przycisk "zobacz wszystkie".
    */
-  const inne = wszystkie.filter((m) => m.city && slugify(m.city) !== slugify(miasto));
+  const inne = wszystkie.filter((m) => m.city && slugMiasta(m.city) !== slugMiasta(miasto));
 
   return (
     <main className="mx-auto max-w-[1400px] px-4 py-6">
@@ -365,7 +383,7 @@ export default async function PoleasingowePage({ params }: { params: Promise<{ c
           <MiastaLista
             miasta={inne.map((m) => ({
               city: m.city ?? "",
-              href: `/poleasingowe/${slugify(m.city ?? "")}`,
+              href: `/poleasingowe/${slugMiasta(m.city ?? "")}`,
               total: m.total,
             }))}
           />
