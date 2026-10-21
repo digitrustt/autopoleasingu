@@ -1,7 +1,7 @@
 "use client";
 
 import { track } from "@/components/Analytics";
-import { linkKredytu } from "@/components/FinansowanieBlok";
+import { linkKredytu, linkLeasingu } from "@/components/FinansowanieBlok";
 import { KOD_HISTORII, linkHistorii } from "@/components/HistoriaBlok";
 import { ZapisForm } from "@/components/ZapisForm";
 import { banerWidoczny } from "@/lib/consent";
@@ -13,7 +13,7 @@ import {
   SYGNAL_PRZED_WYJSCIEM,
   biezacaOferta,
 } from "@/lib/zapis-sygnal";
-import { ArrowUpRight, Bell, Landmark, ShieldCheck, X } from "lucide-react";
+import { ArrowUpRight, Bell, Briefcase, Landmark, ShieldCheck, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -324,6 +324,9 @@ export function ZapisPopup() {
    */
   const kredyt =
     kontekst.kredyt && kontekst.id != null ? linkKredytu(`popup-oferta-${kontekst.id}`) : null;
+  // Leasing dla firm (patrz linkLeasingu) — w tej samej karcie, jako druga sciezka.
+  const leasing =
+    kontekst.kredyt && kontekst.id != null ? linkLeasingu(`popup-oferta-${kontekst.id}`) : null;
 
   return (
     <div
@@ -360,14 +363,16 @@ export function ZapisPopup() {
           <X size={16} />
         </button>
 
-        {kredyt && (
+        {(kredyt || leasing) && (
+          <div className="mb-3 mr-8 overflow-hidden rounded-xl border border-[var(--color-line)] bg-[var(--color-ink)]">
+          {kredyt && (
           <button
             type="button"
             onClick={() => {
               track("finansowanie_klik", { gdzie: "popup", powod, oferta: kontekst.id ?? null });
               window.open(kredyt, "_blank", "noopener,noreferrer");
             }}
-            className="group mb-3 mr-8 flex w-[calc(100%-2rem)] items-center gap-3 rounded-xl border border-[var(--color-line)] bg-[var(--color-ink)] p-4 text-left transition-colors hover:border-neutral-500"
+            className="group flex w-full items-center gap-3 p-4 text-left transition-colors hover:bg-[var(--color-panel)]"
           >
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--color-panel)] text-neutral-200">
               <Landmark size={17} />
@@ -382,11 +387,31 @@ export function ZapisPopup() {
             </span>
             <ArrowUpRight size={17} className="shrink-0 text-neutral-500 transition-colors group-hover:text-accent" />
           </button>
+          )}
+          {leasing && (
+            <button
+              type="button"
+              onClick={() => {
+                track("leasing_klik", { gdzie: "popup", powod, oferta: kontekst.id ?? null });
+                window.open(leasing, "_blank", "noopener,noreferrer");
+              }}
+              className={`group flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-[13px] transition-colors hover:bg-[var(--color-panel)] ${
+                kredyt ? "border-t border-[var(--color-line)]" : ""
+              }`}
+            >
+              <span className="flex items-center gap-2 text-neutral-300">
+                <Briefcase size={15} className="shrink-0 text-neutral-500" />
+                Kupujesz na firmę? Sprawdź leasing
+              </span>
+              <ArrowUpRight size={15} className="shrink-0 text-neutral-500 transition-colors group-hover:text-accent" />
+            </button>
+          )}
+          </div>
         )}
 
         {historia && (
           <section
-            className={`mb-5 rounded-xl border border-accent/40 bg-accent/5 p-4 ${kredyt ? "" : "mr-8"}`}
+            className={`mb-5 rounded-xl border border-accent/40 bg-accent/5 p-4 ${kredyt || leasing ? "" : "mr-8"}`}
           >
             <p className="flex flex-wrap items-center gap-2 text-[15px] font-semibold text-neutral-100">
               <ShieldCheck size={16} className="shrink-0 text-accent" />
@@ -463,7 +488,7 @@ export function ZapisPopup() {
             label={t.label}
             filters={t.filters}
             /* Klawiatura na telefonie zaslonilaby blok raportu historii. */
-            autoFocus={!historia && !kredyt}
+            autoFocus={!historia && !kredyt && !leasing}
             przycisk={doOferty ? "Powiadom i przejdź" : "Powiadom mnie"}
             onSubmitStart={przejdz}
             onDone={() => {

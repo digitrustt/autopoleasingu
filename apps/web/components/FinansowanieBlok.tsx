@@ -1,7 +1,7 @@
 "use client";
 
 import { track } from "@/components/Analytics";
-import { ArrowUpRight, Landmark } from "lucide-react";
+import { ArrowUpRight, Briefcase, Landmark } from "lucide-react";
 
 /**
  * Link partnerski do kredytu samochodowego, pod przyciskiem wyjscia do sprzedawcy.
@@ -34,7 +34,20 @@ import { ArrowUpRight, Landmark } from "lucide-react";
  * null = link nieskonfigurowany.
  */
 export function linkKredytu(etykieta: string): string | null {
-  const bazowy = process.env.NEXT_PUBLIC_AFILIACJA_KREDYT;
+  return zEtykieta(process.env.NEXT_PUBLIC_AFILIACJA_KREDYT, etykieta);
+}
+
+/**
+ * Leasing dla firm (MyLease przez Comperialead, CPL 25 zl za wniosek — panel
+ * sieci, 21.10.2026). Auta poleasingowe sprzedaje sie glownie na fakture VAT,
+ * wiec spora czesc kupujacych to firmy, ktore nie wezma kredytu konsumenckiego.
+ * Ta sama siec co kredyt, ten sam parametr etykiety.
+ */
+export function linkLeasingu(etykieta: string): string | null {
+  return zEtykieta(process.env.NEXT_PUBLIC_AFILIACJA_LEASING, etykieta);
+}
+
+function zEtykieta(bazowy: string | undefined, etykieta: string): string | null {
   if (!bazowy) return null;
   return `${bazowy}${bazowy.includes("?") ? "&" : "?"}etykieta_=${encodeURIComponent(etykieta)}`;
 }
@@ -54,11 +67,13 @@ export function FinansowanieBlok({
    * wygenerowalo — czy kredyty biora ogladajacy auta za 250 tys., czy za 60 tys.
    */
   const href = linkKredytu(`oferta-${ofertaId}`);
+  const leasing = linkLeasingu(`oferta-${ofertaId}`);
   // Bez skonfigurowanego linku nie renderujemy nic — lepiej brak sekcji niz martwy odnosnik.
-  if (!href) return null;
+  if (!href && !leasing) return null;
 
   return (
-    <div className="mt-3 rounded-lg border border-neutral-700 bg-[var(--color-ink)] p-3">
+    <div className="mt-3 flex flex-col gap-3 rounded-lg border border-neutral-700 bg-[var(--color-ink)] p-3">
+      {href && (
       <button
         type="button"
         /*
@@ -101,6 +116,38 @@ export function FinansowanieBlok({
           className="shrink-0 text-neutral-500 transition-colors group-hover:text-accent"
         />
       </button>
+      )}
+
+      {/*
+        Leasing dla firm — druga sciezka obok kredytu. Bez obietnic partnera
+        (czas decyzji, limity): to warunki ich kampanii, nie sprawdzone przez nas.
+      */}
+      {leasing && (
+        <button
+          type="button"
+          onClick={() => {
+            track("leasing_klik", { oferta: ofertaId, cena, gdzie: "oferta" });
+            window.open(leasing, "_blank", "noopener,noreferrer");
+          }}
+          className={`group flex w-full items-center justify-between gap-3 text-left ${
+            href ? "border-t border-neutral-800 pt-3" : ""
+          }`}
+        >
+          <span className="min-w-0">
+            <span className="flex items-center gap-2 text-[13px] font-medium text-neutral-100">
+              <Briefcase size={15} className="shrink-0 text-neutral-400" />
+              <span className="truncate">Kupujesz na firmę? Sprawdź leasing</span>
+            </span>
+            <span className="mt-0.5 block text-[12px] text-neutral-500">
+              Wniosek online · <span className="text-neutral-600">link partnerski</span>
+            </span>
+          </span>
+          <ArrowUpRight
+            size={16}
+            className="shrink-0 text-neutral-500 transition-colors group-hover:text-accent"
+          />
+        </button>
+      )}
     </div>
   );
 }
