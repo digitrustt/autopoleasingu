@@ -1,5 +1,9 @@
+import { zgrupujParyMarkaMiasto } from "@/lib/marka-miasto";
+import { slugMiasta } from "@/lib/miasta";
 import {
   getCenyPopularnych,
+  getCitiesWithCounts,
+  getMakeCityPairs,
   getMakes,
   getModelsForFilter,
   getSources,
@@ -78,3 +82,20 @@ export const cenyPopularnych = unstable_cache(async () => getCenyPopularnych(), 
   revalidate: 86_400,
   tags: ["oferty"],
 });
+
+/**
+ * Slugi miast, ktore maja wlasna strone (/poleasingowe/[miasto]) — do linkow
+ * ze stron ofert. Ten sam prog co strona miasta (getCitiesWithCounts, 30).
+ */
+export const slugiMiastZeStrona = unstable_cache(
+  async () => [...new Set((await getCitiesWithCounts()).map((m) => slugMiasta(m.city ?? "")))],
+  ["miasta-ze-strona"],
+  { revalidate: 86_400, tags: ["oferty"] },
+);
+
+/** Pary "marka|slug miasta", ktore maja strone krzyzowa — patrz lib/marka-miasto.ts. */
+export const paryMarkaMiastoZeStrona = unstable_cache(
+  async () => zgrupujParyMarkaMiasto(await getMakeCityPairs()).map((p) => `${p.make}|${p.citySlug}`),
+  ["pary-marka-miasto"],
+  { revalidate: 86_400, tags: ["oferty"] },
+);

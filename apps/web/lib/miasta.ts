@@ -83,3 +83,30 @@ export function nazwaGlowna(city: string): string {
 export function slugMiasta(city: string): string {
   return slugify(nazwaGlowna(city));
 }
+
+/** Miejscownik dla miast z listy — "w Warszawie" zamiast "w mieście Warszawa". */
+const MIEJSCOWNIK: Record<string, string> = {
+  Warszawa: "w Warszawie",
+  Kraków: "w Krakowie",
+  Poznań: "w Poznaniu",
+  Wrocław: "we Wrocławiu",
+  Gdańsk: "w Gdańsku",
+  Gdynia: "w Gdyni",
+  Łódź: "w Łodzi",
+  Katowice: "w Katowicach",
+  Szczecin: "w Szczecinie",
+  Lublin: "w Lublinie",
+  Bydgoszcz: "w Bydgoszczy",
+  Rzeszów: "w Rzeszowie",
+  Białystok: "w Białymstoku",
+  Kielce: "w Kielcach",
+  Toruń: "w Toruniu",
+  Olsztyn: "w Olsztynie",
+  Opole: "w Opolu",
+  Częstochowa: "w Częstochowie",
+};
+
+/** "w Warszawie"; dla miejscowosci spoza listy bezpieczne "w mieście X". */
+export function wMiescie(nazwa: string): string {
+  return MIEJSCOWNIK[nazwa] ?? `w miejscowości ${nazwa}`;
+}

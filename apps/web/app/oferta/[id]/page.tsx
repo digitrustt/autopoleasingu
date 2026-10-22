@@ -49,6 +49,9 @@ import {
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { paryMarkaMiastoZeStrona, slugiMiastZeStrona } from "@/lib/cache-filtrow";
+import { makaMiastoHref } from "@/lib/marka-miasto";
+import { nazwaGlowna, slugMiasta } from "@/lib/miasta";
 
 /*
  * Szesc godzin. Bylo pietnascie minut, co przy 22 tysiacach stron ofert bylo
@@ -218,14 +221,30 @@ export default async function OfferPage({ params }: { params: Promise<{ id: stri
    * odrozniaja te strone od skopiowanego ogloszenia: pokazuja, gdzie ta
    * konkretna sztuka stoi wsrod pozostalych.
    */
-  const [similar, histogram, scatter, years, tanszych] = await Promise.all([
+  const [similar, histogram, scatter, years, tanszych, miastaZeStrona, paryZeStrona] = await Promise.all([
     getSimilar(o),
     getPriceHistogram(o.make, o.model),
     getScatter(o.make, o.model),
     getYearBreakdown(o.make, o.model),
     // Licznik tanszych ofert osobnym zapytaniem — patrz countCheaperThan.
     o.priceGross != null ? countCheaperThan(o.make, o.model, o.priceGross) : Promise.resolve(0),
+    slugiMiastZeStrona(),
+    paryMarkaMiastoZeStrona(),
   ]);
+
+  /*
+   * Linki do miasta i marki w miescie (22.10.2026). Oferty linkowaly do miast
+   * tylko z menu — 4,7 tys. ofert z Warszawy nie wskazywalo strony Warszawy,
+   * a ta stala na ~75. pozycji. Teksty linkow to dokladnie frazy z wyszukiwarki
+   * ("BMW poleasingowe Warszawa"). Linkujemy tylko do stron, ktore istnieja.
+   */
+  const miastoSlug = o.city ? slugMiasta(o.city) : null;
+  const miastoNazwa = o.city ? nazwaGlowna(o.city) : null;
+  const linkMiasta = miastoSlug && miastaZeStrona.includes(miastoSlug) ? `/poleasingowe/${miastoSlug}` : null;
+  const linkMarkiWMiescie =
+    miastoSlug && paryZeStrona.includes(`${o.make}|${miastoSlug}`) && o.city
+      ? makaMiastoHref(o.make, o.city)
+      : null;
 
   const sameYear = o.year ? years.find((y) => y.year === o.year) : undefined;
   const name = [o.make, o.model].filter(Boolean).join(" ");
@@ -785,6 +804,42 @@ export default async function OfferPage({ params }: { params: Promise<{ id: stri
           </h2>
           <SimilarStrip rows={similar} />
         </section>
+      )}
+
+      {(linkMiasta || linkMarkiWMiescie) && (
+        <nav className="mt-10 border-t border-[var(--color-line)] pt-6" aria-label="Więcej aut poleasingowych">
+          <h2 className="mb-3 text-base font-semibold text-neutral-100">Więcej aut poleasingowych</h2>
+          <ul className="flex flex-wrap gap-2 text-[13px]">
+            {linkMarkiWMiescie && (
+              <li>
+                <Link
+                  href={linkMarkiWMiescie}
+                  className="inline-block rounded-lg border border-[var(--color-line)] bg-[var(--color-panel)] px-3 py-1.5 text-neutral-300 transition-colors hover:border-neutral-600 hover:text-neutral-100"
+                >
+                  {o.make} poleasingowe {miastoNazwa}
+                </Link>
+              </li>
+            )}
+            {linkMiasta && (
+              <li>
+                <Link
+                  href={linkMiasta}
+                  className="inline-block rounded-lg border border-[var(--color-line)] bg-[var(--color-panel)] px-3 py-1.5 text-neutral-300 transition-colors hover:border-neutral-600 hover:text-neutral-100"
+                >
+                  Samochody poleasingowe {miastoNazwa}
+                </Link>
+              </li>
+            )}
+            <li>
+              <Link
+                href={modelHref(o.make, o.model)}
+                className="inline-block rounded-lg border border-[var(--color-line)] bg-[var(--color-panel)] px-3 py-1.5 text-neutral-300 transition-colors hover:border-neutral-600 hover:text-neutral-100"
+              >
+                {name} po leasingu
+              </Link>
+            </li>
+          </ul>
+        </nav>
       )}
 
     </main>

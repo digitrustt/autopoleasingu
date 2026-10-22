@@ -23,7 +23,7 @@ import { Building2, MapPin, SlidersHorizontal, TrendingDown } from "lucide-react
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
-import { nazwaGlowna, slugMiasta } from "@/lib/miasta";
+import { nazwaGlowna, slugMiasta, wMiescie } from "@/lib/miasta";
 
 /*
  * Odswiezanie RAZ NA DOBE, nie co godzine.
@@ -155,7 +155,7 @@ export async function generateMetadata({
     `Samochody poleasingowe ${found.miasto} — ${num.format(stats.total)} ${oferty(stats.total)}` +
     (stats.minPrice ? ` od ${pln.format(stats.minPrice)}` : "");
   const description =
-    `Auta poleasingowe w mieście ${found.miasto}: ${num.format(stats.total)} ofert z ` +
+    `Auta poleasingowe ${wMiescie(found.miasto)}: ${num.format(stats.total)} ofert z ` +
     `${stats.sources} źródeł` +
     (stats.minPrice ? `, ceny od ${pln.format(stats.minPrice)}` : "") +
     `. Firmy leasingowe, CFM i programy dealerskie w jednym miejscu, aktualizowane codziennie.`;
@@ -205,16 +205,16 @@ export default async function PoleasingowePage({ params }: { params: Promise<{ c
   const pln0 = (v: number) => pln.format(v);
   const pytania = [
     {
-      q: `Jakie auta poleasingowe są najczęściej w mieście ${miasto}?`,
+      q: `Jakie auta poleasingowe są najczęściej ${wMiescie(miasto)}?`,
       a: modele.length
-        ? `Najwięcej ofert w mieście ${miasto} ma ${modele[0].make} ${modele[0].model} (${num.format(modele[0].n)} aut). Mediana ceny tego modelu to ${pln0(modele[0].cena)}.`
+        ? `Najwięcej ofert ${wMiescie(miasto)} ma ${modele[0].make} ${modele[0].model} (${num.format(modele[0].n)} aut). Mediana ceny tego modelu to ${pln0(modele[0].cena)}.`
         : `W mieście ${miasto} nie ma jeszcze modelu z co najmniej trzema ofertami.`,
     },
     {
-      q: `Ile kosztuje auto poleasingowe w mieście ${miasto}?`,
+      q: `Ile kosztuje auto poleasingowe ${wMiescie(miasto)}?`,
       a: stats.medianPrice
-        ? `Mediana ceny ofert „kup teraz” w mieście ${miasto} to ${pln0(stats.medianPrice)}, a najtańsza oferta kosztuje ${stats.minPrice ? pln0(stats.minPrice) : "—"}.`
-        : `Ceny w mieście ${miasto} pokazujemy przy każdej ofercie.`,
+        ? `Mediana ceny ofert „kup teraz” ${wMiescie(miasto)} to ${pln0(stats.medianPrice)}, a najtańsza oferta kosztuje ${stats.minPrice ? pln0(stats.minPrice) : "—"}.`
+        : `Ceny ${wMiescie(miasto)} pokazujemy przy każdej ofercie.`,
     },
   ];
   const jsonLd = {
@@ -244,7 +244,7 @@ export default async function PoleasingowePage({ params }: { params: Promise<{ c
         Samochody poleasingowe — {miasto}
       </h1>
       <p className="mb-5 mt-1 max-w-[70ch] text-sm leading-relaxed text-neutral-400">
-        {num.format(stats.total)} aut poleasingowych wystawionych w mieście {miasto}, zebranych
+        {num.format(stats.total)} aut poleasingowych wystawionych {wMiescie(miasto)}, zebranych
         z {stats.sources} źródeł: firm leasingowych, CFM i programów dealerskich.{" "}
         {num.format(stats.makes)} marek, {num.format(stats.deals)} ofert poniżej mediany rynkowej.
         Ceny porównujemy z medianą dla tego samego rocznika, przebiegu i napędu.
@@ -258,7 +258,7 @@ export default async function PoleasingowePage({ params }: { params: Promise<{ c
             dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
           />
           <h2 className="mb-1 text-lg font-semibold text-neutral-100">
-            Najczęściej wystawiane modele w mieście {miasto}
+            Najczęściej wystawiane modele {wMiescie(miasto)}
           </h2>
           <p className="mb-3 max-w-[72ch] text-[13px] leading-relaxed text-neutral-500">
             Modele z co najmniej trzema ofertami „kup teraz” w tym mieście. Mediana ceny, rocznika i
@@ -298,7 +298,7 @@ export default async function PoleasingowePage({ params }: { params: Promise<{ c
       )}
 
       <section className="mb-8 max-w-[80ch]">
-        <h2 className="mb-3 text-lg font-semibold text-neutral-100">Pytania o auta w mieście {miasto}</h2>
+        <h2 className="mb-3 text-lg font-semibold text-neutral-100">Pytania o auta {wMiescie(miasto)}</h2>
         <dl className="space-y-3">
           {pytania.map((f) => (
             <div key={f.q} className="rounded-xl border border-[var(--color-line)] bg-[var(--color-panel)] px-4 py-3">
@@ -327,7 +327,7 @@ export default async function PoleasingowePage({ params }: { params: Promise<{ c
         <section className="mb-8">
           <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold text-neutral-100">
             <Building2 size={17} className="text-neutral-600" />
-            Kto wystawia auta w mieście {miasto}
+            Kto wystawia auta {wMiescie(miasto)}
           </h2>
           <ul className="flex flex-wrap gap-2">
             {sprzedawcy.map((s) => (
@@ -348,7 +348,7 @@ export default async function PoleasingowePage({ params }: { params: Promise<{ c
       {marki.length > 0 && (
         <section className="mb-8">
           <h2 className="mb-3 text-lg font-semibold text-neutral-100">
-            Marki dostępne w mieście {miasto}
+            Marki dostępne {wMiescie(miasto)}
           </h2>
           <MarkaGrid marki={marki} />
         </section>
@@ -399,7 +399,7 @@ export default async function PoleasingowePage({ params }: { params: Promise<{ c
         typ="miasto"
         tytul={`Powiadomić o nowych ofertach — ${miasto}?`}
         opis={
-          `Auta poleasingowe wystawione w mieście ${miasto}, ze wszystkich 26 źródeł naraz. ` +
+          `Auta poleasingowe wystawione ${wMiescie(miasto)}, ze wszystkich 26 źródeł naraz. ` +
           "Jeden mail dziennie, tylko gdy coś doszło."
         }
         label={`Poleasingowe ${miasto}`}

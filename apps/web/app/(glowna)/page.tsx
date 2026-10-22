@@ -30,7 +30,18 @@ import { Suspense } from "react";
  * o niemal identycznej tresci. Frazy filtrowane obsluguja strony kategorii
  * (/poleasingowe/...), ktore maja wlasna, unikalna tresc.
  */
+/*
+ * TYTUL POD GLOWNA FRAZE (22.10.2026). Strona glowna dziedziczyla tytul
+ * z layoutu ("Auto po leasingu — sniper ofert poleasingowych"), a Search
+ * Console pokazywal "auta/samochody poleasingowe" na pozycji ~75. Planer:
+ * obie frazy po 1–10 tys. wyszukiwan miesiecznie. Tytul niesie teraz obie
+ * frazy i "auta po leasingu", bez zargonu.
+ */
 export const metadata: Metadata = {
+  title: "Samochody poleasingowe i auta po leasingu — oferty z 26 źródeł",
+  description:
+    "Auta poleasingowe od leasingodawców, dealerów i z aukcji: ponad 25 tys. ofert z 26 źródeł " +
+    "w jednym miejscu, aktualizowane codziennie. Historia cen, przeceny i ten sam VIN u kilku sprzedawców.",
   alternates: { canonical: "/" },
 };
 
