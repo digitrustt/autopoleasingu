@@ -60,7 +60,7 @@ const nadwozia: Kategoria[] = [
   slug: x.slug,
   nazwa: x.nazwa,
   h1: x.h1,
-  opis: `${x.h1.replace(" poleasingowe", "")} po leasingu z 26 źródeł w jednym miejscu.`,
+  opis: `${x.h1.replace(" poleasingowe", "")} po leasingu w jednym miejscu: firmy leasingowe, CFM i dealerzy.`,
   filtry: { bodyGroup: x.grupa },
 }));
 
@@ -74,7 +74,7 @@ const paliwa: Kategoria[] = [
   slug: x.slug,
   nazwa: x.nazwa,
   h1: x.h1,
-  opis: `${x.nazwa} po leasingu z 26 źródeł — firm leasingowych, CFM i programów dealerskich.`,
+  opis: `${x.nazwa} po leasingu w jednym miejscu: firmy leasingowe, CFM i dealerzy.`,
   filtry: { fuel: x.fuel },
 }));
 
