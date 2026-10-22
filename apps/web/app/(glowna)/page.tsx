@@ -1,4 +1,3 @@
-import { BazaNiedostepna } from "@/components/BazaNiedostepna";
 import { Filters } from "@/components/Filters";
 import { Radar } from "@/components/Radar";
 import { Results } from "@/components/Results";
@@ -165,7 +164,14 @@ export default async function Page({ searchParams }: { searchParams: Promise<Sea
     ]);
   } catch (err) {
     console.error("strona glowna: baza niedostepna —", err);
-    return <BazaNiedostepna />;
+    /*
+     * Rzucamy dalej, NIE oddajemy ekranu BazaNiedostepna ze statusem 200
+     * (22.10.2026). Strony HTML ida teraz przez cache CDN (patrz next.config.ts),
+     * a 200 z ekranem awarii zostalby zapamietany na kilka godzin — takze dla
+     * Googlebota. Wyjatek daje prawdziwe 500, ktorego CDN nie zapisuje, a przy
+     * odswiezaniu w tle zostaje ostatnia dobra wersja.
+     */
+    throw err;
   }
 
   /*
