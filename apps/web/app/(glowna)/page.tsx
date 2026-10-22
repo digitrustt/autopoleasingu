@@ -213,6 +213,19 @@ export default async function Page({ searchParams }: { searchParams: Promise<Sea
 
   return (
     <main className="mx-auto max-w-[1400px] px-4 py-6">
+      {/* Nazwa serwisu nad wynikiem w Google — bez tego Google zgaduje ja z tytulu. */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "WebSite",
+            name: "Autopoleasingu.pl",
+            alternateName: ["autopoleasingu", "Auto po leasingu"],
+            url: "https://autopoleasingu.pl/",
+          }),
+        }}
+      />
       <header className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
           {/*

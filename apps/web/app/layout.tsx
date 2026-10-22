@@ -19,11 +19,13 @@ import "./globals.css";
 export const maxDuration = 20;
 
 export const metadata: Metadata = {
-  title: "Auto po leasingu — sniper ofert poleasingowych",
+  title: "Samochody poleasingowe i auta po leasingu — Autopoleasingu.pl",
   description:
-    "Monitoring aut poleasingowych z 26 polskich platform leasingowych, CFM i programów " +
-    "dealerskich. Historia cen, wykrywanie przecen i ten sam egzemplarz w kilku kanałach.",
+    "Auta poleasingowe z 26 źródeł w jednym miejscu: leasingodawcy, dealerzy i aukcje. " +
+    "Historia cen, przeceny i ten sam egzemplarz u kilku sprzedawców.",
   metadataBase: new URL("https://autopoleasingu.pl"),
+  applicationName: "Autopoleasingu.pl",
+  openGraph: { siteName: "Autopoleasingu.pl", locale: "pl_PL", type: "website" },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
