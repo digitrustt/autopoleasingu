@@ -84,8 +84,15 @@ export async function generateMetadata({
 
   const stats = await getSegmentStats(found.make);
   /* Cena w tytule: to ona decyduje o kliknieciu, nie liczba ofert. */
+  /*
+   * "POLEASINGOWE", NIE TYLKO "PO LEASINGU" (22.10.2026). Search Console:
+   * "bmw poleasingowe" poz. 23, "toyota poleasingowe" 20, "bmw x3 poleasingowe"
+   * 25, "skoda superb poleasingowa" 46 — sedno niszy, a tytuly mialy tylko
+   * "po leasingu". W polskim Google forma slowa ma znaczenie; tytul niesie
+   * teraz obie.
+   */
   const title =
-    `${found.make} po leasingu — ${num.format(stats.total)} ${oferty(stats.total)}` +
+    `${found.make} poleasingowe — ${num.format(stats.total)} ${oferty(stats.total)} po leasingu` +
     (stats.minPrice ? ` od ${pln.format(stats.minPrice)}` : "");
   const description =
     `Aktualne oferty ${found.make} poleasingowych z ${stats.sources} źródeł: ` +
@@ -126,7 +133,7 @@ export default async function MakePage({ params }: { params: Promise<{ make: str
     <main className="mx-auto max-w-[1400px] px-4 py-6">
       <Crumbs items={[{ label: make }]} />
 
-      <h1 className="text-2xl font-bold tracking-tight text-neutral-100">{make} po leasingu</h1>
+      <h1 className="text-2xl font-bold tracking-tight text-neutral-100">{make} poleasingowe</h1>
       <p className="mb-5 mt-1 max-w-[70ch] text-sm leading-relaxed text-neutral-400">
         {num.format(stats.total)} aktywnych ofert {make} z {stats.sources} źródeł poleasingowych —
         firm leasingowych, CFM i programów dealerskich. Ceny porównujemy z medianą rynkową dla

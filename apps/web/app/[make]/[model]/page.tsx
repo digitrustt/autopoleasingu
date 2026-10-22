@@ -118,7 +118,14 @@ export async function generateMetadata({
 
   const stats = await getSegmentStats(found.make, found.aliasy);
   const name = `${found.make} ${found.model}`;
-  const title = `${name} po leasingu — ${num.format(stats.total)} ${oferty(stats.total)}${
+  /*
+   * "POLEASINGOWE", NIE TYLKO "PO LEASINGU" (22.10.2026). Search Console:
+   * "bmw poleasingowe" poz. 23, "toyota poleasingowe" 20, "bmw x3 poleasingowe"
+   * 25, "skoda superb poleasingowa" 46 — sedno niszy, a tytuly mialy tylko
+   * "po leasingu". W polskim Google forma slowa ma znaczenie; tytul niesie
+   * teraz obie.
+   */
+  const title = `${name} poleasingowe — ${num.format(stats.total)} ${oferty(stats.total)} po leasingu${
     stats.minPrice ? ` od ${pln.format(stats.minPrice)}` : ""
   }`;
   /*
@@ -135,7 +142,7 @@ export async function generateMetadata({
       : null;
 
   const description =
-    (widelki ? `${name} po leasingu: ${widelki}` : `${name} po leasingu`) +
+    (widelki ? `${name} poleasingowe: ${widelki}` : `${name} poleasingowe`) +
     (stats.medianPrice ? `, mediana ${pln.format(stats.medianPrice)}` : "") +
     (stats.minYear && stats.maxYear ? `. Roczniki ${stats.minYear}–${stats.maxYear}` : "") +
     `. ${num.format(stats.total)} ${oferty(stats.total)} z ${stats.sources} źródeł, aktualizowane codziennie.`;
@@ -209,7 +216,7 @@ export default async function ModelPage({
 
       <Crumbs items={[{ label: make, href: makeHref(make) }, { label: model }]} />
 
-      <h1 className="text-2xl font-bold tracking-tight text-neutral-100">{name} po leasingu</h1>
+      <h1 className="text-2xl font-bold tracking-tight text-neutral-100">{name} poleasingowe</h1>
       <p className="mb-5 mt-1 max-w-[70ch] text-sm leading-relaxed text-neutral-400">
         {num.format(stats.total)} ofert {name} z {stats.sources}{" "}
         {stats.sources === 1 ? "źródła" : "źródeł"} poleasingowych
