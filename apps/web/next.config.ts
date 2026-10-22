@@ -51,24 +51,29 @@ const config: NextConfig = {
       },
     ];
     return [
-      { source: "/oferta/:id(\\d+)", headers: cdn },
-      { source: "/vin/:vin", headers: cdn },
       /*
-       * Strony z agregacjami po calej tabeli. Sa liczone na zadanie (patrz
-       * `connection()` w nich), wiec bez tego kazde wejscie odpalalo po kilka
-       * ciezkich zapytan — i to wlasnie one najczesciej trafialy na zerwane
-       * polaczenie i konczyly sie 504. Dane zmieniaja sie raz na dobe.
+       * JEDNA REGULA DLA WSZYSTKICH STRON HTML (22.10.2026), zamiast listy tras.
+       *
+       * Lista zawodzila za kazdym razem, gdy ktos dodal trase i o niej
+       * zapomnial. Test na produkcji pokazal, ze bez naglowka nie szly
+       * z cache'u: strona glowna, strony modeli (/bmw/x3), kategorie
+       * i wojewodztwa (/poleasingowe/suv), leasingodawcy i kazdy wariant
+       * "/?make=...". Kazde wejscie Googlebota odpalalo wtedy funkcje
+       * i zapytania do bazy — to dokladnie mechanizm, ktory przekroczyl limit
+       * CPU 5.10.2026.
+       *
+       * Teraz nowa trasa dostaje cache automatycznie. Kazdy unikalny adres
+       * kosztuje najwyzej jedno wywolanie funkcji na 6 godzin, niezaleznie od
+       * tego, ile razy robot do niego wroci.
+       *
+       * WYJATKI: /api (odpowiedzi maja wlasne naglowki, patrz route.ts),
+       * /alerty (adresy z tokenem, nie moga isc do cache'u wspoldzielonego)
+       * i /_next (statyki Next maja wlasne, wieczne naglowki).
+       *
+       * Na stronach nie ma niczego zaleznego od uzytkownika — nakladki i zgody
+       * dzialaja w przegladarce, wiec wspolny cache jest bezpieczny.
        */
-      ...[
-        "/poleasingowe",
-        "/poleasingowe/dla-osoby-prywatnej",
-        "/dane",
-        "/zrodla",
-        "/vin",
-        "/analizy/:slug",
-        "/poradnik/:slug",
-        "/wycena-samochodu",
-      ].map((source) => ({ source, headers: cdn })),
+      { source: "/((?!api/|alerty/|_next/).*)", headers: cdn },
     ];
   },
 
