@@ -15,7 +15,7 @@ import { Layers, SlidersHorizontal, TrendingDown } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { oferty } from "@/lib/format";
+import { oferty, zrodel } from "@/lib/format";
 import { wmiStaty } from "@/lib/cache-filtrow";
 import { vinMarkiHref, wgMarek } from "@/lib/vin";
 
@@ -95,9 +95,9 @@ export async function generateMetadata({
     `${found.make} poleasingowe — ${num.format(stats.total)} ${oferty(stats.total)} po leasingu` +
     (stats.minPrice ? ` od ${pln.format(stats.minPrice)}` : "");
   const description =
-    `Aktualne oferty ${found.make} poleasingowych z ${stats.sources} źródeł: ` +
+    `Aktualne oferty ${found.make} poleasingowych z ${stats.sources} ${zrodel(stats.sources)}: ` +
     (stats.medianPrice ? `mediana ${pln.format(stats.medianPrice)}, ` : "") +
-    `${num.format(stats.deals)} ofert poniżej ceny rynkowej. Aktualizowane codziennie.`;
+    `${num.format(stats.deals)} ${oferty(stats.deals)} poniżej ceny rynkowej. Aktualizowane codziennie.`;
 
   return {
     title,

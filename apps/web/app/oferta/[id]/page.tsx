@@ -14,7 +14,7 @@ import { PriceHistory } from "@/components/PriceHistory";
 import { SimilarStrip } from "@/components/SimilarStrip";
 import { MileagePrice } from "@/components/charts/MileagePrice";
 import { PriceHistogram } from "@/components/charts/PriceHistogram";
-import { shortSource } from "@/lib/format";
+import { nazwaOferty, shortSource } from "@/lib/format";
 import {
   getListing,
   countCheaperThan,
@@ -95,7 +95,7 @@ export async function generateMetadata({
   const o = id ? await getListing(id) : null;
   if (!o) return { title: "Nie znaleziono oferty" };
 
-  const name = [o.make, o.model, o.trim].filter(Boolean).join(" ");
+  const name = nazwaOferty(o.make, o.model, o.trim);
   const sprzedane = o.status !== "active";
   /*
    * "Sprzedane" JEST W TYTULE, bo tytul trafia prosto do wyniku wyszukiwania.

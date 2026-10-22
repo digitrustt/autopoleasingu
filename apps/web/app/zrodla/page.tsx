@@ -35,6 +35,10 @@ export const revalidate = 3600;
 
 
 export const metadata: Metadata = {
+  title: "Źródła ofert poleasingowych — 26 leasingodawców, dealerów i aukcji",
+  description:
+    "Skąd pochodzą oferty: lista 26 firm leasingowych, CFM, programów dealerskich i aukcji, " +
+    "z liczbą aut i godziną ostatniej aktualizacji każdego źródła.",
   alternates: { canonical: "/zrodla" },
 };
 

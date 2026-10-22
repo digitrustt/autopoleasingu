@@ -60,7 +60,7 @@ const nadwozia: Kategoria[] = [
   slug: x.slug,
   nazwa: x.nazwa,
   h1: x.h1,
-  opis: `Wszystkie ${x.nazwa.toLowerCase()} po leasingu, zebrane z 26 źródeł naraz.`,
+  opis: `${x.h1.replace(" poleasingowe", "")} po leasingu z 26 źródeł w jednym miejscu.`,
   filtry: { bodyGroup: x.grupa },
 }));
 

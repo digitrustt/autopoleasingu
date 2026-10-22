@@ -9,6 +9,7 @@ import {
   getYearBreakdown,
 } from "@/lib/queries";
 import { modelHref, resolveAliases } from "@/lib/slug";
+import { oferty } from "@/lib/format";
 import { Scale, TrendingDown } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -93,7 +94,7 @@ export async function generateMetadata({
           : "") +
         `. Porównanie ${num.format(statsA.total + statsB.total)} ofert, aktualizowane codziennie.`
       : `Porównanie ${nazwaA} i ${nazwaB} na ofertach poleasingowych: ${num.format(statsA.total)} kontra ` +
-        `${num.format(statsB.total)} ofert, ceny według rocznika. Dane z 26 źródeł, aktualizowane codziennie.`;
+        `${num.format(statsB.total)} ${oferty(statsB.total)}, ceny według rocznika. Dane z 26 źródeł, aktualizowane codziennie.`;
 
   return {
     title,

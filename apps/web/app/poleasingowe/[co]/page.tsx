@@ -12,7 +12,7 @@ import {
   getFilterStats,
   getListings,
 } from "@/lib/queries";
-import { shortSource, oferty } from "@/lib/format";
+import { shortSource, oferty, zrodel } from "@/lib/format";
 import { groupBySlug, makeHref, resolveAliases, slugify } from "@/lib/slug";
 import { KategoriaWidok } from "@/components/KategoriaWidok";
 import { znajdzKategorie } from "@/lib/filtry";
@@ -114,7 +114,7 @@ export async function generateMetadata({
       `${k.h1} — ${num.format(stats.total)} ${oferty(stats.total)}` +
       (stats.minPrice ? ` od ${pln.format(stats.minPrice)}` : "");
     const description =
-      `${k.opis} ${num.format(stats.total)} ofert z ${stats.sources} źródeł` +
+      `${k.opis} ${num.format(stats.total)} ${oferty(stats.total)} z ${stats.sources} ${zrodel(stats.sources)}` +
       (stats.minPrice ? `, ceny od ${pln.format(stats.minPrice)}` : "") +
       ", aktualizowane codziennie.";
     return {
@@ -135,8 +135,8 @@ export async function generateMetadata({
       `Samochody poleasingowe ${w.nazwa} — ${num.format(stats.total)} ${oferty(stats.total)}` +
       (stats.minPrice ? ` od ${pln.format(stats.minPrice)}` : "");
     const description =
-      `Auta poleasingowe w województwie ${w.wMiejscowniku}: ${num.format(stats.total)} ofert z ` +
-      `${stats.sources} źródeł` +
+      `Auta poleasingowe w województwie ${w.wMiejscowniku}: ${num.format(stats.total)} ${oferty(stats.total)} z ` +
+      `${stats.sources} ${zrodel(stats.sources)}` +
       (stats.minPrice ? `, ceny od ${pln.format(stats.minPrice)}` : "") +
       ". Lista miast, marek i sprzedających, aktualizowana codziennie.";
     return {
@@ -155,8 +155,8 @@ export async function generateMetadata({
     `Samochody poleasingowe ${found.miasto} — ${num.format(stats.total)} ${oferty(stats.total)}` +
     (stats.minPrice ? ` od ${pln.format(stats.minPrice)}` : "");
   const description =
-    `Auta poleasingowe ${wMiescie(found.miasto)}: ${num.format(stats.total)} ofert z ` +
-    `${stats.sources} źródeł` +
+    `Auta poleasingowe ${wMiescie(found.miasto)}: ${num.format(stats.total)} ${oferty(stats.total)} z ` +
+    `${stats.sources} ${zrodel(stats.sources)}` +
     (stats.minPrice ? `, ceny od ${pln.format(stats.minPrice)}` : "") +
     `. Firmy leasingowe, CFM i programy dealerskie w jednym miejscu, aktualizowane codziennie.`;
 

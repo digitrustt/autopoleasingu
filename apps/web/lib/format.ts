@@ -32,6 +32,26 @@ export function odmien(n: number, pojedyncza: string, kilka: string, wiele: stri
   return few ? kilka : wiele;
 }
 
+/**
+ * "BMW X3 X3 20 xDrive" -> "BMW X3 20 xDrive": zrodla czesto zaczynaja wersje
+ * od nazwy modelu, a w tytule wyniku Google dubel wyglada jak spam.
+ */
+export function nazwaOferty(make: string | null, model: string | null, trim: string | null): string {
+  let t = trim?.trim() ?? "";
+  if (model && t.toLowerCase().startsWith(model.toLowerCase() + " ")) t = t.slice(model.length + 1);
+  else if (model && t.toLowerCase() === model.toLowerCase()) t = "";
+  return [make, model, t].filter(Boolean).join(" ");
+}
+
+/** "z 1 źródła", ale "z 4 źródeł" — po "z" zawsze dopelniacz. */
+export function zrodel(n: number): string {
+  return n === 1 ? "źródła" : "źródeł";
+}
+
+export function marek(n: number): string {
+  return odmien(n, "marka", "marki", "marek");
+}
+
 /** Skrot dla najczestszego przypadku w serwisie. */
 export function oferty(n: number): string {
   return odmien(n, "oferta", "oferty", "ofert");

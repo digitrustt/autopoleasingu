@@ -5,7 +5,7 @@ import { OfferCard } from "@/components/OfferCard";
 import { StatStrip } from "@/components/StatStrip";
 import { ZapisPasek } from "@/components/ZapisPasek";
 import { makaMiastoHref, zgrupujParyMarkaMiasto } from "@/lib/marka-miasto";
-import { slugMiasta } from "@/lib/miasta";
+import { slugMiasta, wMiescie } from "@/lib/miasta";
 import {
   getCityMakes,
   getListings,
@@ -17,7 +17,7 @@ import { makeHref, resolveSlug, slugify } from "@/lib/slug";
 import { Building2, MapPin, TrendingDown } from "lucide-react";
 import type { Metadata } from "next";
 import { notFound, permanentRedirect } from "next/navigation";
-import { oferty } from "@/lib/format";
+import { oferty, oferty as odmianaOferty, zrodel } from "@/lib/format";
 
 /*
  * Odswiezanie RAZ NA DOBE, nie co godzine.
@@ -104,8 +104,8 @@ export async function generateMetadata({
     `${make} poleasingowe ${para.city} — ${num.format(stats.total)} ${oferty(stats.total)}` +
     (stats.minPrice ? ` od ${pln.format(stats.minPrice)}` : "");
   const description =
-    `${make} po leasingu w mieście ${para.city}: ${num.format(stats.total)} ofert z ` +
-    `${stats.sources} źródeł` +
+    `${make} po leasingu ${wMiescie(para.city)}: ${num.format(stats.total)} ${oferty(stats.total)} z ` +
+    `${stats.sources} ${zrodel(stats.sources)}` +
     (stats.minPrice ? `, ceny od ${pln.format(stats.minPrice)}` : "") +
     ". Aktualizowane codziennie, porównane z medianą rynkową.";
 
@@ -172,9 +172,9 @@ export default async function MarkaMiastoPage({
         {make} poleasingowe — {para.city}
       </h1>
       <p className="mb-5 mt-1 max-w-[70ch] text-sm leading-relaxed text-neutral-400">
-        {num.format(stats.total)} ofert {make} wystawionych w mieście {para.city}, zebranych z{" "}
-        {stats.sources} źródeł: firm leasingowych, CFM i programów dealerskich.{" "}
-        {num.format(stats.deals)} ofert co najmniej 10% poniżej mediany rynkowej dla tego samego
+        {num.format(stats.total)} {odmianaOferty(stats.total)} {make} {wMiescie(para.city)}, zebranych z{" "}
+        {stats.sources} {zrodel(stats.sources)}: firm leasingowych, CFM i programów dealerskich.{" "}
+        {num.format(stats.deals)} {odmianaOferty(stats.deals)} co najmniej 10% poniżej mediany rynkowej dla tego samego
         rocznika, przebiegu i napędu.
       </p>
 
@@ -218,7 +218,7 @@ export default async function MarkaMiastoPage({
         <section className="mb-8">
           <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold text-neutral-100">
             <Building2 size={17} className="text-neutral-600" />
-            Inne marki w mieście {para.city}
+            Inne marki {wMiescie(para.city)}
           </h2>
           <MarkaGrid marki={innychMarek} />
         </section>
@@ -241,7 +241,7 @@ export default async function MarkaMiastoPage({
 
       <ZapisPasek
         typ="marka-miasto"
-        tytul={`Powiadomić o nowych ${make} w mieście ${para.city}?`}
+        tytul={`Powiadomić o nowych ${make} ${wMiescie(para.city)}?`}
         opis={`Gdy w którymkolwiek z ${stats.sources} źródeł pojawi się nowe ${make} w ${para.city}, dostaniesz maila. Jedna wiadomość dziennie, tylko gdy faktycznie coś doszło.`}
         label={`${make} — ${para.city}`}
         filters={{ make, city: para.city }}

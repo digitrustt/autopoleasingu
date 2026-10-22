@@ -25,7 +25,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { paryModelu } from "@/lib/pary";
 import { notFound } from "next/navigation";
-import { oferty } from "@/lib/format";
+import { oferty, zrodel } from "@/lib/format";
 
 /*
  * Odswiezanie RAZ NA DOBE, nie co godzine.
@@ -145,7 +145,7 @@ export async function generateMetadata({
     (widelki ? `${name} poleasingowe: ${widelki}` : `${name} poleasingowe`) +
     (stats.medianPrice ? `, mediana ${pln.format(stats.medianPrice)}` : "") +
     (stats.minYear && stats.maxYear ? `. Roczniki ${stats.minYear}–${stats.maxYear}` : "") +
-    `. ${num.format(stats.total)} ${oferty(stats.total)} z ${stats.sources} źródeł, aktualizowane codziennie.`;
+    `. ${num.format(stats.total)} ${oferty(stats.total)} z ${stats.sources} ${zrodel(stats.sources)}, aktualizowane codziennie.`;
 
   return {
     title,

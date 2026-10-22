@@ -3,7 +3,7 @@ import { MarkaGrid } from "@/components/MarkaGrid";
 import { MiastaLista } from "@/components/MiastaLista";
 import { OfferCard } from "@/components/OfferCard";
 import { StatStrip } from "@/components/StatStrip";
-import { shortSource, oferty } from "@/lib/format";
+import { shortSource, oferty, marek } from "@/lib/format";
 import {
   getListings,
   getSourceCities,
@@ -77,8 +77,8 @@ export async function generateMetadata({
   const krotka = shortSource(s.name);
   const title = `${krotka} — samochody poleasingowe (${num.format(s.total)} ${oferty(s.total)})`;
   const description =
-    `Aktualne auta poleasingowe z ${s.name}: ${num.format(s.total)} ofert, ` +
-    `${num.format(s.makes)} marek` +
+    `Aktualne auta poleasingowe z ${s.name}: ${num.format(s.total)} ${oferty(s.total)}, ` +
+    `${num.format(s.makes)} ${marek(s.makes)}` +
     (s.minPrice ? `, ceny od ${pln.format(s.minPrice)}` : "") +
     `. Porównane z medianą rynkową i z ofertami pozostałych 25 źródeł.`;
 
