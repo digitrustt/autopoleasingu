@@ -24,8 +24,20 @@ const HOST = process.env.NEXT_PUBLIC_POSTHOG_HOST ?? "https://eu.i.posthog.com";
 
 let started = false;
 
+/*
+ * Od 22.10.2026 przychodza sterowane skryptem Chrome'y z serwerowni (Pekin,
+ * Singapur, Hongkong, Meksyk, Santa Clara): jedna odslona oferty, losowa
+ * rozdzielczosc, klikaja zgode na cookies. W 2 dni bylo ich wiecej niz Polakow.
+ * Serwis jest dla rynku polskiego, wiec strefa spoza Europy = nie liczymy.
+ */
+function wygladaNaBota(): boolean {
+  if (navigator.webdriver) return true;
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone ?? "";
+  return !tz.startsWith("Europe/");
+}
+
 function start() {
-  if (started || !KEY) return;
+  if (started || !KEY || wygladaNaBota()) return;
   started = true;
 
   posthog.init(KEY, {
