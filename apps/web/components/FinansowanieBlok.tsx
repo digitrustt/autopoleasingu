@@ -73,7 +73,7 @@ export function FinansowanieBlok({
   if (!href && !leasing) return null;
 
   return (
-    <div className="mt-3 flex flex-col gap-3 rounded-lg border border-neutral-700 bg-[var(--color-ink)] p-3">
+    <div className="mt-3 flex flex-col gap-3">
       {href && (
       <button
         type="button"
@@ -84,37 +84,36 @@ export function FinansowanieBlok({
          * z jednej chmury (47.79.x.x), co kilka sekund, kazde na inna oferte.
          * Taki ruch wyglada u partnera jak naciaganie klikniec i grozi
          * zamknieciem konta. Adres otwieramy dopiero po prawdziwym kliknieciu,
-         * wiec w kodzie strony nie ma czego odwiedzic. Nie ma tez `rel`,
-         * bo nie ma linku — wyszukiwarka niczego tu nie widzi.
+         * wiec w kodzie strony nie ma czego odwiedzic.
          */
         onClick={() => {
-          track("finansowanie_klik", { oferta: ofertaId, cena });
+          track("finansowanie_klik", { oferta: ofertaId, cena, gdzie: "oferta" });
           otworzPartnera(href);
         }}
-        className="group flex w-full items-center justify-between gap-3 text-left"
+        /*
+         * Wyrazny przycisk z akcentem (25.10.2026). Szary wiersz dawal ~2%
+         * klikniec od odwiedzajacych, a kredyt (2% kwoty) jest warty
+         * kilkadziesiat razy wiecej niz kazde inne klikniecie na stronie.
+         */
+        className="group flex w-full items-center justify-between gap-3 rounded-lg border border-accent/50 bg-accent/10 px-3 py-2.5 text-left transition-colors hover:border-accent hover:bg-accent/15"
       >
         <span className="min-w-0">
-          {/*
-            Nazwa TEGO auta, nie "kredyt samochodowy". Czlowiek patrzy wlasnie na
-            ten egzemplarz i zdecydowal sie na niego — komunikat o "finansowaniu
-            samochodu" w ogolnosci mija sie z tym, o czym mysli.
-          */}
-          <span className="flex items-center gap-2 text-[13px] font-medium text-neutral-100">
-            <Landmark size={15} className="shrink-0 text-neutral-400" />
-            <span className="truncate">Sfinansuj to {nazwa}</span>
-          </span>
           {/*
             "Rata" bez ZADNEJ liczby. Obowiazek podania RRSO i reprezentatywnego
             przykladu uruchamiaja dane o KOSZCIE kredytu — sama zachęta do
             sprawdzenia go ich nie zawiera. Zadnej kwoty tu nigdy nie wstawiac.
           */}
-          <span className="mt-0.5 block text-[12px] text-neutral-500">
-            Sprawdź swoją ratę online · <span className="text-neutral-600">link partnerski</span>
+          <span className="flex items-center gap-2 text-[14px] font-semibold text-neutral-100">
+            <Landmark size={16} className="shrink-0 text-accent" />
+            <span className="truncate">Kup na raty — sprawdź ratę</span>
+          </span>
+          <span className="mt-0.5 block truncate text-[12px] text-neutral-400">
+            Kredyt na {nazwa} online · <span className="text-neutral-600">link partnerski</span>
           </span>
         </span>
         <ArrowUpRight
-          size={16}
-          className="shrink-0 text-neutral-500 transition-colors group-hover:text-accent"
+          size={17}
+          className="shrink-0 text-accent transition-transform group-hover:translate-x-0.5"
         />
       </button>
       )}
@@ -130,9 +129,7 @@ export function FinansowanieBlok({
             track("leasing_klik", { oferta: ofertaId, cena, gdzie: "oferta" });
             otworzPartnera(leasing);
           }}
-          className={`group flex w-full items-center justify-between gap-3 text-left ${
-            href ? "border-t border-neutral-800 pt-3" : ""
-          }`}
+          className="group flex w-full items-center justify-between gap-3 px-1 text-left"
         >
           <span className="min-w-0">
             <span className="flex items-center gap-2 text-[13px] font-medium text-neutral-100">
@@ -150,5 +147,29 @@ export function FinansowanieBlok({
         </button>
       )}
     </div>
+  );
+}
+
+/**
+ * Link "albo na raty" tuz pod cena — tam patrzy kazdy, kto otworzyl oferte,
+ * takze ten, kto nie dojdzie do przycisku sprzedawcy. Osobna etykieta
+ * (`cena-oferta-ID`), zeby w panelu sieci bylo widac, ktore miejsce dziala.
+ */
+export function RataPrzyCenie({ ofertaId, cena }: { ofertaId: number; cena: number }) {
+  const href = linkKredytu(`cena-oferta-${ofertaId}`);
+  if (!href) return null;
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        track("finansowanie_klik", { oferta: ofertaId, cena, gdzie: "przy-cenie" });
+        otworzPartnera(href);
+      }}
+      className="mt-1.5 flex items-center gap-1.5 text-[13px] font-medium text-accent underline-offset-2 hover:underline"
+    >
+      <Landmark size={13} />
+      albo na raty — sprawdź ratę
+      <ArrowUpRight size={13} />
+    </button>
   );
 }

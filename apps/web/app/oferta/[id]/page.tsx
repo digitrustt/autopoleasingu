@@ -3,7 +3,8 @@ import { BiezacaOferta } from "@/components/BiezacaOferta";
 import { CarImage } from "@/components/CarImage";
 import { Crumbs } from "@/components/Crumbs";
 import { daneStrukturalnePojazdu } from "@/lib/dane-strukturalne";
-import { FinansowanieBlok } from "@/components/FinansowanieBlok";
+import { FinansowanieBlok, RataPrzyCenie } from "@/components/FinansowanieBlok";
+import { PasekOferty } from "@/components/PasekOferty";
 import { HistoriaBlok } from "@/components/HistoriaBlok";
 import { UbezpieczenieBlok } from "@/components/UbezpieczenieBlok";
 import { ZapisForm } from "@/components/ZapisForm";
@@ -289,6 +290,33 @@ export default async function OfferPage({ params }: { params: Promise<{ id: stri
 
   const ld = daneStrukturalnePojazdu(o, `https://autopoleasingu.pl/oferta/${o.id}`);
 
+  /*
+   * Nakladka zapisu pokazuje TO auto, gdy czlowiek wroci do karty —
+   * patrz lib/zapis-sygnal.ts. Wspolne dla przycisku w karcie i paska na telefonie.
+   */
+  const kontekstWyjscia = {
+    nazwa: name,
+    make: o.make,
+    model: o.model,
+    zdjecie: o.thumbnailUrl,
+    zrodlo: o.sourceId,
+    cena: o.priceGross,
+    vin: o.vin,
+    id: o.id,
+    // Te same warunki co FinansowanieBlok przy cenie.
+    kredyt: !gone && o.priceGross != null,
+  };
+  const daneWyjscia = {
+    id: o.id,
+    make: o.make,
+    model: o.model,
+    year: o.year,
+    price: o.priceGross,
+    source: o.sourceName,
+    dealScore: o.dealScore,
+    kind: o.offerKind,
+  };
+
   return (
     <main className="mx-auto max-w-[1100px] px-4 py-6">
       {/*
@@ -541,7 +569,7 @@ export default async function OfferPage({ params }: { params: Promise<{ id: stri
 
         {/* Kolumna decyzyjna: cena, ocena okazji i wyjscie do zrodla. */}
         <aside className="order-1 lg:order-none lg:sticky lg:top-6 lg:self-start">
-          <div className="rounded-xl border border-[var(--color-line)] bg-[var(--color-panel)] p-4">
+          <div id="karta-ceny" className="rounded-xl border border-[var(--color-line)] bg-[var(--color-panel)] p-4">
             <p className="text-3xl font-bold tabular-nums text-neutral-100">
               {o.priceGross != null ? (
                 pln.format(o.priceGross)
@@ -566,12 +594,15 @@ export default async function OfferPage({ params }: { params: Promise<{ id: stri
                 )}
               </p>
             ) : (
-              o.priceNet != null && (
-                <p className="mt-1 flex items-center gap-1.5 text-[13px] text-neutral-500">
-                  <Banknote size={13} />
-                  netto {pln.format(o.priceNet)}
-                </p>
-              )
+              <>
+                {o.priceNet != null && (
+                  <p className="mt-1 flex items-center gap-1.5 text-[13px] text-neutral-500">
+                    <Banknote size={13} />
+                    netto {pln.format(o.priceNet)}
+                  </p>
+                )}
+                {!gone && <RataPrzyCenie ofertaId={o.id} cena={o.priceGross} />}
+              </>
             )}
 
             {o.dealScore != null && o.marketPrice != null && (
@@ -677,34 +708,8 @@ export default async function OfferPage({ params }: { params: Promise<{ id: stri
               href={o.url}
               external
               sourceId={o.sourceId}
-              /*
-               * Nakladka zapisu pokazuje TO auto, gdy czlowiek wroci do karty —
-               * patrz lib/zapis-sygnal.ts. Bez tego mowilaby ogolnikami
-               * o "okazjach", zamiast o aucie, ktore wlasnie oglada.
-               */
-              kontekst={{
-                nazwa: name,
-                make: o.make,
-                model: o.model,
-                zdjecie: o.thumbnailUrl,
-                zrodlo: o.sourceId,
-                cena: o.priceGross,
-                vin: o.vin,
-                id: o.id,
-                // Te same warunki co FinansowanieBlok przy cenie.
-                kredyt: !gone && o.priceGross != null,
-              }}
-              offer={{
-                id: o.id,
-                make: o.make,
-                model: o.model,
-                year: o.year,
-                price: o.priceGross,
-                source: o.sourceName,
-                dealScore: o.dealScore,
-                kind: o.offerKind,
-                z: "strona_oferty",
-              }}
+              kontekst={kontekstWyjscia}
+              offer={{ ...daneWyjscia, z: "strona_oferty" }}
               className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-lg bg-accent px-4 py-2.5 text-sm font-medium text-black transition-colors hover:bg-white"
             >
               {gone ? "Sprawdź w źródle" : `Zobacz w ${shortSource(o.sourceName)}`}
@@ -842,6 +847,17 @@ export default async function OfferPage({ params }: { params: Promise<{ id: stri
         </nav>
       )}
 
+      {!gone && o.priceGross != null && (
+        <PasekOferty
+          ofertaId={o.id}
+          cena={o.priceGross}
+          href={o.url}
+          sourceId={o.sourceId}
+          zrodlo={shortSource(o.sourceName)}
+          kontekst={kontekstWyjscia}
+          offer={daneWyjscia}
+        />
+      )}
     </main>
   );
 }
