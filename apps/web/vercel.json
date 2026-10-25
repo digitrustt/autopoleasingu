@@ -1,0 +1,28 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "regions": ["dub1"],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "has": [
+        {
+          "type": "header",
+          "key": "x-vercel-ip-country",
+          "value": "(CN|HK|SG|MX|BR|VN|IN|RU|ID|TH|BD|PK)"
+        }
+      ],
+      "mitigate": { "action": "deny" }
+    },
+    {
+      "src": "/(.*)",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": "(?i).*(bytespider|petalbot|ahrefsbot|semrushbot|mj12bot|dotbot|dataforseobot|blexbot|serpstatbot|barkrowler|amazonbot|imagesiftbot|scrapy|python-requests|python-httpx|aiohttp|go-http-client|okhttp|headlesschrome|phantomjs).*"
+        }
+      ],
+      "mitigate": { "action": "deny" }
+    }
+  ]
+}

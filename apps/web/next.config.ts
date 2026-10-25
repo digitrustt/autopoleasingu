@@ -50,6 +50,12 @@ const config: NextConfig = {
         value: "s-maxage=21600, stale-while-revalidate=86400",
       },
     ];
+    const cdnDlugi = [
+      {
+        key: "Vercel-CDN-Cache-Control",
+        value: "s-maxage=86400, stale-while-revalidate=604800",
+      },
+    ];
     return [
       /*
        * JEDNA REGULA DLA WSZYSTKICH STRON HTML (22.10.2026), zamiast listy tras.
@@ -73,7 +79,15 @@ const config: NextConfig = {
        * Na stronach nie ma niczego zaleznego od uzytkownika — nakladki i zgody
        * dzialaja w przegladarce, wiec wspolny cache jest bezpieczny.
        */
-      { source: "/((?!api/|alerty/|_next/).*)", headers: cdn },
+      { source: "/((?!api/|alerty/|_next/|oferta/|vin/).*)", headers: cdn },
+      /*
+       * Oferty i VIN-y: ~107 tys. adresow, po ktorych chodzi Googlebot i scrapery.
+       * Doba zamiast 6 h, bo kazdy powrot robota po wygasnieciu to nowe
+       * wywolanie funkcji (25.10.2026: 70% limitu Hobby). Cena zmienia sie
+       * najwyzej raz na dobe. Wylaczone z reguly ogolnej, zeby nie bylo dwoch naglowkow.
+       */
+      { source: "/oferta/:id+", headers: cdnDlugi },
+      { source: "/vin/:vin+", headers: cdnDlugi },
     ];
   },
 
