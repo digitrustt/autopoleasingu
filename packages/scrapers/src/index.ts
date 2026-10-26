@@ -5,7 +5,6 @@ import { ayvens } from "./sources/ayvens";
 import { bmw } from "./sources/bmw";
 import { bravoauto } from "./sources/bravoauto";
 import { cararena } from "./sources/cararena";
-import { carefleet } from "./sources/carefleet";
 import { famataukcje } from "./sources/famataukcje";
 import { dawro } from "./sources/dawro";
 import { leasygroup } from "./sources/leasygroup";
@@ -26,7 +25,12 @@ import { vwfs } from "./sources/vwfs";
 import type { SourceAdapter } from "./types";
 
 /** Rejestr zrodel. Kolejne adaptery dokladamy tutaj — reszta systemu ich nie zna. */
-export const adapters: SourceAdapter[] = [automarket, alphabet, vwfs, arval, poleasingowe, mercedes, bmw, cararena, dawro, toyota, skoda, autoprzetarg, mauto, carefleet, famataukcje, renault, ayvens, pkoaukcje, volvo, seat, cupra, leasygroup, skyselection, mhc, bravoauto, otomoto];
+/*
+ * Carefleet wylaczony 26.10.2026: poleasingowe.carefleet.pl zwraca 503 od 19.10,
+ * a sprzedaz przeszla na carefleet.otomoto.pl (bierze ja adapter otomoto).
+ * Adapter zostaje w sources/carefleet.ts na wypadek powrotu strony.
+ */
+export const adapters: SourceAdapter[] = [automarket, alphabet, vwfs, arval, poleasingowe, mercedes, bmw, cararena, dawro, toyota, skoda, autoprzetarg, mauto, famataukcje, renault, ayvens, pkoaukcje, volvo, seat, cupra, leasygroup, skyselection, mhc, bravoauto, otomoto];
 
 export const adapterById = new Map(adapters.map((a) => [a.id, a]));
 

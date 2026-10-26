@@ -99,6 +99,15 @@ const config: NextConfig = {
         destination: "https://autopoleasingu.pl/:sciezka*",
         permanent: true,
       },
+      /*
+       * Carefleet sprzedaje od 19.10.2026 przez carefleet.otomoto.pl (wlasna strona
+       * 503), a te auta sa w zrodle otomoto. Tymczasowe, bo strona moze wrocic.
+       */
+      {
+        source: "/leasingodawca/carefleet",
+        destination: "/leasingodawca/otomoto",
+        permanent: false,
+      },
     ];
   },
 };
