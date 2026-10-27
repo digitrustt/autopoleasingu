@@ -25,6 +25,7 @@ import {
   Zap,
 } from "lucide-react";
 import Link from "next/link";
+import { PoradnikiVin } from "@/components/PoradnikiVin";
 import { notFound } from "next/navigation";
 
 /*
@@ -467,6 +468,8 @@ export default async function VinPage({ params }: { params: Promise<{ vin: strin
           );
         })}
       </div>
+
+      <PoradnikiVin className="mt-10 border-t border-[var(--color-line)] pt-6" />
     </main>
   );
 }

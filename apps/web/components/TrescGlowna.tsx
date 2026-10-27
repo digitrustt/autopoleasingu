@@ -77,7 +77,19 @@ export async function TrescGlowna({
         </li>
         <li>
           <strong className="font-medium text-neutral-300">Historia pojazdu.</strong> Numer VIN
-          pozwala sprawdzić przebieg, szkody i poprzednich właścicieli. Jak to zrobić, opisujemy w{" "}
+          pozwala sprawdzić przebieg, szkody i poprzednich właścicieli. Zobacz{" "}
+          <Link href="/poradnik/gdzie-jest-numer-vin" className="text-accent hover:underline">
+            gdzie jest numer VIN
+          </Link>
+          , jak{" "}
+          <Link href="/poradnik/rok-produkcji-z-vin" className="text-accent hover:underline">
+            odczytać z niego rok produkcji
+          </Link>{" "}
+          i co znaczą{" "}
+          <Link href="/poradnik/kody-producentow-vin" className="text-accent hover:underline">
+            kody producentów
+          </Link>
+          . Resztę opisujemy w{" "}
           <Link href="/poradnik/czy-warto-kupic-auto-poleasingowe" className="text-accent hover:underline">
             poradniku: czy warto kupić auto poleasingowe
           </Link>

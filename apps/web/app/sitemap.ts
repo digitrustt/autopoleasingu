@@ -60,7 +60,7 @@ function when(v: string | Date | null): Date {
  * Zrodla wpisuja takie rzeczy w pola marka, model i miejsce. Na domenie bez
  * autorytetu kazdy zgloszony smiec zabiera wizyte robota dobrej stronie.
  */
-const MARKA_SMIEC = /^(other|inne|inny|brak)$/;
+const MARKA_SMIEC = /^(other|inne|inny|brak|range)$/;
 const MODEL_SMIEC = /(\d{3,4}-?ccm|euro-\d|-\d+km(-|$)|^other$)/;
 const MIEJSCE_SMIEC =
   /(sp-z-o-o|sp-j|sp-k|wisniewski|nowakowski|car-arena|dobrygowski|romanowski|walder|carolina|professional|pewne-auto|kobos|sacar|jankowscy|anwa|dakar|carter|stolarz|jaworski|alta-|^ul-)/;

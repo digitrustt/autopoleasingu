@@ -5,6 +5,7 @@ import { Crumbs } from "@/components/Crumbs";
 import { daneStrukturalnePojazdu } from "@/lib/dane-strukturalne";
 import { FinansowanieBlok, RataPrzyCenie } from "@/components/FinansowanieBlok";
 import { PasekOferty } from "@/components/PasekOferty";
+import { PoradnikiVin } from "@/components/PoradnikiVin";
 import { HistoriaBlok } from "@/components/HistoriaBlok";
 import { UbezpieczenieBlok } from "@/components/UbezpieczenieBlok";
 import { ZapisForm } from "@/components/ZapisForm";
@@ -883,6 +884,8 @@ export default async function OfferPage({ params }: { params: Promise<{ id: stri
           </>
         )}
       </nav>
+
+      <PoradnikiVin className="mt-8" />
 
       {!gone && o.priceGross != null && (
         <PasekOferty
