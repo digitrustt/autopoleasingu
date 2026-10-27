@@ -26,6 +26,7 @@ import {
   getYearBreakdown,
 } from "@/lib/queries";
 import { kategorieOferty } from "@/lib/linki-oferty";
+import { kredytDlaCeny } from "@/lib/kredyt";
 import { paryModelu } from "@/lib/pary";
 import { makeHref, modelHref } from "@/lib/slug";
 import { bodySpec, driveSpec, fuelSpec, gearboxSpec } from "@/lib/spec";
@@ -314,7 +315,7 @@ export default async function OfferPage({ params }: { params: Promise<{ id: stri
     vin: o.vin,
     id: o.id,
     // Te same warunki co FinansowanieBlok przy cenie.
-    kredyt: !gone && o.priceGross != null,
+    kredyt: !gone && kredytDlaCeny(o.priceGross),
   };
   const daneWyjscia = {
     id: o.id,
@@ -611,7 +612,9 @@ export default async function OfferPage({ params }: { params: Promise<{ id: stri
                     netto {pln.format(o.priceNet)}
                   </p>
                 )}
-                {!gone && <RataPrzyCenie ofertaId={o.id} cena={o.priceGross} />}
+                {!gone && kredytDlaCeny(o.priceGross) && (
+                  <RataPrzyCenie ofertaId={o.id} cena={o.priceGross} />
+                )}
               </>
             )}
 
@@ -714,6 +717,7 @@ export default async function OfferPage({ params }: { params: Promise<{ id: stri
               Wyjscie do zrodla. Transakcja odbywa sie tam — nie sprzedajemy aut
               ani nie posredniczymy, wiec to musi byc jasne i widoczne.
             */}
+            <div id="wyjscie-oferty">
             <OfferLink
               href={o.url}
               external
@@ -725,6 +729,7 @@ export default async function OfferPage({ params }: { params: Promise<{ id: stri
               {gone ? "Sprawdź w źródle" : `Zobacz w ${shortSource(o.sourceName)}`}
               <ArrowUpRight size={15} />
             </OfferLink>
+            </div>
             <p className="mt-2 text-[11px] leading-relaxed text-neutral-600">
               Oferta i transakcja po stronie sprzedawcy. Nie pośredniczymy w sprzedaży.
             </p>
@@ -740,7 +745,12 @@ export default async function OfferPage({ params }: { params: Promise<{ id: stri
               wiec dokladanie mu konkurencji to strata, nie dodatek.
             */}
             {!gone && o.priceGross != null ? (
-              <FinansowanieBlok ofertaId={o.id} cena={o.priceGross} nazwa={name} />
+              <FinansowanieBlok
+                ofertaId={o.id}
+                cena={o.priceGross}
+                nazwa={name}
+                bezKredytu={!kredytDlaCeny(o.priceGross)}
+              />
             ) : (
               <UbezpieczenieBlok gdzie={gone ? "oferta-sprzedana" : "oferta-bez-ceny"} nazwa={name} />
             )}
@@ -896,6 +906,7 @@ export default async function OfferPage({ params }: { params: Promise<{ id: stri
           zrodlo={shortSource(o.sourceName)}
           kontekst={kontekstWyjscia}
           offer={daneWyjscia}
+          pokazKredyt={kredytDlaCeny(o.priceGross)}
         />
       )}
     </main>

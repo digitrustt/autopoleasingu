@@ -24,6 +24,7 @@ export function PasekOferty({
   zrodlo,
   kontekst,
   offer,
+  pokazKredyt = true,
 }: {
   ofertaId: number;
   cena: number;
@@ -32,17 +33,25 @@ export function PasekOferty({
   zrodlo: string;
   kontekst: KontekstWyjscia;
   offer: Record<string, unknown>;
+  /** Tanie auto: pasek niesie samo przejscie do sprzedawcy. Patrz lib/kredyt.ts. */
+  pokazKredyt?: boolean;
 }) {
   const [widoczny, setWidoczny] = useState(false);
-  const kredyt = linkKredytu(`pasek-oferta-${ofertaId}`);
+  const kredyt = pokazKredyt ? linkKredytu(`pasek-oferta-${ofertaId}`) : null;
 
   useEffect(() => {
-    const karta = document.getElementById("karta-ceny");
-    if (!karta) return;
+    /*
+     * Pasek wjezdza, gdy z ekranu znika PRZYCISK wyjscia do sprzedawcy, a nie
+     * cala karta ceny (27.10.2026). Karta zawiera tez ocene ceny, ten sam VIN
+     * u innych zrodel i zapis na alert, wiec bywa wyzsza niz ekran telefonu —
+     * pasek pokazywal sie dopiero daleko pod nia i mial 0 klikniec.
+     */
+    const cel = document.getElementById("wyjscie-oferty") ?? document.getElementById("karta-ceny");
+    if (!cel) return;
     const obs = new IntersectionObserver(([e]) =>
       setWidoczny(!e.isIntersecting && e.boundingClientRect.bottom < 0),
     );
-    obs.observe(karta);
+    obs.observe(cel);
     return () => obs.disconnect();
   }, []);
 

@@ -57,17 +57,20 @@ export function FinansowanieBlok({
   ofertaId,
   cena,
   nazwa,
+  bezKredytu = false,
 }: {
   ofertaId: number;
   cena: number | null;
   /** "BMW Seria 3" — nazwa TEGO auta, nie ogolnik. Patrz komentarz nizej. */
   nazwa: string;
+  /** Tanie auto: bez przycisku kredytu, zostaje leasing. Patrz lib/kredyt.ts. */
+  bezKredytu?: boolean;
 }) {
   /*
    * Identyfikator oferty w etykiecie: po konwersji wiadomo, KTORE auto ja
    * wygenerowalo — czy kredyty biora ogladajacy auta za 250 tys., czy za 60 tys.
    */
-  const href = linkKredytu(`oferta-${ofertaId}`);
+  const href = bezKredytu ? null : linkKredytu(`oferta-${ofertaId}`);
   const leasing = linkLeasingu(`oferta-${ofertaId}`);
   // Bez skonfigurowanego linku nie renderujemy nic — lepiej brak sekcji niz martwy odnosnik.
   if (!href && !leasing) return null;
@@ -165,11 +168,11 @@ export function RataPrzyCenie({ ofertaId, cena }: { ofertaId: number; cena: numb
         track("finansowanie_klik", { oferta: ofertaId, cena, gdzie: "przy-cenie" });
         otworzPartnera(href);
       }}
-      className="mt-1.5 flex items-center gap-1.5 text-[13px] font-medium text-accent underline-offset-2 hover:underline"
+      className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-accent/50 bg-accent/10 px-3 py-1.5 text-[13px] font-semibold text-neutral-100 transition-colors hover:border-accent hover:bg-accent/15"
     >
-      <Landmark size={13} />
+      <Landmark size={14} className="text-accent" />
       albo na raty — sprawdź ratę
-      <ArrowUpRight size={13} />
+      <ArrowUpRight size={13} className="text-accent" />
     </button>
   );
 }
