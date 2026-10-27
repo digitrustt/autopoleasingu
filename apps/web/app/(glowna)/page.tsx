@@ -1,6 +1,7 @@
 import { Filters } from "@/components/Filters";
 import { Radar } from "@/components/Radar";
 import { Results } from "@/components/Results";
+import { TrescGlowna } from "@/components/TrescGlowna";
 import {
   filtryMarek,
   filtryModeli,
@@ -232,15 +233,16 @@ export default async function Page({ searchParams }: { searchParams: Promise<Sea
             H1 OPISOWY, nie logotyp.
             Logotyp przeniosl sie do stalego naglowka, wiec powtarzanie go tutaj
             dawaloby te sama nazwe dwa razy jedna pod druga. Przy okazji to lepszy
-            naglowek dla wyszukiwarki: "Auta poleasingowe z 26 zrodel" zawiera
-            fraze, ktorej ludzie szukaja, a "autopoleasingu.pl" — nazwe, ktorej
+            naglowek dla wyszukiwarki: "Samochody poleasingowe z 26 zrodel" zawiera
+            fraze, ktorej ludzie szukaja (od 27.10.2026 dokladnie w tej formie
+            zamiast "Auta poleasingowe", bo to wariant z wiekszym wolumenem), a "autopoleasingu.pl" — nazwe, ktorej
             nie zna nikt poza nami.
           */}
           <h1 className="text-2xl font-bold tracking-tight text-neutral-100">
-            Auta poleasingowe z {sourceList.length} źródeł
+            Samochody poleasingowe z {sourceList.length} źródeł
           </h1>
           <p className="text-sm text-neutral-400">
-            {num.format(stats.active)} aktywnych z {sourceList.length} źródeł ·{" "}
+            {num.format(stats.active)} aut po leasingu ·{" "}
             {num.format(stats.newToday)} nowych dziś · mediana {pln.format(stats.medianPrice)} ·{" "}
             {num.format(stats.gone)} zniknęło
           </p>
@@ -267,6 +269,11 @@ export default async function Page({ searchParams }: { searchParams: Promise<Sea
       <Suspense key={`${JSON.stringify(current)}#${page}`} fallback={<Radar />}>
         <Results filters={filters} page={page} params={current} />
       </Suspense>
+
+      {/* Tresc i wezel linkow tylko na czystej stronie glownej, nie na wynikach filtrow. */}
+      {page === 1 && Object.values(current).every((v) => v === undefined) && (
+        <TrescGlowna aktywne={stats.active} mediana={stats.medianPrice} zrodel={sourceList.length} />
+      )}
     </main>
   );
 }

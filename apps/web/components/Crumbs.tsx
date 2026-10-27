@@ -23,7 +23,7 @@ export function Crumbs({ items }: { items: Crumb[] }) {
   const ld = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
-    itemListElement: [{ label: "Oferty", href: "/" }, ...items].map((c, i) => ({
+    itemListElement: [{ label: "Samochody poleasingowe", href: "/" }, ...items].map((c, i) => ({
       "@type": "ListItem",
       position: i + 1,
       name: c.label,
@@ -40,13 +40,16 @@ export function Crumbs({ items }: { items: Crumb[] }) {
       />
       <nav className="mb-5 flex flex-wrap items-center gap-1.5 text-[13px] text-neutral-500">
         {/*
-          Korzen sciezki to slowo "Oferty", nie logotyp. Odkad naglowek jest
+          Korzen sciezki to fraza "Samochody poleasingowe" (od 27.10.2026; wczesniej
+          "Oferty"). Okruszki sa na kazdej ofercie, modelu i marce, wiec to tysiace
+          wewnetrznych linkow do strony glownej z dokladna fraza, na ktora ja pozycjonujemy.
+          Korzen sciezki to nie logotyp. Odkad naglowek jest
           staly i niesie nazwe serwisu, powtorzenie jej w okruszkach dawalo dwa
           logotypy w odstepie kilkunastu pikseli. Slowo opisuje tez lepiej, DOKAD
           ten link prowadzi — do listy ofert, a nie "do marki".
         */}
         <Link href="/" className="transition-colors hover:text-accent">
-          Oferty
+          Samochody poleasingowe
         </Link>
         {items.map((c) => (
           <span key={c.label} className="flex items-center gap-1.5">
