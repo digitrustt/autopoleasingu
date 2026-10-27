@@ -1,4 +1,5 @@
 import { GRUPY } from "@/lib/filtry";
+import { WOJEWODZTWA } from "@/lib/wojewodztwa";
 import { getMenuData } from "@/lib/menu";
 import { slugMiasta } from "@/lib/miasta";
 import { makeHref } from "@/lib/slug";
@@ -100,7 +101,7 @@ export async function TrescGlowna({
 
       <h2 className="mt-8 text-xl font-semibold text-neutral-100">Samochody poleasingowe według kategorii</h2>
       <div className="mt-3 space-y-4">
-        {GRUPY.filter((g) => g.tytul !== "Pozostałe" && g.tytul !== "Cena i nadwozie").map((g) => (
+        {GRUPY.filter((g) => g.tytul !== "Pozostałe").map((g) => (
           <div key={g.tytul}>
             <h3 className="mb-2 text-[13px] font-medium text-neutral-500">{g.tytul}</h3>
             <ul className="flex flex-wrap gap-2">
@@ -122,6 +123,17 @@ export async function TrescGlowna({
           .
         </p>
       </div>
+
+      <h2 className="mt-8 text-xl font-semibold text-neutral-100">Samochody poleasingowe według województwa</h2>
+      <ul className="mt-3 flex flex-wrap gap-2">
+        {WOJEWODZTWA.map((w) => (
+          <li key={w.slug}>
+            <Link href={`/poleasingowe/${w.slug}`} className={chip}>
+              {w.nazwa}
+            </Link>
+          </li>
+        ))}
+      </ul>
 
       <h2 className="mt-8 text-xl font-semibold text-neutral-100">Poleasingowe według marki</h2>
       <ul className="mt-3 flex flex-wrap gap-2">
