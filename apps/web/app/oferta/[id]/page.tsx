@@ -24,6 +24,8 @@ import {
   getSimilar,
   getYearBreakdown,
 } from "@/lib/queries";
+import { kategorieOferty } from "@/lib/linki-oferty";
+import { paryModelu } from "@/lib/pary";
 import { makeHref, modelHref } from "@/lib/slug";
 import { bodySpec, driveSpec, fuelSpec, gearboxSpec } from "@/lib/spec";
 import {
@@ -246,6 +248,13 @@ export default async function OfferPage({ params }: { params: Promise<{ id: stri
     miastoSlug && paryZeStrona.includes(`${o.make}|${miastoSlug}`) && o.city
       ? makaMiastoHref(o.make, o.city)
       : null;
+
+  /*
+   * Kategorie (cena, nadwozie, paliwo) i porownania tego modelu — poziome
+   * linkowanie z najczesciej odwiedzanego typu strony. Patrz lib/linki-oferty.ts.
+   */
+  const kategorie = kategorieOferty(o);
+  const porownania = o.model ? paryModelu(o.make, o.model, 4) : [];
 
   const sameYear = o.year ? years.find((y) => y.year === o.year) : undefined;
   const name = [o.make, o.model].filter(Boolean).join(" ");
@@ -811,41 +820,69 @@ export default async function OfferPage({ params }: { params: Promise<{ id: stri
         </section>
       )}
 
-      {(linkMiasta || linkMarkiWMiescie) && (
-        <nav className="mt-10 border-t border-[var(--color-line)] pt-6" aria-label="Więcej aut poleasingowych">
-          <h2 className="mb-3 text-base font-semibold text-neutral-100">Więcej aut poleasingowych</h2>
-          <ul className="flex flex-wrap gap-2 text-[13px]">
-            {linkMarkiWMiescie && (
-              <li>
-                <Link
-                  href={linkMarkiWMiescie}
-                  className="inline-block rounded-lg border border-[var(--color-line)] bg-[var(--color-panel)] px-3 py-1.5 text-neutral-300 transition-colors hover:border-neutral-600 hover:text-neutral-100"
-                >
-                  {o.make} poleasingowe {miastoNazwa}
-                </Link>
-              </li>
-            )}
-            {linkMiasta && (
-              <li>
-                <Link
-                  href={linkMiasta}
-                  className="inline-block rounded-lg border border-[var(--color-line)] bg-[var(--color-panel)] px-3 py-1.5 text-neutral-300 transition-colors hover:border-neutral-600 hover:text-neutral-100"
-                >
-                  Samochody poleasingowe {miastoNazwa}
-                </Link>
-              </li>
-            )}
+      <nav className="mt-10 border-t border-[var(--color-line)] pt-6" aria-label="Więcej aut poleasingowych">
+        <h2 className="mb-3 text-base font-semibold text-neutral-100">Więcej aut poleasingowych</h2>
+        <ul className="flex flex-wrap gap-2 text-[13px]">
+          {linkMarkiWMiescie && (
             <li>
               <Link
-                href={modelHref(o.make, o.model)}
+                href={linkMarkiWMiescie}
                 className="inline-block rounded-lg border border-[var(--color-line)] bg-[var(--color-panel)] px-3 py-1.5 text-neutral-300 transition-colors hover:border-neutral-600 hover:text-neutral-100"
               >
-                {name} po leasingu
+                {o.make} poleasingowe {miastoNazwa}
               </Link>
             </li>
-          </ul>
-        </nav>
-      )}
+          )}
+          {linkMiasta && (
+            <li>
+              <Link
+                href={linkMiasta}
+                className="inline-block rounded-lg border border-[var(--color-line)] bg-[var(--color-panel)] px-3 py-1.5 text-neutral-300 transition-colors hover:border-neutral-600 hover:text-neutral-100"
+              >
+                Samochody poleasingowe {miastoNazwa}
+              </Link>
+            </li>
+          )}
+          <li>
+            <Link
+              href={modelHref(o.make, o.model)}
+              className="inline-block rounded-lg border border-[var(--color-line)] bg-[var(--color-panel)] px-3 py-1.5 text-neutral-300 transition-colors hover:border-neutral-600 hover:text-neutral-100"
+            >
+              {name} po leasingu
+            </Link>
+          </li>
+          {kategorie.map((k) => (
+            <li key={k.href}>
+              <Link
+                href={k.href}
+                className="inline-block rounded-lg border border-[var(--color-line)] bg-[var(--color-panel)] px-3 py-1.5 text-neutral-300 transition-colors hover:border-neutral-600 hover:text-neutral-100"
+              >
+                {k.tekst}
+              </Link>
+            </li>
+          ))}
+        </ul>
+
+        {porownania.length > 0 && (
+          <>
+            <h2 className="mb-3 mt-6 text-base font-semibold text-neutral-100">
+              Porównaj {name} z innymi
+            </h2>
+            <ul className="flex flex-wrap gap-2 text-[13px]">
+              {porownania.map(({ para, drugi }) => (
+                <li key={para.slug}>
+                  <Link
+                    href={`/porownaj/${para.slug}`}
+                    className="inline-block rounded-lg border border-[var(--color-line)] bg-[var(--color-panel)] px-3 py-1.5 text-neutral-300 transition-colors hover:border-neutral-600 hover:text-neutral-100"
+                  >
+                    {name} czy {drugi}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+      </nav>
 
       {!gone && o.priceGross != null && (
         <PasekOferty
