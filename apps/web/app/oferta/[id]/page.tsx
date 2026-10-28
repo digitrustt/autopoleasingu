@@ -756,6 +756,31 @@ export default async function OfferPage({ params }: { params: Promise<{ id: stri
             )}
 
             {/*
+              Tanie auto (28.10.2026): kredytu tu nie ma (patrz lib/kredyt.ts), wiec slot
+              po nim jest wolny i dostaje OC, zgodnie z zasada z UbezpieczenieBlok.
+            */}
+            {!gone && o.priceGross != null && !kredytDlaCeny(o.priceGross) && (
+              <UbezpieczenieBlok gdzie="oferta-tanie" nazwa={name} />
+            )}
+
+            {/*
+              Raport historii w karcie ceny, TYLKO NA TELEFONIE (28.10.2026). Duzy blok
+              stoi pod zdjeciem, a na telefonie karta ceny jest nad zdjeciem i przed
+              duzym blokiem trzeba przewinac cala karte. Ten sam komponent i ten sam
+              tekst co przy zdjeciu. Osobne `gdzie`, zeby w PostHogu bylo widac, czy
+              nie zabiera klikniec z kredytu.
+            */}
+            <div className="lg:hidden">
+              <HistoriaBlok
+                vin={o.vin}
+                gdzie={gone ? "oferta-karta-sprzedana" : "oferta-karta"}
+                sourceId={o.sourceId}
+                nazwa={name}
+                wariant="kolumna"
+              />
+            </div>
+
+            {/*
               Zapis w kolumnie decyzyjnej, nie na dole strony.
 
               Zmierzone na czternastu dniach: 264 osoby na serwisie, 20 z nich
@@ -894,6 +919,13 @@ export default async function OfferPage({ params }: { params: Promise<{ id: stri
           </>
         )}
       </nav>
+
+      {/* OC na dole strony, gdzie nie konkuruje z kredytem (28.10.2026). */}
+      {!gone && (
+        <div className="mt-8 max-w-[480px]">
+          <UbezpieczenieBlok gdzie="oferta-dol" nazwa={name} />
+        </div>
+      )}
 
       <PoradnikiVin className="mt-8" />
 
