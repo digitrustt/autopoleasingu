@@ -1,4 +1,5 @@
 import { Crumbs } from "@/components/Crumbs";
+import { RataLista } from "@/components/RataLista";
 import { MarkaGrid } from "@/components/MarkaGrid";
 import { MiastaLista } from "@/components/MiastaLista";
 import { ZapisPasek } from "@/components/ZapisPasek";
@@ -56,6 +57,9 @@ export async function KategoriaWidok({ k }: { k: Kategoria }) {
         {num.format(stats.total)} ofert z {stats.sources} źródeł, {num.format(stats.makes)} marek.{" "}
         {k.opis}
       </p>
+
+      {/* Poniżej 30 tys. kredytu nie pokazujemy — patrz lib/kredyt.ts. */}
+      {k.slug !== "do-30-tys" && <RataLista etykieta={`kat-${k.slug}`} />}
 
       <StatStrip
         items={[

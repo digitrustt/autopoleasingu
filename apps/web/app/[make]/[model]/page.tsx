@@ -1,4 +1,5 @@
 import { Crumbs } from "@/components/Crumbs";
+import { RataLista } from "@/components/RataLista";
 import { ZapisPasek } from "@/components/ZapisPasek";
 import { OfferCard } from "@/components/OfferCard";
 import { ModelGrid } from "@/components/ModelGrid";
@@ -226,6 +227,8 @@ export default async function ModelPage({
         . Ten sam egzemplarz bywa wystawiony w kilku kanałach po różnych cenach — pokazujemy je
         obok siebie zamiast scalać.
       </p>
+
+      <RataLista etykieta={`model-${make}-${model}`.toLowerCase().replace(/[^a-z0-9]+/g, "-")} />
 
       <StatStrip
         items={[

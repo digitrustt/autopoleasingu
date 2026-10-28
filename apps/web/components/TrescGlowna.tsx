@@ -194,6 +194,14 @@ export async function TrescGlowna({
           </dd>
         </div>
         <div>
+          <dt className="font-medium text-neutral-200">Czy auto poleasingowe można kupić na raty?</dt>
+          <dd className="mt-1 text-neutral-400">
+            Zwykle tak, kredytem samochodowym. Warunki zależą od banku, od sprzedawcy i od twojej
+            zdolności kredytowej, więc ratę sprawdzisz u kredytodawcy, a nie u nas. Przy droższych
+            ofertach jest link do wniosku online.
+          </dd>
+        </div>
+        <div>
           <dt className="font-medium text-neutral-200">Gdzie szukać aut po leasingu?</dt>
           <dd className="mt-1 text-neutral-400">
             Oferty są rozproszone po stronach leasingodawców, dealerów i aukcji. Zebraliśmy{" "}
