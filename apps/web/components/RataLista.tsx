@@ -14,14 +14,14 @@ import { ArrowUpRight, Landmark } from "lucide-react";
  * zadnych stawek, rat ani RRSO. Etykieta `lista-...` rozroznia to miejsce w panelu
  * Comperialead od ofert (`oferta-`, `cena-oferta-`, `pasek-`, `popup-`).
  */
-export function RataLista({ etykieta }: { etykieta: string }) {
+export function RataLista({ etykieta, gdzie = "lista" }: { etykieta: string; gdzie?: string }) {
   const href = linkKredytu(`lista-${etykieta}`);
   if (!href) return null;
   return (
     <button
       type="button"
       onClick={() => {
-        track("finansowanie_klik", { gdzie: "lista", strona: etykieta });
+        track("finansowanie_klik", { gdzie, strona: etykieta });
         otworzPartnera(href);
       }}
       className="group mb-5 flex max-w-[640px] items-center justify-between gap-3 rounded-lg border border-accent/50 bg-accent/10 px-3 py-2.5 text-left transition-colors hover:border-accent hover:bg-accent/15"

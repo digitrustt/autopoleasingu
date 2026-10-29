@@ -18,6 +18,7 @@ import Link from "next/link";
 const LINKS = [
   { href: "/poleasingowe", label: "Miasta" },
   { href: "/porownaj", label: "Porównania" },
+  { href: "/poleasingowe/na-raty", label: "Na raty" },
   { href: "/vin", label: "Sprawdź VIN" },
   { href: "/kalkulator-pcc-samochodu", label: "Kalkulator PCC" },
   { href: "/wycena-samochodu", label: "Wycena auta" },
