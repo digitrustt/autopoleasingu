@@ -1,6 +1,9 @@
 import { Crumbs } from "@/components/Crumbs";
 import { ModelGrid } from "@/components/ModelGrid";
+import { FaqBlok, type PytanieFaq } from "@/components/FaqBlok";
 import { OfferCard } from "@/components/OfferCard";
+import { RataLista } from "@/components/RataLista";
+import { ZapisPasek } from "@/components/ZapisPasek";
 import { StatStrip } from "@/components/StatStrip";
 import {
   getBodyBreakdown,
@@ -16,7 +19,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { oferty, zrodel } from "@/lib/format";
-import { wmiStaty } from "@/lib/cache-filtrow";
+import { paryMarkaMiastoLiczniki, wmiStaty } from "@/lib/cache-filtrow";
+import { makaMiastoHref } from "@/lib/marka-miasto";
+import { paryMarki } from "@/lib/pary";
+import { miejsceOk } from "@/lib/smiec";
 import { vinMarkiHref, wgMarek } from "@/lib/vin";
 
 /*
@@ -113,13 +119,14 @@ export default async function MakePage({ params }: { params: Promise<{ make: str
   if (!found) notFound();
   const { make } = found;
 
-  const [stats, models, bodies, best, staty] = await Promise.all([
+  const [stats, models, bodies, best, staty, liczniki] = await Promise.all([
     getSegmentStats(make),
     getModelCards(make),
     getBodyBreakdown(make),
     // Najlepsze okazje marki — to one maja sprzedac te strone czytelnikowi.
     getListings({ make, sort: "deal_desc", withPrice: "1" }, 1, 12),
     wmiStaty(),
+    paryMarkaMiastoLiczniki(),
   ]);
 
   if (stats.total === 0) notFound();
@@ -128,6 +135,58 @@ export default async function MakePage({ params }: { params: Promise<{ make: str
 
   const featured = models.slice(0, CARDS);
   const rest = models.slice(CARDS);
+
+  /*
+   * Linki do stron marka x miasto i do porownan (28.10.2026). Strona marki nie
+   * linkowala do zadnej z nich, a Search Console (29.10) pokazal 521 stron
+   * "wykrytych, ale niezindeksowanych", m.in. wlasnie te. Strona marki to
+   * naturalne miejsce: to ona wie, w jakich miastach marka ma co najmniej
+   * prog ofert (PROG_OFERT) i jakie porownania istnieja.
+   */
+  const miasta = liczniki.filter((m) => m.make === make && miejsceOk(m.city)).slice(0, 12);
+  const porownania = paryMarki(make, 8);
+
+  const top = models.slice(0, 3);
+  const pytania: PytanieFaq[] = [
+    ...(stats.medianPrice
+      ? [
+          {
+            q: `Ile kosztuje ${make} po leasingu?`,
+            a:
+              `Mediana cen ${make} poleasingowych w naszej bazie to ${pln.format(stats.medianPrice)}` +
+              (stats.minPrice ? `, a najtańszy egzemplarz kosztuje ${pln.format(stats.minPrice)}` : "") +
+              ". Cena zależy od modelu, rocznika i przebiegu, więc najlepiej porównać ją z medianą " +
+              "dla konkretnego modelu na jego stronie.",
+          },
+        ]
+      : []),
+    ...(top.length > 0
+      ? [
+          {
+            q: `Których modeli ${make} jest najwięcej po leasingu?`,
+            a:
+              `Najwięcej ofert mamy dla: ${top.map((m) => `${m.model} (${num.format(m.total)})`).join(", ")}. ` +
+              `W sumie to ${num.format(models.length)} ${models.length === 1 ? "wersja modelu" : "wersji modeli"}.`,
+          },
+        ]
+      : []),
+    {
+      q: `Gdzie kupić ${make} poleasingowy?`,
+      a:
+        `W naszej bazie jest ${num.format(stats.total)} ${oferty(stats.total)} ${make} z ` +
+        `${stats.sources} ${zrodel(stats.sources)}: od firm leasingowych, CFM i w programach ` +
+        "dealerskich. Każda oferta prowadzi do sprzedawcy, u którego dokonujesz zakupu. My " +
+        "pokazujemy ceny, historię zmian ceny i to, czy ten sam VIN jest u kilku sprzedawców.",
+      link: { href: "/zrodla", tekst: "Lista źródeł." },
+    },
+    {
+      q: `Czy ${make} poleasingowy można kupić na raty?`,
+      a:
+        "Zwykle tak, kredytem samochodowym. Warunki zależą od banku, od sprzedawcy i od twojej " +
+        "zdolności kredytowej, więc ratę sprawdzisz u kredytodawcy.",
+      link: { href: "/poleasingowe/na-raty", tekst: "Więcej o zakupie na raty." },
+    },
+  ];
 
   return (
     <main className="mx-auto max-w-[1400px] px-4 py-6">
@@ -140,6 +199,8 @@ export default async function MakePage({ params }: { params: Promise<{ make: str
         tego samego rocznika, przebiegu i napędu, więc {num.format(stats.deals)} z nich stoi
         wyraźnie poniżej rynku.
       </p>
+
+      <RataLista etykieta={`marka-${slugify(make)}`} />
 
       <StatStrip
         items={[
@@ -234,6 +295,60 @@ export default async function MakePage({ params }: { params: Promise<{ make: str
           </div>
         </section>
       )}
+
+      {miasta.length > 0 && (
+        <section className="mt-10">
+          <h2 className="mb-3 text-lg font-semibold text-neutral-100">
+            {make} poleasingowe w miastach
+          </h2>
+          <ul className="flex flex-wrap gap-2 text-[13px]">
+            {miasta.map((m) => (
+              <li key={m.citySlug}>
+                <Link
+                  href={makaMiastoHref(make, m.city)}
+                  className="inline-block rounded-lg border border-[var(--color-line)] bg-[var(--color-panel)] px-3 py-1.5 text-neutral-300 transition-colors hover:border-neutral-600 hover:text-neutral-100"
+                >
+                  {make} poleasingowe {m.city}{" "}
+                  <span className="text-[11px] tabular-nums text-neutral-600">{num.format(m.total)}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {porownania.length > 0 && (
+        <section className="mt-10">
+          <h2 className="mb-3 text-lg font-semibold text-neutral-100">Porównaj modele {make}</h2>
+          <ul className="flex flex-wrap gap-2 text-[13px]">
+            {porownania.map((pa) => (
+              <li key={pa.slug}>
+                <Link
+                  href={`/porownaj/${pa.slug}`}
+                  className="inline-block rounded-lg border border-[var(--color-line)] bg-[var(--color-panel)] px-3 py-1.5 text-neutral-300 transition-colors hover:border-neutral-600 hover:text-neutral-100"
+                >
+                  {pa.a.make} {pa.a.model} czy {pa.b.make} {pa.b.model}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <div className="mt-10">
+        <FaqBlok tytul={`${make} poleasingowe: najczęstsze pytania`} pytania={pytania} />
+      </div>
+
+      <ZapisPasek
+        typ="marka"
+        tytul={`Powiadomić o nowych ${make}?`}
+        opis={
+          `Sprawdzamy ${stats.sources} ${zrodel(stats.sources)} codziennie. Gdy pojawi się nowy ${make} ` +
+          "albo któryś z obecnych stanieje, dostaniesz maila."
+        }
+        label={make}
+        filters={{ make }}
+      />
 
       {maVin && (
         <p className="mt-8 text-[13px] text-neutral-400">

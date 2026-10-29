@@ -100,3 +100,14 @@ export function paryModelu(make: string, model: string, limit = 8): { para: Para
   // Obustronne najpierw — to pary, o ktore ludzie pytaja z obu stron.
   return wynik.sort((x, y) => Number(y.para.obustronna) - Number(x.para.obustronna)).slice(0, limit);
 }
+
+/**
+ * Porownania, w ktorych wystepuje ktorykolwiek model danej marki — do bloku
+ * "Porownaj" na stronie marki. Obustronne najpierw.
+ */
+export function paryMarki(make: string, limit = 8): Para[] {
+  const k = slugify(make);
+  return PARY.filter((p) => slugify(p.a.make) === k || slugify(p.b.make) === k)
+    .sort((x, y) => Number(y.obustronna) - Number(x.obustronna))
+    .slice(0, limit);
+}

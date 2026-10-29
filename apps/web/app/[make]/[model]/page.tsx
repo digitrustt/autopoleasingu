@@ -1,4 +1,5 @@
 import { Crumbs } from "@/components/Crumbs";
+import { FaqBlok, type PytanieFaq } from "@/components/FaqBlok";
 import { RataLista } from "@/components/RataLista";
 import { ZapisPasek } from "@/components/ZapisPasek";
 import { OfferCard } from "@/components/OfferCard";
@@ -25,6 +26,9 @@ import { CalendarRange, Gauge, Layers, SlidersHorizontal, TrendingDown } from "l
 import type { Metadata } from "next";
 import Link from "next/link";
 import { paryModelu } from "@/lib/pary";
+import { paryMarkaMiastoLiczniki } from "@/lib/cache-filtrow";
+import { makaMiastoHref } from "@/lib/marka-miasto";
+import { miejsceOk } from "@/lib/smiec";
 import { notFound } from "next/navigation";
 import { oferty, zrodel } from "@/lib/format";
 
@@ -180,7 +184,7 @@ export default async function ModelPage({
 
   const name = `${make} ${model}`;
 
-  const [stats, years, fuels, bodies, histogram, scatter, offers] = await Promise.all([
+  const [stats, years, fuels, bodies, histogram, scatter, offers, liczniki] = await Promise.all([
     getSegmentStats(make, aliasy),
     getYearBreakdown(make, aliasy),
     getFuelBreakdown(make, aliasy),
@@ -188,6 +192,7 @@ export default async function ModelPage({
     getPriceHistogram(make, aliasy),
     getScatter(make, aliasy),
     getListings({ make, model: aliasy, sort: "deal_desc" }, 1, 24),
+    paryMarkaMiastoLiczniki(),
   ]);
 
   if (stats.total === 0) notFound();
@@ -216,6 +221,77 @@ export default async function ModelPage({
       : null;
 
   const siblings = models.filter((m) => m.model !== model).slice(0, 12);
+
+  /*
+   * Miasta marki (28.10.2026): strony marka x miasto maja po stronie modelu
+   * naturalne miejsce linku, a do tej pory linkowaly do nich tylko oferty.
+   */
+  const miasta = liczniki.filter((m) => m.make === make && miejsceOk(m.city)).slice(0, 8);
+
+  /*
+   * Pytania liczone z danych tej strony. Kazde pojawia sie tylko wtedy, gdy ma
+   * z czego sie policzyc: model z jedna oferta bez ceny nie dostaje pytania o mediane.
+   */
+  const jednaCena = stats.minPrice != null && stats.minPrice === stats.maxPrice;
+  const rocznikiAsc = years
+    .filter((y) => y.year != null)
+    .sort((a, b) => (a.year as number) - (b.year as number));
+  const pytania: PytanieFaq[] = [
+    ...(stats.minPrice
+      ? [
+          {
+            q: `Ile kosztuje ${name} po leasingu?`,
+            a: jednaCena
+              ? `Jedyna oferta ${name} z podaną ceną kosztuje ${pln.format(stats.minPrice)}.`
+              : `Ceny ${name} poleasingowego zaczynają się od ${pln.format(stats.minPrice)}` +
+                (stats.maxPrice ? ` i sięgają ${pln.format(stats.maxPrice)}` : "") +
+                (stats.medianPrice ? `, a mediana to ${pln.format(stats.medianPrice)}` : "") +
+                (rocznikiAsc.length >= 2
+                  ? `. Najstarszy rocznik (${rocznikiAsc[0].year}) kosztuje typowo ` +
+                    `${pln.format(rocznikiAsc[0].medianPrice)}, najnowszy ` +
+                    `(${rocznikiAsc[rocznikiAsc.length - 1].year}) ` +
+                    `${pln.format(rocznikiAsc[rocznikiAsc.length - 1].medianPrice)}`
+                  : "") +
+                ".",
+          },
+        ]
+      : []),
+    ...(stats.medianMileage != null
+      ? [
+          {
+            q: `Jaki przebieg mają ${name} po leasingu?`,
+            a:
+              `Mediana przebiegu ${name} w naszej bazie to ${num.format(stats.medianMileage)} km, ` +
+              "liczona z ofert, w których sprzedawca podał przebieg.",
+          },
+        ]
+      : []),
+    ...(fuels.length > 0
+      ? [
+          {
+            q: `Jakie silniki mają ${name} po leasingu?`,
+            a:
+              "W ofercie są: " +
+              fuels.map((f) => `${fuelSpec(f.fuel)?.label ?? f.fuel} (${num.format(f.total)} szt.)`).join(", ") +
+              ".",
+          },
+        ]
+      : []),
+    {
+      q: `Gdzie kupić ${name} poleasingowy?`,
+      a:
+        `Mamy ${num.format(stats.total)} ${oferty(stats.total)} ${name} z ${stats.sources} ` +
+        `${zrodel(stats.sources)}. Każda prowadzi do sprzedawcy, u którego dokonujesz zakupu, ` +
+        "a my pokazujemy ceny, historię zmian ceny i ten sam VIN u kilku sprzedawców.",
+    },
+    {
+      q: `Czy ${name} poleasingowy można kupić na raty?`,
+      a:
+        "Zwykle tak, kredytem samochodowym. Warunki zależą od banku i od sprzedawcy, więc ratę " +
+        "sprawdzisz u kredytodawcy.",
+      link: { href: "/poleasingowe/na-raty", tekst: "Więcej o zakupie na raty." },
+    },
+  ];
 
   return (
     <main className="mx-auto max-w-[1400px] px-4 py-6">
@@ -449,6 +525,28 @@ export default async function ModelPage({
           ))}
         </div>
       </section>
+
+      {miasta.length > 0 && (
+        <section className="mb-8">
+          <h2 className="mb-3 text-lg font-semibold text-neutral-100">
+            {make} poleasingowe w miastach
+          </h2>
+          <ul className="flex flex-wrap gap-2 text-[13px]">
+            {miasta.map((m) => (
+              <li key={m.citySlug}>
+                <Link
+                  href={makaMiastoHref(make, m.city)}
+                  className="inline-block rounded-lg border border-[var(--color-line)] bg-[var(--color-panel)] px-3 py-1.5 text-neutral-300 transition-colors hover:border-neutral-600 hover:text-neutral-100"
+                >
+                  {make} poleasingowe {m.city}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <FaqBlok tytul={`${name} poleasingowe: najczęstsze pytania`} pytania={pytania} />
 
       {siblings.length > 0 && (
         <section>

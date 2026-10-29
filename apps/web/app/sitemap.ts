@@ -1,4 +1,5 @@
 import { KATEGORIE } from "@/lib/filtry";
+import { markaOk, miejsceOk, modelOk } from "@/lib/smiec";
 import { makaMiastoHref, zgrupujParyMarkaMiasto } from "@/lib/marka-miasto";
 import { PARY } from "@/lib/pary";
 import { PORADNIKI } from "@/lib/poradniki";
@@ -60,18 +61,6 @@ function when(v: string | Date | null): Date {
  * Zrodla wpisuja takie rzeczy w pola marka, model i miejsce. Na domenie bez
  * autorytetu kazdy zgloszony smiec zabiera wizyte robota dobrej stronie.
  */
-const MARKA_SMIEC = /^(other|inne|inny|brak|range)$/;
-const MODEL_SMIEC = /(\d{3,4}-?ccm|euro-\d|-\d+km(-|$)|^other$)/;
-const MIEJSCE_SMIEC =
-  /(sp-z-o-o|sp-j|sp-k|wisniewski|nowakowski|car-arena|dobrygowski|romanowski|walder|carolina|professional|pewne-auto|kobos|sacar|jankowscy|anwa|dakar|carter|stolarz|jaworski|alta-|^ul-)/;
-
-const markaOk = (make: string) => !MARKA_SMIEC.test(slugify(make));
-const modelOk = (model: string) => {
-  const m = slugify(model);
-  return m.length <= 40 && !MODEL_SMIEC.test(m);
-};
-const miejsceOk = (city: string | null) => !MIEJSCE_SMIEC.test(slugify(city ?? ""));
-
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [surowe, makaMiastoPary, staty] = await Promise.all([
     getSitemapEntries(),

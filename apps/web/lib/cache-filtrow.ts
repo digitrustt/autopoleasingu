@@ -99,3 +99,20 @@ export const paryMarkaMiastoZeStrona = unstable_cache(
   ["pary-marka-miasto"],
   { revalidate: 86_400, tags: ["oferty"] },
 );
+
+/**
+ * Pary marka x miasto z licznikami — do blokow "poleasingowe w miastach" na
+ * stronach marek i modeli. Ten sam zrodlowy wynik co paryMarkaMiastoZeStrona,
+ * tylko z liczbami, wiec zadne nowe zapytanie do bazy nie dochodzi do mapy strony.
+ */
+export const paryMarkaMiastoLiczniki = unstable_cache(
+  async () =>
+    zgrupujParyMarkaMiasto(await getMakeCityPairs()).map((p) => ({
+      make: p.make,
+      city: p.city,
+      citySlug: p.citySlug,
+      total: p.total,
+    })),
+  ["pary-marka-miasto-liczniki"],
+  { revalidate: 86_400, tags: ["oferty"] },
+);
