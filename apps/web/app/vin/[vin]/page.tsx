@@ -1,3 +1,5 @@
+import { Crumbs } from "@/components/Crumbs";
+import { OfferCard } from "@/components/OfferCard";
 import { PriceHistory } from "@/components/PriceHistory";
 import { UbezpieczenieBlok } from "@/components/UbezpieczenieBlok";
 import { HistoriaBlok } from "@/components/HistoriaBlok";
@@ -7,7 +9,12 @@ import { shortSource } from "@/lib/format";
 import { VinDekoder } from "@/components/VinDekoder";
 import { daneStrukturalnePojazdu } from "@/lib/dane-strukturalne";
 import { VinSzukaj } from "@/components/VinSzukaj";
-import { getVinHistory, getWmiMake } from "@/lib/queries";
+import { paryMarkaMiastoZeStrona } from "@/lib/cache-filtrow";
+import { makaMiastoHref } from "@/lib/marka-miasto";
+import { slugMiasta } from "@/lib/miasta";
+import { paryModelu } from "@/lib/pary";
+import { getListings, getVinHistory, getWmiMake } from "@/lib/queries";
+import { makeHref, modelHref } from "@/lib/slug";
 import { poprawnyVin } from "@/lib/vin";
 import type { Metadata } from "next";
 import {
@@ -174,12 +181,22 @@ export async function generateMetadata({
 
   const spec = data.listings.find((l) => l.powerHp && l.engineCcm) ?? data.listings[0];
   const nazwa = [spec?.make, spec?.model].filter(Boolean).join(" ");
+  /*
+   * Rocznik w tytule i cena w opisie (29.10.2026). Search Console: 4 486 stron VIN
+   * "zeskanowanych, ale niezindeksowanych" — z zewnatrz kazda wygladala jak ta
+   * sama strona z innym numerem. Rocznik i cena to dwie rzeczy, ktore ja odroznia.
+   */
+  const rok = spec?.year ? ` ${spec.year}` : "";
+  const ceny = data.listings.map((l) => l.priceGross).filter((c): c is number => c != null);
+  const odCeny = ceny.length > 0 ? Math.min(...ceny) : null;
   return {
-    title: nazwa ? `${nazwa} — VIN ${numer}` : `VIN ${numer}`,
+    title: nazwa ? `${nazwa}${rok} — VIN ${numer}` : `VIN ${numer}`,
     description:
       `Historia ofert i cen dla VIN ${numer}` +
-      (nazwa ? ` (${nazwa})` : "") +
-      `: ${wystawienia(data.listings.length)} w śledzonych źródłach poleasingowych.`,
+      (nazwa ? ` (${nazwa}${rok})` : "") +
+      `: ${wystawienia(data.listings.length)} w śledzonych źródłach poleasingowych` +
+      (odCeny != null ? `, ceny od ${pln.format(odCeny)}` : "") +
+      ".",
     alternates: { canonical: `/vin/${numer}` },
   };
 }
@@ -222,15 +239,89 @@ export default async function VinPage({ params }: { params: Promise<{ vin: strin
         }
       : null;
 
+  /*
+   * Tekst opisowy, podobne auta i linki w gore hierarchii (29.10.2026).
+   *
+   * Strona VIN miala 240–340 slow tresci wlasnej, w wiekszosci szablonowej, i nie
+   * linkowala do modelu, marki ani miasta, wiec byla slepa uliczka. Google odrzucal
+   * ja jako niemal identyczna z kazda inna. Teraz kazda ma akapit z konkretnymi
+   * liczbami tej sztuki, liste podobnych aut i sciezke Marka > Model > VIN.
+   */
+  const nazwaAuta = [spec.make, spec.model].filter(Boolean).join(" ");
+  const [podobne, paryMiast] = await Promise.all([
+    getListings(
+      {
+        make: spec.make,
+        model: spec.model,
+        ...(spec.year ? { yearMin: spec.year - 1, yearMax: spec.year + 1 } : {}),
+        kind: "fixed",
+        withPrice: "1",
+        sort: "deal_desc",
+      },
+      1,
+      7,
+    ),
+    paryMarkaMiastoZeStrona(),
+  ]);
+  const idTych = new Set(data.listings.map((l) => l.id));
+  const podobneAuta = podobne.filter((o) => !idTych.has(o.id)).slice(0, 6);
+
+  const wycenione = data.listings
+    .filter((l) => l.dealScore != null && l.marketPrice != null && l.priceGross != null)
+    .sort((a, b) => (b.dealScore ?? 0) - (a.dealScore ?? 0))[0];
+  const cenyVin = data.listings.map((l) => l.priceGross).filter((c): c is number => c != null);
+  const pierwszyRaz = data.listings
+    .map((l) => l.firstSeenAt)
+    .filter((d): d is Date => d != null)
+    .sort((a, b) => a.getTime() - b.getTime())[0];
+  const miejsca = data.listings.map(
+    (l) => `${shortSource(l.sourceName)}${l.city ? ` (${l.city})` : ""}`,
+  );
+  const opis = [
+    `${nazwaAuta}${spec.year ? ` z ${spec.year} roku` : ""}${spec.trim ? `, wersja ${spec.trim}` : ""}, numer VIN ${data.vin}.`,
+    [
+      spec.mileageKm != null ? `przebieg ${num.format(spec.mileageKm)} km` : null,
+      spec.fuel ? `napęd ${(FUEL_PL[spec.fuel] ?? spec.fuel).toLowerCase()}` : null,
+      spec.gearbox ? `skrzynia ${(GEARBOX_PL[spec.gearbox] ?? spec.gearbox).toLowerCase()}` : null,
+      spec.powerHp ? `moc ${spec.powerHp} KM` : null,
+    ]
+      .filter(Boolean)
+      .join(", ")
+      .replace(/^./, (c) => c.toUpperCase()) + ".",
+    `W naszej bazie to auto ma ${wystawienia(data.listings.length)}: ${miejsca.join(", ")}.`,
+    cenyVin.length > 0
+      ? cenyVin.length > 1 && Math.min(...cenyVin) !== Math.max(...cenyVin)
+        ? `Ceny wahają się od ${pln.format(Math.min(...cenyVin))} do ${pln.format(Math.max(...cenyVin))}.`
+        : `Cena wynosi ${pln.format(cenyVin[0])}.`
+      : null,
+    wycenione?.dealScore != null && wycenione.marketPrice != null
+      ? `Najlepsza oferta jest ${Math.round(Math.abs(wycenione.dealScore) * 100)}% ` +
+        `${wycenione.dealScore >= 0 ? "poniżej" : "powyżej"} mediany rynkowej ` +
+        `(${pln.format(wycenione.marketPrice)}) dla porównywalnych aut.`
+      : null,
+    pierwszyRaz ? `Pierwszy raz zobaczyliśmy je ${day.format(pierwszyRaz)}.` : null,
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  const miastoSlug = spec.city ? slugMiasta(spec.city) : null;
+  const linkMiasta =
+    spec.make && spec.city && miastoSlug && paryMiast.includes(`${spec.make}|${miastoSlug}`)
+      ? makaMiastoHref(spec.make, spec.city)
+      : null;
+  const porownania = spec.make && spec.model ? paryModelu(spec.make, spec.model, 3) : [];
+
   return (
     <main className="mx-auto max-w-[1000px] px-4 py-6">
-      <Link
-        href="/"
-        className="mb-5 inline-flex items-center gap-1.5 text-sm text-neutral-400 transition-colors hover:text-accent"
-      >
-        <ArrowLeft size={15} />
-        Wróć do listy
-      </Link>
+      <Crumbs
+        items={[
+          ...(spec.make ? [{ label: spec.make, href: makeHref(spec.make) }] : []),
+          ...(spec.make && spec.model
+            ? [{ label: spec.model, href: modelHref(spec.make, spec.model) }]
+            : []),
+          { label: `VIN ${data.vin}` },
+        ]}
+      />
 
       {/*
         Dane strukturalne pojazdu z numerem VIN. BEZ ceny: strona VIN-u zbiera
@@ -257,6 +348,7 @@ export default async function VinPage({ params }: { params: Promise<{ vin: strin
         </h1>
         {spec.trim && <p className="text-sm text-neutral-400">{spec.trim}</p>}
         <p className="mt-1 font-mono text-xs tracking-wider text-neutral-600">{data.vin}</p>
+        <p className="mt-3 max-w-[75ch] text-[13px] leading-relaxed text-neutral-400">{opis}</p>
       </header>
 
       <div className="mb-6 flex flex-wrap gap-x-5 gap-y-2 rounded-xl border border-[var(--color-line)] bg-[var(--color-panel)] p-4 text-sm">
@@ -468,6 +560,56 @@ export default async function VinPage({ params }: { params: Promise<{ vin: strin
           );
         })}
       </div>
+
+      {podobneAuta.length > 0 && (
+        <section className="mt-10">
+          <h2 className="mb-3 text-lg font-semibold text-neutral-100">
+            Podobne {nazwaAuta}
+            {spec.year ? ` z lat ${spec.year - 1}–${spec.year + 1}` : ""}
+          </h2>
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-4">
+            {podobneAuta.map((o, i) => (
+              <OfferCard key={o.id} o={o} index={i} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {spec.make && spec.model && (
+        <nav className="mt-8" aria-label="Zobacz też">
+          <h2 className="mb-3 text-base font-semibold text-neutral-100">Zobacz też</h2>
+          <ul className="flex flex-wrap gap-2 text-[13px]">
+            <li>
+              <Link
+                href={modelHref(spec.make, spec.model)}
+                className="inline-block rounded-lg border border-[var(--color-line)] bg-[var(--color-panel)] px-3 py-1.5 text-neutral-300 transition-colors hover:border-neutral-600 hover:text-neutral-100"
+              >
+                {nazwaAuta} poleasingowe: ceny i oferty
+              </Link>
+            </li>
+            {linkMiasta && spec.city && (
+              <li>
+                <Link
+                  href={linkMiasta}
+                  className="inline-block rounded-lg border border-[var(--color-line)] bg-[var(--color-panel)] px-3 py-1.5 text-neutral-300 transition-colors hover:border-neutral-600 hover:text-neutral-100"
+                >
+                  {spec.make} poleasingowe {spec.city}
+                </Link>
+              </li>
+            )}
+            {porownania.map(({ para, drugi }) => (
+              <li key={para.slug}>
+                <Link
+                  href={`/porownaj/${para.slug}`}
+                  className="inline-block rounded-lg border border-[var(--color-line)] bg-[var(--color-panel)] px-3 py-1.5 text-neutral-300 transition-colors hover:border-neutral-600 hover:text-neutral-100"
+                >
+                  {nazwaAuta} czy {drugi}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      )}
 
       <PoradnikiVin className="mt-10 border-t border-[var(--color-line)] pt-6" />
     </main>
