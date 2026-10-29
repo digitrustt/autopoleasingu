@@ -137,15 +137,27 @@ export async function generateMetadata({
    * szuka widelek cenowych — je stawiamy na poczatku, zanim Google utnie opis.
    * Liczba zrodel zostaje na koncu jako dowod kompletnosci.
    */
+  /*
+   * Jedna cena to nie widelki (28.10.2026): T-Cross z jedna oferta z cena dawal opis
+   * "53 900 zl – 53 900 zl, mediana 53 900 zl", a Geely EX5 "roczniki 2025–2025".
+   * Takie opisy wygladaja na blad i obnizaja klikalnosc w wynikach.
+   */
+  const jednaCena = stats.minPrice != null && stats.minPrice === stats.maxPrice;
   const widelki =
     stats.minPrice && stats.maxPrice
-      ? `${pln.format(stats.minPrice)} – ${pln.format(stats.maxPrice)}`
+      ? jednaCena
+        ? `cena ${pln.format(stats.minPrice)}`
+        : `${pln.format(stats.minPrice)} – ${pln.format(stats.maxPrice)}`
       : null;
 
   const description =
     (widelki ? `${name} poleasingowe: ${widelki}` : `${name} poleasingowe`) +
-    (stats.medianPrice ? `, mediana ${pln.format(stats.medianPrice)}` : "") +
-    (stats.minYear && stats.maxYear ? `. Roczniki ${stats.minYear}–${stats.maxYear}` : "") +
+    (stats.medianPrice && !jednaCena ? `, mediana ${pln.format(stats.medianPrice)}` : "") +
+    (stats.minYear && stats.maxYear
+      ? stats.minYear === stats.maxYear
+        ? `. Rocznik ${stats.minYear}`
+        : `. Roczniki ${stats.minYear}–${stats.maxYear}`
+      : "") +
     `. ${num.format(stats.total)} ${oferty(stats.total)} z ${stats.sources} ${zrodel(stats.sources)}, aktualizowane codziennie.`;
 
   return {
