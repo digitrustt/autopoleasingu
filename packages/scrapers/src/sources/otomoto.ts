@@ -199,9 +199,18 @@ export const otomoto: SourceAdapter = {
             timeoutMs: 45_000,
             retries: 1,
           });
-        } catch {
-          // Sklep moze zniknac — reszta poddomen ma sie zaciagnac mimo to.
-          break;
+        } catch (err) {
+          /*
+           * Rzucamy, zamiast przejsc do nastepnego sklepu. Pipeline oznacza jako
+           * sprzedane wszystko, czego discover nie zwrocil — 29.10.2026 jeden
+           * timeout na Metrocars "sprzedal" 284 auta, ktore dalej wisialy na
+           * Otomoto. Lepiej stracic jeden przebieg (nastepny za 30 min) niz
+           * kasowac caly sklep. Zniknieta poddomena nie trafia tu — Otomoto
+           * oddaje wtedy 200 ze strona glowna, co lapie readAds.
+           */
+          throw new Error(
+            `otomoto: ${subdomain} strona ${page} nie odpowiada (${err instanceof Error ? err.message : String(err)})`,
+          );
         }
 
         const found = readAds(html);

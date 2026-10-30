@@ -97,6 +97,7 @@ export async function runSource(
       priceGross: listings.priceGross,
       mileageKm: listings.mileageKm,
       lastSeenAt: listings.lastSeenAt,
+      status: listings.status,
     })
     .from(listings)
     .where(eq(listings.sourceId, adapter.id));
@@ -122,6 +123,24 @@ export async function runSource(
   result.discovered = refs.length;
 
   const seenExternalIds = new Set(refs.map((r) => r.externalId));
+
+  /*
+   * Oferta oznaczona "gone", ktora znow jest na liscie, wraca od razu, a nie
+   * dopiero gdy dojdzie do niej kolejka detali. Przy limicie 12 na przebieg
+   * i zrodlach, w ktorych te same pominiete oferty wiecznie zajmuja poczatek
+   * kolejki, falszywie "sprzedany" sklep wracal tygodniami (Metrocars, 29.10).
+   */
+  if (!opts.dryRun && didDiscover) {
+    const revived = known
+      .filter((k) => seenExternalIds.has(k.externalId))
+      .map((k) => k.id);
+    for (let i = 0; i < revived.length; i += 500) {
+      await db
+        .update(listings)
+        .set({ status: "active", goneAt: null, lastSeenAt: new Date() })
+        .where(and(inArray(listings.id, revived.slice(i, i + 500)), eq(listings.status, "gone")));
+    }
+  }
 
   // Priorytet: nowe oferty przed odswiezaniem starych. Sniper zyje z nowych.
   const staleBefore = Date.now() - opts.refreshAfterHours * 3600_000;
@@ -245,9 +264,26 @@ export async function runSource(
    * i wlasnie na tym (a nie na cenach wiszacych) uczymy pozniej wyceny.
    * Warunek: discover musial sie udac w calosci, inaczej skasujemy zywe oferty.
    */
-  if (!opts.dryRun && didDiscover) {
+  /*
+   * Bezpiecznik na niepelny discover. Bravoauto co drugi przebieg renderuje
+   * polowe listy (427 zamiast 871), Volvo i Otomoto potrafia zgubic cala
+   * paczke stron — i za kazdym razem setki zywych aut szly do "sprzedanych",
+   * psujac licznik ofert i mediane cen transakcyjnych. Zaden sprzedawca nie
+   * sprzedaje 30% stocku miedzy dwoma przebiegami, wiec taki spadek to awaria
+   * odczytu, nie rynek.
+   */
+  const activeKnown = known.filter((k) => k.status === "active").length;
+  const partial = activeKnown >= 50 && refs.length < activeKnown * 0.7;
+  if (partial && didDiscover) {
+    console.warn(
+      `  ${adapter.id}: discover zwrocil ${refs.length} przy ${activeKnown} aktywnych — nie oznaczam zniknietych`,
+    );
+  }
+
+  if (!opts.dryRun && didDiscover && !partial) {
     const missing = known
-      .filter((k) => !seenExternalIds.has(k.externalId))
+      // Tylko aktywne — inaczej licznik "zniknelo" liczyl cala historie zrodla.
+      .filter((k) => k.status === "active" && !seenExternalIds.has(k.externalId))
       .map((k) => k.id);
 
     for (let i = 0; i < missing.length; i += 500) {
