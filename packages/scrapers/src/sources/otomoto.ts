@@ -65,6 +65,9 @@ const STORES: [string, string][] = [
   ["mautovandercar", "mLeasing (plac mAuto)"],
   ["master1wola", "Masterlease (AM Warszawa)"],
   ["fleetcenter", "Fleet Center"],
+  // Dodane 30.10.2026 z przegladu sprzedawcow przy frazie "poleasingowy".
+  ["ayvens-krakow", "Ayvens Kraków"],
+  ["mobiex", "Erste Leasing (Multisalon24)"],
 ];
 
 /**
@@ -94,6 +97,8 @@ const DEALERS: [string, string][] = [
   ["automaxwarszawa", "Auto-Max Warszawa"],
   ["kangoor", "Kangoor"],
   ["poleasingowelublin", "Poleasingowe Lublin"],
+  ["carefleet-katowice", "ARCTOS Katowice"],
+  ["cd", "CarDeal Siedlce"],
 ];
 
 const ALL_STORES: { subdomain: string; seller: string; dealer: boolean }[] = [
