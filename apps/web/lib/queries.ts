@@ -719,6 +719,39 @@ export async function getYearBreakdown(make: string, model: string | string[]) {
     .orderBy(desc(listings.year));
 }
 
+/**
+ * Ceny, za ktore oferty ZNIKALY w ostatnich 180 dniach, per rocznik.
+ *
+ * Oferta "kup teraz", ktora zniknela ze zrodla, jest w przyblizeniu sprzedana,
+ * wiec jej ostatnia cena jest najblizsza cenie transakcyjnej, jaka mamy. To
+ * jedyna liczba na stronie modelu, ktorej nie da sie odczytac z ogloszen
+ * (30.10.2026). Falszywe "zniknecia" przy niepelnym zaciagu blokuje teraz
+ * bezpiecznik w pipeline workera, a oferty, ktore wrocily, sa znow aktywne.
+ */
+export async function getYearSold(make: string, model: string | string[]) {
+  return db
+    .select({
+      year: listings.year,
+      sold: sql<number>`count(*)::int`,
+      soldMedian: sql<number>`percentile_cont(0.5) within group (
+        order by ${listings.priceGross}
+      )::int`,
+    })
+    .from(listings)
+    .where(
+      and(
+        eq(listings.status, "gone"),
+        sql`${listings.goneAt} > now() - interval '180 days'`,
+        eq(listings.make, make),
+        modelMatches(model),
+        eq(listings.offerKind, "fixed"),
+        isNotNull(listings.year),
+        isNotNull(listings.priceGross),
+      ),
+    )
+    .groupBy(listings.year);
+}
+
 /** Rozbicie po paliwie — druga najczestsza os wyboru po roczniku. */
 export async function getFuelBreakdown(make: string, model: string | string[]) {
   return db

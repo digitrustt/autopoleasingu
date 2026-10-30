@@ -20,6 +20,7 @@ import {
   getScatter,
   getSegmentStats,
   getYearBreakdown,
+  getYearSold,
 } from "@/lib/queries";
 import { makeHref, modelHref, modelKey, resolveAliases, resolveSlug, slugify } from "@/lib/slug";
 import { bodySpec, fuelSpec } from "@/lib/spec";
@@ -187,7 +188,7 @@ export default async function ModelPage({
 
   const name = `${make} ${model}`;
 
-  const [stats, years, fuels, bodies, histogram, scatter, offers, liczniki] = await Promise.all([
+  const [stats, years, fuels, bodies, histogram, scatter, offers, liczniki, sprzedane] = await Promise.all([
     getSegmentStats(make, aliasy),
     getYearBreakdown(make, aliasy),
     getFuelBreakdown(make, aliasy),
@@ -196,6 +197,7 @@ export default async function ModelPage({
     getScatter(make, aliasy),
     getListings({ make, model: aliasy, sort: "deal_desc" }, 1, 24),
     paryMarkaMiastoLiczniki(),
+    getYearSold(make, aliasy),
   ]);
 
   if (stats.total === 0) notFound();
@@ -236,6 +238,23 @@ export default async function ModelPage({
    * z czego sie policzyc: model z jedna oferta bez ceny nie dostaje pytania o mediane.
    */
   const jednaCena = stats.minPrice != null && stats.minPrice === stats.maxPrice;
+  /*
+   * Mediana z mniej niz trzech znikniec to anegdota, nie cena — takie roczniki
+   * dostaja kreske zamiast liczby.
+   */
+  const sprzedaneWgRoku = new Map(
+    sprzedane.filter((r) => r.year != null && r.sold >= 3).map((r) => [r.year as number, r]),
+  );
+  /*
+   * Pytania o konkretny rocznik (30.10.2026): Search Console pokazywal zapytania
+   * typu "toyota corolla hybrid 2023 cena" na poz. ~8, a strona odpowiadala na
+   * nie tylko tabela. Trzy roczniki z najwieksza liczba ofert, minimum trzy oferty.
+   */
+  const rocznikiFaq = years
+    .filter((y) => y.year != null && y.total >= 3)
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 3)
+    .sort((a, b) => (b.year as number) - (a.year as number));
   const rocznikiAsc = years
     .filter((y) => y.year != null)
     .sort((a, b) => (a.year as number) - (b.year as number));
@@ -280,6 +299,21 @@ export default async function ModelPage({
           },
         ]
       : []),
+    ...rocznikiFaq.map((y) => {
+      const s = sprzedaneWgRoku.get(y.year as number);
+      return {
+        q: `Ile kosztuje ${name} z ${y.year} roku?`,
+        a:
+          `Mediana ceny ${name} z ${y.year} roku to ${pln.format(y.medianPrice)} ` +
+          `(${num.format(y.total)} ${oferty(y.total)} „kup teraz”), najtańszy od ${pln.format(y.minPrice)}` +
+          (y.medianMileage != null ? `, przy typowym przebiegu ${num.format(y.medianMileage)} km` : "") +
+          "." +
+          (s
+            ? ` Oferty z tego rocznika, które zniknęły w ostatnich 180 dniach (czyli najpewniej ` +
+              `zostały sprzedane), kosztowały typowo ${pln.format(s.soldMedian)}.`
+            : ""),
+      };
+    }),
     {
       q: `Gdzie kupić ${name} poleasingowy?`,
       a:
@@ -359,6 +393,8 @@ export default async function ModelPage({
           <p className="mb-3 text-[13px] text-neutral-500">
             Mediana i cena minimalna liczone wyłącznie z ofert „kup teraz”. Ceny aukcyjne są
             bieżącą ofertą w licytacji i jeszcze urosną, więc nie wchodzą do tych zestawień.
+            {sprzedaneWgRoku.size > 0 &&
+              " Kolumna „Sprzedane” to mediana ostatniej ceny ofert, które zniknęły w ciągu 180 dni — najbliżej ceny transakcyjnej, jaką da się zobaczyć."}
           </p>
 
           {/*
@@ -374,13 +410,16 @@ export default async function ModelPage({
             {/* overflow-x-auto: przy waskim ekranie tabela ma sie przewijac sama,
                 zamiast rozpychac cala strone w poziomie. */}
             <div className="overflow-x-auto rounded-xl border border-[var(--color-line)]">
-            <table className="w-full min-w-[520px] text-sm">
+            <table className={`w-full text-sm ${sprzedaneWgRoku.size > 0 ? "min-w-[620px]" : "min-w-[520px]"}`}>
               <thead>
                 <tr className="border-b border-[var(--color-line)] text-left text-[11px] uppercase tracking-wide text-neutral-600">
                   <th className="px-4 py-2.5 font-medium">Rocznik</th>
                   <th className="px-4 py-2.5 text-right font-medium">Ofert</th>
                   <th className="px-4 py-2.5 text-right font-medium">Od</th>
                   <th className="px-4 py-2.5 text-right font-medium">Mediana</th>
+                  {sprzedaneWgRoku.size > 0 && (
+                    <th className="px-4 py-2.5 text-right font-medium">Sprzedane</th>
+                  )}
                   <th className="px-4 py-2.5 text-right font-medium">Przebieg</th>
                 </tr>
               </thead>
@@ -400,6 +439,20 @@ export default async function ModelPage({
                     <td className="px-4 py-2.5 text-right font-semibold tabular-nums text-neutral-100">
                       {pln.format(y.medianPrice)}
                     </td>
+                    {sprzedaneWgRoku.size > 0 && (
+                      <td className="px-4 py-2.5 text-right tabular-nums text-neutral-300">
+                        {(() => {
+                          const s = sprzedaneWgRoku.get(y.year as number);
+                          return s ? (
+                            <span title={`${num.format(s.sold)} ofert zniknęło w 180 dni`}>
+                              {pln.format(s.soldMedian)}
+                            </span>
+                          ) : (
+                            <span className="text-neutral-600">—</span>
+                          );
+                        })()}
+                      </td>
+                    )}
                     <td className="px-4 py-2.5 text-right tabular-nums text-neutral-500">
                       {y.medianMileage != null ? `${num.format(y.medianMileage)} km` : "—"}
                     </td>
