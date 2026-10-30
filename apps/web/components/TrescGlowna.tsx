@@ -107,7 +107,11 @@ export async function TrescGlowna({
         <li>
           <strong className="font-medium text-neutral-300">Kup teraz czy licytacja.</strong> Kwota
           w licytacji jeszcze rośnie, dlatego kategorie cenowe na stronie pokazują wyłącznie oferty
-          „kup teraz”.
+          „kup teraz”. Licytacje ze wszystkich platform zebraliśmy osobno:{" "}
+          <Link href="/poleasingowe/aukcje" className="text-accent hover:underline">
+            aukcje samochodów poleasingowych
+          </Link>
+          .
         </li>
       </ul>
 

@@ -87,6 +87,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
     { url: `${BASE}/poleasingowe/na-raty`, changeFrequency: "weekly", priority: 0.8 },
     { url: `${BASE}/poleasingowe/w-leasingu`, changeFrequency: "weekly", priority: 0.8 },
+    { url: `${BASE}/poleasingowe/aukcje`, changeFrequency: "daily", priority: 0.8 },
     { url: `${BASE}/vin`, changeFrequency: "weekly", priority: 0.7 },
     { url: `${BASE}/kalkulator-pcc-samochodu`, changeFrequency: "monthly", priority: 0.7 },
     { url: `${BASE}/wycena-samochodu`, changeFrequency: "weekly", priority: 0.8 },

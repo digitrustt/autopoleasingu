@@ -2234,3 +2234,73 @@ export async function getCityModelRanking(city: string | string[], limit = 8) {
     przebieg: r.przebieg == null ? null : Number(r.przebieg),
   }));
 }
+
+/** Platformy aukcyjne z liczba aktywnych licytacji — strona /poleasingowe/aukcje. */
+export async function getAukcjePlatformy() {
+  return db
+    .select({
+      id: sources.id,
+      name: sources.name,
+      total: sql<number>`count(*)::int`,
+    })
+    .from(listings)
+    .innerJoin(sources, eq(sources.id, listings.sourceId))
+    .where(and(eq(listings.status, "active"), eq(listings.offerKind, "auction")))
+    .groupBy(sources.id, sources.name)
+    .orderBy(desc(sql`count(*)`));
+}
+
+/**
+ * Auta, ktore po zakonczonej licytacji wrocily ze stala cena u innego sprzedawcy.
+ *
+ * Laczymy po VIN: oferta aukcyjna, ktora zniknela (koniec licytacji), i oferta
+ * "kup teraz" tego samego VIN-u, ktora pojawila sie najwczesniej 3 dni przed
+ * koncem licytacji. Cena z aukcji to OSTATNIA WIDOCZNA kwota licytacji brutto —
+ * koncowa mogla byc nieco wyzsza, co strona mowi wprost. Pary z narzutem spoza
+ * -30%..+50% odrzucamy: to raczej blad dopasowania albo licytacja zlapana na
+ * starcie niz rzeczywista roznica (30.10.2026: 74 z 78 par zostaje).
+ */
+export async function getAukcjaDealer() {
+  const pary = (await db.execute(sql`
+    with a as (
+      select vin, max(price_gross) as cena_aukcja, max(gone_at) as koniec,
+             min(make) as make, min(model) as model, min(year) as year
+      from listings
+      where offer_kind = 'auction' and vin is not null and price_gross > 5000 and status = 'gone'
+      group by vin
+    ),
+    f as (
+      select vin, min(price_gross) as cena_dealer, min(first_seen_at) as od
+      from listings
+      where offer_kind = 'fixed' and vin is not null and price_gross > 5000
+      group by vin
+    )
+    select a.make, a.model, a.year, a.cena_aukcja::int, f.cena_dealer::int,
+           greatest(0, f.od::date - a.koniec::date)::int as dni
+    from a join f using (vin)
+    where f.od > a.koniec - interval '3 days'
+      and f.cena_dealer::float / a.cena_aukcja between 0.7 and 1.5
+    order by f.od desc
+  `)) as unknown as {
+    make: string;
+    model: string;
+    year: number | null;
+    cena_aukcja: number;
+    cena_dealer: number;
+    dni: number;
+  }[];
+  const mediana = (xs: number[]) => {
+    if (xs.length === 0) return 0;
+    const s = [...xs].sort((x, y) => x - y);
+    const m = Math.floor(s.length / 2);
+    return s.length % 2 ? s[m] : Math.round((s[m - 1] + s[m]) / 2);
+  };
+  return {
+    n: pary.length,
+    drozej: pary.filter((p) => p.cena_dealer > p.cena_aukcja).length,
+    medianaRoznicy: mediana(pary.map((p) => p.cena_dealer - p.cena_aukcja)),
+    medianaProc: mediana(pary.map((p) => Math.round((p.cena_dealer / p.cena_aukcja - 1) * 100))),
+    medianaDni: mediana(pary.map((p) => p.dni)),
+    przyklady: pary.slice(0, 8),
+  };
+}

@@ -123,6 +123,16 @@ export default async function SourcePage({ params }: { params: Promise<{ id: str
         */}
         Ceny porównujemy z medianą rynkową liczoną z wszystkich 26 źródeł, więc od razu widać,
         które z tych ofert odstają w dół — dziś {num.format(s.deals)}.
+        {s.auctions > 0 && (
+          <>
+            {" "}
+            Licytacje z pozostałych platform:{" "}
+            <Link href="/poleasingowe/aukcje" className="text-accent hover:underline">
+              wszystkie aukcje aut poleasingowych
+            </Link>
+            .
+          </>
+        )}
       </p>
 
       <StatStrip

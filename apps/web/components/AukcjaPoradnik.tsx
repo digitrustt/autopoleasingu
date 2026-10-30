@@ -142,6 +142,13 @@ export async function AukcjaPoradnik({ t }: { t: AukcjaTresc }) {
       <p className="mt-6 text-[13px] text-neutral-500">
         Zobacz też:{" "}
         <Link
+          href="/poleasingowe/aukcje"
+          className="underline decoration-dotted underline-offset-2 hover:text-accent"
+        >
+          wszystkie aukcje aut poleasingowych
+        </Link>
+        ,{" "}
+        <Link
           href="/poleasingowe/dla-osoby-prywatnej"
           className="underline decoration-dotted underline-offset-2 hover:text-accent"
         >
