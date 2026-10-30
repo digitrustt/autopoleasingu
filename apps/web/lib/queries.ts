@@ -42,6 +42,12 @@ export interface Filters {
   withPrice?: string;
   /** Minimalny deal score w procentach, np. "15" = co najmniej 15% ponizej rynku. */
   dealMin?: string;
+  /**
+   * "1" = tylko oferty z cena netto nizsza od brutto, czyli sprzedaz z faktura VAT.
+   * Strona "w leasingu": tylko przy nich wiemy na pewno, ze sprzedawca wystawia
+   * fakture. Cene netto podaje ~14% ofert — reszta nie znaczy "bez faktury".
+   */
+  vat?: string;
 }
 
 export type SortKey =
@@ -128,6 +134,7 @@ function buildWhere(f: Filters) {
   }
   if (f.city) parts.push(cityMatches(f.city));
   if (f.withPrice === "1") parts.push(isNotNull(listings.priceGross));
+  if (f.vat === "1") parts.push(sql`${listings.priceNet} < ${listings.priceGross}`);
 
   /*
    * Filtr okazji. Prog podajemy w procentach, w bazie deal_score jest ulamkiem.

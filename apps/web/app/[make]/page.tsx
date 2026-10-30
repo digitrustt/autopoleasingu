@@ -2,6 +2,7 @@ import { Crumbs } from "@/components/Crumbs";
 import { ModelGrid } from "@/components/ModelGrid";
 import { FaqBlok, type PytanieFaq } from "@/components/FaqBlok";
 import { OfferCard } from "@/components/OfferCard";
+import { LeasingLista } from "@/components/LeasingLista";
 import { RataLista } from "@/components/RataLista";
 import { ZapisPasek } from "@/components/ZapisPasek";
 import { StatStrip } from "@/components/StatStrip";
@@ -186,6 +187,14 @@ export default async function MakePage({ params }: { params: Promise<{ make: str
         "zdolności kredytowej, więc ratę sprawdzisz u kredytodawcy.",
       link: { href: "/poleasingowe/na-raty", tekst: "Więcej o zakupie na raty." },
     },
+    {
+      q: `Czy ${make} poleasingowy można wziąć w leasing?`,
+      a:
+        "Kupując na firmę — zwykle tak. Leasingodawcy finansują też auta używane, a samochody " +
+        "poleasingowe sprzedają głównie firmy wystawiające fakturę. Warunki, w tym dopuszczalny " +
+        "wiek auta, ustala leasingodawca.",
+      link: { href: "/poleasingowe/w-leasingu", tekst: "Jak wziąć auto poleasingowe w leasing." },
+    },
   ];
 
   return (
@@ -336,6 +345,12 @@ export default async function MakePage({ params }: { params: Promise<{ make: str
       )}
 
       <div className="mt-10">
+        {/* Leasing dla firm (30.10.2026) — patrz LeasingLista. */}
+        <LeasingLista
+          etykieta={`marka-${slugify(make)}`}
+          gdzie="marka"
+          tekst={`Kupujesz ${make} na firmę? Sprawdź leasing`}
+        />
         <FaqBlok tytul={`${make} poleasingowe: najczęstsze pytania`} pytania={pytania} />
       </div>
 

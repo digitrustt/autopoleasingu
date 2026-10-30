@@ -1,6 +1,7 @@
 import { Crumbs } from "@/components/Crumbs";
 import { MarkaGrid } from "@/components/MarkaGrid";
 import { MiastaLista } from "@/components/MiastaLista";
+import { LeasingLista } from "@/components/LeasingLista";
 import { ZapisPasek } from "@/components/ZapisPasek";
 import { OfferCard } from "@/components/OfferCard";
 import { StatStrip } from "@/components/StatStrip";
@@ -216,6 +217,18 @@ export default async function PoleasingowePage({ params }: { params: Promise<{ c
         ? `Mediana ceny ofert „kup teraz” ${wMiescie(miasto)} to ${pln0(stats.medianPrice)}, a najtańsza oferta kosztuje ${stats.minPrice ? pln0(stats.minPrice) : "—"}.`
         : `Ceny ${wMiescie(miasto)} pokazujemy przy każdej ofercie.`,
     },
+    /*
+     * "leasing samochodow poleasingowych <miasto>" stalo w Search Console na
+     * pozycjach 5-11 (Kalisz, Lodz, Gdansk, 30.10.2026), a strona miasta nie
+     * mowila o leasingu ani slowa.
+     */
+    {
+      q: `Czy auto poleasingowe ${wMiescie(miasto)} można wziąć w leasing?`,
+      a:
+        "Kupując na firmę — zwykle tak. Leasingodawcy finansują też auta używane, a samochody " +
+        "poleasingowe sprzedają głównie firmy wystawiające fakturę. Warunki, w tym dopuszczalny " +
+        "wiek auta, ustala leasingodawca, a nie sprzedawca.",
+    },
   ];
   const jsonLd = {
     "@context": "https://schema.org",
@@ -307,6 +320,20 @@ export default async function PoleasingowePage({ params }: { params: Promise<{ c
             </div>
           ))}
         </dl>
+        <div className="mt-4">
+          <LeasingLista
+            etykieta={`miasto-${slugMiasta(miasto)}`}
+            gdzie="miasto"
+            tekst={`Leasing auta poleasingowego ${wMiescie(miasto)} — sprawdź`}
+          />
+          <p className="text-[13px] text-neutral-500">
+            Więcej:{" "}
+            <Link href="/poleasingowe/w-leasingu" className="text-accent hover:underline">
+              samochody poleasingowe w leasingu
+            </Link>
+            .
+          </p>
+        </div>
       </section>
 
       <StatStrip

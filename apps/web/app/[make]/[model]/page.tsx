@@ -1,5 +1,6 @@
 import { Crumbs } from "@/components/Crumbs";
 import { FaqBlok, type PytanieFaq } from "@/components/FaqBlok";
+import { LeasingLista } from "@/components/LeasingLista";
 import { RataLista } from "@/components/RataLista";
 import { ZapisPasek } from "@/components/ZapisPasek";
 import { OfferCard } from "@/components/OfferCard";
@@ -162,7 +163,9 @@ export async function generateMetadata({
         ? `. Rocznik ${stats.minYear}`
         : `. Roczniki ${stats.minYear}–${stats.maxYear}`
       : "") +
-    `. ${num.format(stats.total)} ${oferty(stats.total)} z ${stats.sources} ${zrodel(stats.sources)}, aktualizowane codziennie.`;
+    `. ${num.format(stats.total)} ${oferty(stats.total)} z ${stats.sources} ${zrodel(stats.sources)}, aktualizowane codziennie.` +
+    // Zapytania "<model> leasing" (30.10.2026) — Google pogrubia trafione slowa w opisie.
+    " Leasing dla firm i kredyt.";
 
   return {
     title,
@@ -290,6 +293,21 @@ export default async function ModelPage({
         "Zwykle tak, kredytem samochodowym. Warunki zależą od banku i od sprzedawcy, więc ratę " +
         "sprawdzisz u kredytodawcy.",
       link: { href: "/poleasingowe/na-raty", tekst: "Więcej o zakupie na raty." },
+    },
+    {
+      q: `Czy ${name} poleasingowy można wziąć w leasing?`,
+      a:
+        "Zwykle tak. Auta poleasingowe wystawiają głównie leasingodawcy, firmy flotowe i dealerzy, " +
+        "więc kupując na firmę, można je sfinansować leasingiem tak jak nowe auto. Warunki, " +
+        "w tym dopuszczalny wiek samochodu na koniec umowy, ustala leasingodawca.",
+      link: { href: "/poleasingowe/w-leasingu", tekst: "Jak wziąć auto poleasingowe w leasing." },
+    },
+    {
+      q: `Leasing czy kredyt na ${name}?`,
+      a:
+        "Przy zakupie na firmę zwykle rozważa się leasing, przy zakupie prywatnym kredyt " +
+        "samochodowy. To dwie różne umowy z innymi skutkami podatkowymi, więc kupując na " +
+        "działalność, warto porównać obie opcje z księgowym.",
     },
   ];
 
@@ -524,6 +542,52 @@ export default async function ModelPage({
             <OfferCard key={o.id} o={o} index={i} />
           ))}
         </div>
+      </section>
+
+      {/*
+        Leasing (30.10.2026): 417 zapytan "<model> leasing" w Search Console trafialo
+        na strony modeli z ~35. pozycji, choc slowo "leasing" nie padalo tu ani razu.
+        Tresc bez zadnych liczb o warunkach — patrz LeasingLista.
+      */}
+      <section className="mb-8 max-w-[80ch]">
+        <h2 className="mb-2 text-lg font-semibold text-neutral-100">{name} w leasingu</h2>
+        <p className="mb-3 text-[14px] leading-relaxed text-neutral-400">
+          Auta poleasingowe sprzedają głównie leasingodawcy, firmy flotowe i dealerzy, czyli
+          sprzedawcy wystawiający fakturę. Dlatego {name} z tej listy można zwykle sfinansować
+          leasingiem dla firm — tak samo jak nowy samochód, tylko przedmiotem leasingu jest
+          konkretny egzemplarz używany.
+        </p>
+        <ul className="mb-4 list-disc space-y-1.5 pl-5 text-[14px] leading-relaxed text-neutral-400">
+          <li>
+            <strong className="font-medium text-neutral-300">Wiek auta.</strong> Leasingodawcy
+            ograniczają wiek samochodu na koniec umowy, więc przy starszych rocznikach sprawdź ten
+            limit, zanim wybierzesz długość umowy.
+          </li>
+          <li>
+            <strong className="font-medium text-neutral-300">Faktura.</strong> Oferta z ceną netto
+            oznacza fakturę VAT. Przy samej cenie brutto zapytaj sprzedawcę o formę sprzedaży.
+          </li>
+          <li>
+            <strong className="font-medium text-neutral-300">Leasing czy kredyt.</strong> Leasing
+            jest dla firm. Kupując prywatnie, zwykle bierze się{" "}
+            <Link href="/poleasingowe/na-raty" className="text-accent hover:underline">
+              kredyt samochodowy
+            </Link>
+            .
+          </li>
+        </ul>
+        <LeasingLista
+          etykieta={`model-${make}-${model}`.toLowerCase().replace(/[^a-z0-9]+/g, "-")}
+          gdzie="model"
+          tekst={`Kupujesz na firmę? Sprawdź leasing ${name}`}
+        />
+        <p className="text-[13px] text-neutral-500">
+          Więcej:{" "}
+          <Link href="/poleasingowe/w-leasingu" className="text-accent hover:underline">
+            samochody poleasingowe w leasingu
+          </Link>
+          .
+        </p>
       </section>
 
       {miasta.length > 0 && (

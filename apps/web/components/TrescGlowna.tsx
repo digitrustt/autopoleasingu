@@ -206,6 +206,18 @@ export async function TrescGlowna({
           </dd>
         </div>
         <div>
+          <dt className="font-medium text-neutral-200">Czy auto poleasingowe można wziąć w leasing?</dt>
+          <dd className="mt-1 text-neutral-400">
+            Kupując na firmę — zwykle tak. Leasingodawcy finansują też auta używane, a samochody
+            poleasingowe sprzedają głównie firmy wystawiające fakturę. Warunki ustala leasingodawca.
+            Więcej:{" "}
+            <Link href="/poleasingowe/w-leasingu" className="text-accent hover:underline">
+              samochody poleasingowe w leasingu
+            </Link>
+            .
+          </dd>
+        </div>
+        <div>
           <dt className="font-medium text-neutral-200">Gdzie szukać aut po leasingu?</dt>
           <dd className="mt-1 text-neutral-400">
             Oferty są rozproszone po stronach leasingodawców, dealerów i aukcji. Zebraliśmy{" "}

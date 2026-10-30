@@ -19,6 +19,7 @@ const LINKS = [
   { href: "/poleasingowe", label: "Miasta" },
   { href: "/porownaj", label: "Porównania" },
   { href: "/poleasingowe/na-raty", label: "Na raty" },
+  { href: "/poleasingowe/w-leasingu", label: "W leasingu" },
   { href: "/vin", label: "Sprawdź VIN" },
   { href: "/kalkulator-pcc-samochodu", label: "Kalkulator PCC" },
   { href: "/wycena-samochodu", label: "Wycena auta" },
