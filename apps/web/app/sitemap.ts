@@ -5,6 +5,7 @@ import { PARY } from "@/lib/pary";
 import { PORADNIKI } from "@/lib/poradniki";
 import { getMakeCityPairs, getSitemapEntries } from "@/lib/queries";
 import { makeHref, modelHref, modelKey, slugify } from "@/lib/slug";
+import { getRocznikiZeStrona } from "@/lib/roczniki";
 import { wmiStaty } from "@/lib/cache-filtrow";
 import { vinMarkiHref, wgMarek } from "@/lib/vin";
 import { WOJEWODZTWA } from "@/lib/wojewodztwa";
@@ -62,10 +63,11 @@ function when(v: string | Date | null): Date {
  * autorytetu kazdy zgloszony smiec zabiera wizyte robota dobrej stronie.
  */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [surowe, makaMiastoPary, staty] = await Promise.all([
+  const [surowe, makaMiastoPary, staty, roczniki] = await Promise.all([
     getSitemapEntries(),
     getMakeCityPairs(),
     wmiStaty(),
+    getRocznikiZeStrona(),
   ]);
   const { vins, srcs } = surowe;
   const makes = surowe.makes.filter((m) => markaOk(m.make));
@@ -74,6 +76,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const markaMiasto = zgrupujParyMarkaMiasto(makaMiastoPary).filter(
     (p) => markaOk(p.make) && miejsceOk(p.city),
   );
+
+  /*
+   * Jeden adres na model, nie jeden na pisownie — patrz komentarz przy wpisach
+   * modeli nizej. Mapa jest tez slownikiem dla stron rocznikow.
+   */
+  const modeleWgKlucza = models.reduce((acc, m) => {
+    const key = `${slugify(m.make)}/${modelKey(m.model)}`;
+    if (!acc.has(key)) {
+      acc.set(key, { href: modelHref(m.make, m.model), updated: m.updated });
+    }
+    return acc;
+  }, new Map<string, { href: string; updated: string }>());
 
   const statics: MetadataRoute.Sitemap = [
     { url: BASE, changeFrequency: "daily", priority: 1 },
@@ -146,22 +160,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
      * Stad jawne `if (!has)` zamiast konstruktora z tablicy: do mapy trafial
      * `/volvo/xc-60` z jedenastoma ofertami zamiast `/volvo/xc60` z 814.
      */
-    ...[
-      ...models
-        .reduce((acc, m) => {
-          const key = `${slugify(m.make)}/${modelKey(m.model)}`;
-          if (!acc.has(key)) {
-            acc.set(key, { href: modelHref(m.make, m.model), updated: m.updated });
-          }
-          return acc;
-        }, new Map<string, { href: string; updated: string }>())
-        .values(),
-    ].map((m) => ({
+    ...[...modeleWgKlucza.values()].map((m) => ({
       url: `${BASE}${m.href}`,
       lastModified: when(m.updated),
       changeFrequency: "daily" as const,
       priority: 0.9,
     })),
+
+    /*
+     * Strony rocznikow (31.10.2026): tylko kombinacje powyzej progu z lib/roczniki,
+     * pod adresem kanonicznego modelu — rocznik bez strony modelu w mapie (smieciowa
+     * marka albo model) tez wypada.
+     */
+    ...roczniki.flatMap((r) => {
+      const m = modeleWgKlucza.get(r.klucz);
+      return m
+        ? [{ url: `${BASE}${m.href}/${r.year}`, changeFrequency: "daily" as const, priority: 0.7 }]
+        : [];
+    }),
 
     /*
      * Kategorie: progi cenowe, nadwozia, paliwa. Kazda odpowiada frazie,

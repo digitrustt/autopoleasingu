@@ -13,16 +13,13 @@ import {
   getBodyBreakdown,
   getFuelBreakdown,
   getListings,
-  getMakesWithCounts,
-  getModelCards,
-  getModelsWithCounts,
   getPriceHistogram,
   getScatter,
   getSegmentStats,
   getYearBreakdown,
   getYearSold,
 } from "@/lib/queries";
-import { makeHref, modelHref, modelKey, resolveAliases, resolveSlug, slugify } from "@/lib/slug";
+import { makeHref, modelHref, slugify } from "@/lib/slug";
 import { bodySpec, fuelSpec } from "@/lib/spec";
 import { CalendarRange, Gauge, Layers, SlidersHorizontal, TrendingDown } from "lucide-react";
 import type { Metadata } from "next";
@@ -32,6 +29,8 @@ import { paryMarkaMiastoLiczniki } from "@/lib/cache-filtrow";
 import { makaMiastoHref } from "@/lib/marka-miasto";
 import { miejsceOk } from "@/lib/smiec";
 import { notFound } from "next/navigation";
+import { rozwiazModel as resolve } from "@/lib/model";
+import { rocznikHref, rocznikOk } from "@/lib/roczniki";
 import { oferty, zrodel } from "@/lib/format";
 
 /*
@@ -69,50 +68,6 @@ const pln = new Intl.NumberFormat("pl-PL", {
   maximumFractionDigits: 0,
 });
 const num = new Intl.NumberFormat("pl-PL");
-
-/** Slug -> nazwy z bazy. Model rozwiazujemy dopiero w obrebie znalezionej marki. */
-async function resolve(makeSlug: string, modelSlug: string) {
-  const makes = await getMakesWithCounts();
-  const make = resolveSlug(makes.map((m) => m.make), makeSlug);
-  if (!make) return null;
-
-  const models = await getModelCards(make);
-  /*
-   * Szukamy po kluczu bez separatorow, nie po dokladnym slugu. Inaczej
-   * `/volvo/xc-60` znajdowalby wariant "XC 60" i uznawal WLASNY adres za
-   * kanoniczny — czyli dwie strony jednego auta zostawalyby na zawsze.
-   * `getModelCards` zwraca warianty posortowane malejaco po liczbie ofert,
-   * wiec pierwszy pasujacy jest tym dominujacym.
-   */
-  const klucz = modelKey(modelSlug);
-  const model = models.find((m) => modelKey(m.model) === klucz)?.model;
-  if (!model) return null;
-
-  /*
-   * Do FILTROWANIA bierzemy komplet pisowni, nie samą nazwę z kafelka.
-   * `getModelCards` scala warianty, ale zwraca tylko nazwe dominujaca —
-   * a w bazie oferty siedza pod wszystkimi ("XC60", "XC 60", "Xc-60").
-   * Bez tego strona `/volvo/xc-60` pokazywala ulamek ofert.
-   */
-  const surowe = await getModelsWithCounts(make);
-  const aliasy = resolveAliases(surowe.map((m) => m.model), modelSlug);
-
-  /*
-   * Adres kanoniczny to pisownia o NAJWIEKSZEJ liczbie ofert — `getModelCards`
-   * zwraca warianty posortowane malejaco, wiec `model` juz nia jest.
-   *
-   * Wejscie pod innym slugiem tej samej grupy (`/volvo/xc-60` zamiast
-   * `/volvo/xc60`) renderuje te sama, scalona strone i wskazuje kanoniczny
-   * przez <link rel="canonical"> w generateMetadata. Przekierowania 308 tu
-   * NIE MA swiadomie: `permanentRedirect` w tej wersji Next nie ustawia
-   * statusu odpowiedzi — dokladnie tak samo jak `notFound()`, ktory zwraca
-   * 200 zamiast 404. Sprawdzone: strona wychodzila z kodem 200 i pustym
-   * naglowkiem Location. Canonical jest mechanizmem, ktorym Google i tak
-   * scala duplikaty, wiec zostaje jako jedyny — zamiast martwego wywolania,
-   * ktore wyglada, jakby dzialalo.
-   */
-  return { make, model, models, aliasy: aliasy.length > 0 ? aliasy : [model] };
-}
 
 export async function generateMetadata({
   params,
@@ -250,6 +205,21 @@ export default async function ModelPage({
    * typu "toyota corolla hybrid 2023 cena" na poz. ~8, a strona odpowiadala na
    * nie tylko tabela. Trzy roczniki z najwieksza liczba ofert, minimum trzy oferty.
    */
+  /*
+   * Roczniki z wlasna strona (31.10.2026) — ten sam prog co na stronie rocznika,
+   * liczony z tych samych dwoch zapytan, wiec link nigdy nie prowadzi do 404.
+   */
+  const zeStrona = new Set(
+    years
+      .filter((y) => y.year != null)
+      .map((y) => y.year as number)
+      .filter((rok) =>
+        rocznikOk(
+          years.find((y) => y.year === rok)?.total ?? 0,
+          sprzedane.find((r) => r.year === rok)?.sold ?? 0,
+        ),
+      ),
+  );
   const rocznikiFaq = years
     .filter((y) => y.year != null && y.total >= 3)
     .sort((a, b) => b.total - a.total)
@@ -312,6 +282,9 @@ export default async function ModelPage({
             ? ` Oferty z tego rocznika, które zniknęły w ostatnich 180 dniach (czyli najpewniej ` +
               `zostały sprzedane), kosztowały typowo ${pln.format(s.soldMedian)}.`
             : ""),
+        ...(zeStrona.has(y.year as number)
+          ? { link: { href: rocznikHref(make, model, y.year as number), tekst: `Więcej o ${name} ${y.year}.` } }
+          : {}),
       };
     }),
     {
@@ -429,7 +402,15 @@ export default async function ModelPage({
                     key={y.year}
                     className="border-b border-[var(--color-line)] last:border-0 hover:bg-[var(--color-panel)]"
                   >
-                    <td className="px-4 py-2.5 font-medium text-neutral-200">{y.year}</td>
+                    <td className="px-4 py-2.5 font-medium text-neutral-200">
+                      {y.year != null && zeStrona.has(y.year) ? (
+                        <Link href={rocznikHref(make, model, y.year)} className="text-accent hover:underline">
+                          {y.year}
+                        </Link>
+                      ) : (
+                        y.year
+                      )}
+                    </td>
                     <td className="px-4 py-2.5 text-right tabular-nums text-neutral-400">
                       {num.format(y.total)}
                     </td>

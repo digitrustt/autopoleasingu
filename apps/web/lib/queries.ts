@@ -2304,3 +2304,124 @@ export async function getAukcjaDealer() {
     przyklady: pary.slice(0, 8),
   };
 }
+
+/*
+ * ---------------------------------------------------------------------------
+ * Strony rocznikow /{marka}/{model}/{rok} (31.10.2026).
+ *
+ * Kazda z ponizszych funkcji odpowiada na pytanie, na ktore strona modelu
+ * odpowiada tylko jednym wierszem tabeli: jak zmieniala sie cena TEGO rocznika,
+ * jak rozkladaja sie przebiegi, ktore silniki ile kosztuja i za ile auta
+ * faktycznie znikaly. Wszystko wylacznie z ofert "kup teraz" — cena aukcyjna
+ * jeszcze rosnie. Strony sa liczone raz na dobe (revalidate), wiec cztery
+ * dodatkowe zapytania na rocznik nie obciazaja bazy przy kazdym wejsciu.
+ * ---------------------------------------------------------------------------
+ */
+
+/** Wspolny warunek: ten model (wszystkie pisownie), ten rocznik, "kup teraz" z cena. */
+function rocznikWhere(make: string, model: string | string[], year: number) {
+  return and(
+    eq(listings.make, make),
+    modelMatches(model),
+    eq(listings.year, year),
+    eq(listings.offerKind, "fixed"),
+    isNotNull(listings.priceGross),
+  );
+}
+
+/** Mediana ceny ofert wystawionych w kolejnych miesiacach (aktywne i zniknięte). */
+export async function getRocznikMiesiace(make: string, model: string | string[], year: number) {
+  return db
+    .select({
+      miesiac: sql<string>`to_char(date_trunc('month', ${listings.firstSeenAt}), 'YYYY-MM')`,
+      n: sql<number>`count(*)::int`,
+      mediana: sql<number>`percentile_cont(0.5) within group (order by ${listings.priceGross})::int`,
+    })
+    .from(listings)
+    .where(and(rocznikWhere(make, model, year), inArray(listings.status, ["active", "gone"])))
+    .groupBy(sql`date_trunc('month', ${listings.firstSeenAt})`)
+    .orderBy(sql`date_trunc('month', ${listings.firstSeenAt})`);
+}
+
+/** Aktywne oferty w przedzialach przebiegu, z mediana ceny w kazdym. */
+export async function getRocznikPrzebiegi(make: string, model: string | string[], year: number) {
+  const przedzial = sql<number>`case
+    when ${listings.mileageKm} < 50000 then 0
+    when ${listings.mileageKm} < 100000 then 1
+    when ${listings.mileageKm} < 150000 then 2
+    else 3 end`;
+  return db
+    .select({
+      przedzial: sql<number>`${przedzial}::int`,
+      n: sql<number>`count(*)::int`,
+      mediana: sql<number>`percentile_cont(0.5) within group (order by ${listings.priceGross})::int`,
+    })
+    .from(listings)
+    .where(
+      and(rocznikWhere(make, model, year), eq(listings.status, "active"), isNotNull(listings.mileageKm)),
+    )
+    .groupBy(przedzial)
+    .orderBy(przedzial);
+}
+
+/** Wersje silnikowe (paliwo + moc) aktywnych ofert, od najczestszej. */
+export async function getRocznikWersje(make: string, model: string | string[], year: number) {
+  return db
+    .select({
+      fuel: listings.fuel,
+      powerHp: listings.powerHp,
+      n: sql<number>`count(*)::int`,
+      mediana: sql<number>`percentile_cont(0.5) within group (order by ${listings.priceGross})::int`,
+    })
+    .from(listings)
+    .where(
+      and(rocznikWhere(make, model, year), eq(listings.status, "active"), isNotNull(listings.powerHp)),
+    )
+    .groupBy(listings.fuel, listings.powerHp)
+    .orderBy(desc(sql`count(*)`))
+    .limit(8);
+}
+
+/** Ostatnio zniknięte oferty: cena, przebieg i ile dni wisialy. */
+export async function getRocznikSprzedane(make: string, model: string | string[], year: number) {
+  return db
+    .select({
+      trim: listings.trim,
+      mileageKm: listings.mileageKm,
+      priceGross: listings.priceGross,
+      dni: sql<number>`greatest(0, ${listings.goneAt}::date - ${listings.firstSeenAt}::date)::int`,
+    })
+    .from(listings)
+    .where(
+      and(
+        rocznikWhere(make, model, year),
+        eq(listings.status, "gone"),
+        sql`${listings.goneAt} > now() - interval '180 days'`,
+      ),
+    )
+    .orderBy(desc(listings.goneAt))
+    .limit(8);
+}
+
+/**
+ * Kombinacje marka x model x rocznik z liczba ofert "kup teraz" (aktywne) i
+ * zniknieciami z 180 dni — do mapy strony i progu indeksowania. Pisownie modelu
+ * scala wolajacy kluczem slugu, tak jak przy stronach modeli.
+ */
+export async function getRocznikiLiczniki() {
+  return db
+    .select({
+      make: listings.make,
+      model: listings.model,
+      year: sql<number>`${listings.year}::int`,
+      aktywne: sql<number>`count(*) filter (where ${listings.status} = 'active')::int`,
+      sprzedane: sql<number>`count(*) filter (
+        where ${listings.status} = 'gone' and ${listings.goneAt} > now() - interval '180 days'
+      )::int`,
+    })
+    .from(listings)
+    .where(
+      and(eq(listings.offerKind, "fixed"), isNotNull(listings.priceGross), isNotNull(listings.year)),
+    )
+    .groupBy(listings.make, listings.model, listings.year);
+}
