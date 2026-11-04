@@ -2,7 +2,7 @@ import { CarImage } from "@/components/CarImage";
 import type { ModelCard } from "@/lib/queries";
 import { modelHref } from "@/lib/slug";
 import { bodySpec, fuelSpec } from "@/lib/spec";
-import Link from "next/link";
+import Link from "@/components/Link";
 
 const pln = new Intl.NumberFormat("pl-PL", {
   style: "currency",

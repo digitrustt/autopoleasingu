@@ -1,7 +1,7 @@
 import { MegaMenu } from "@/components/MegaMenu";
 import { Logo } from "@/components/Logo";
 import { getMenuData } from "@/lib/menu";
-import Link from "next/link";
+import Link from "@/components/Link";
 
 /**
  * Staly naglowek na kazdej podstronie.

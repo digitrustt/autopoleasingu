@@ -2,7 +2,7 @@ import { Crumbs } from "@/components/Crumbs";
 import { PARY } from "@/lib/pary";
 import { Scale } from "lucide-react";
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/Link";
 
 export const revalidate = 86_400;
 

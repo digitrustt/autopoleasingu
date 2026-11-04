@@ -3,7 +3,7 @@ import { WOJEWODZTWA } from "@/lib/wojewodztwa";
 import { getMenuData } from "@/lib/menu";
 import { slugMiasta } from "@/lib/miasta";
 import { makeHref } from "@/lib/slug";
-import Link from "next/link";
+import Link from "@/components/Link";
 
 const num = new Intl.NumberFormat("pl-PL");
 const pln = new Intl.NumberFormat("pl-PL", {

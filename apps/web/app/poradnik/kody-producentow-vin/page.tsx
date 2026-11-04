@@ -4,7 +4,7 @@ import { VinSzukaj } from "@/components/VinSzukaj";
 import { wmiStaty } from "@/lib/cache-filtrow";
 import { OPIS_WERDYKTU, krajZVin, vinMarkiHref, wgMarek, werdykt } from "@/lib/vin";
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/Link";
 import { connection } from "next/server";
 
 /* Raz na dobe i dopiero na zadanie — patrz komentarz w analizy/utrata-wartosci. */

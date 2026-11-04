@@ -2,7 +2,7 @@ import { CarImage } from "@/components/CarImage";
 import { DealBadge } from "@/components/DealBadge";
 import { shortSource } from "@/lib/format";
 import type { SimilarRow } from "@/lib/queries";
-import Link from "next/link";
+import Link from "@/components/Link";
 
 const pln = new Intl.NumberFormat("pl-PL", {
   style: "currency",

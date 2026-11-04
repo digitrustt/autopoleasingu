@@ -8,7 +8,7 @@ import {
   zglosPrzedWyjsciem,
   zglosWyjscie,
 } from "@/lib/zapis-sygnal";
-import Link from "next/link";
+import Link from "@/components/Link";
 
 /**
  * Link do oferty z pomiarem.

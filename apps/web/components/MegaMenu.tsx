@@ -3,7 +3,7 @@
 import type { MenuData } from "@/lib/menu";
 import { makeHref, slugify } from "@/lib/slug";
 import { ChevronDown } from "lucide-react";
-import Link from "next/link";
+import Link from "@/components/Link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { slugMiasta } from "@/lib/miasta";

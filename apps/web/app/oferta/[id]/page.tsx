@@ -52,7 +52,7 @@ import {
   Zap,
 } from "lucide-react";
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/Link";
 import { notFound } from "next/navigation";
 import { paryMarkaMiastoZeStrona, slugiMiastZeStrona } from "@/lib/cache-filtrow";
 import { makaMiastoHref } from "@/lib/marka-miasto";

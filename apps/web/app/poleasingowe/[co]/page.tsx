@@ -22,7 +22,7 @@ import { WojewodztwoWidok, miejscaWojewodztwa } from "@/components/WojewodztwoWi
 import { znajdzWojewodztwo } from "@/lib/wojewodztwa";
 import { Building2, MapPin, SlidersHorizontal, TrendingDown } from "lucide-react";
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/Link";
 import { notFound, permanentRedirect } from "next/navigation";
 import { nazwaGlowna, slugMiasta, wMiescie } from "@/lib/miasta";
 

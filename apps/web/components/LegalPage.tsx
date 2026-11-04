@@ -1,5 +1,5 @@
 import { ArrowLeft } from "lucide-react";
-import Link from "next/link";
+import Link from "@/components/Link";
 
 /**
  * Wspolny uklad stron prawnych — waska kolumna, jeden rytm naglowkow.

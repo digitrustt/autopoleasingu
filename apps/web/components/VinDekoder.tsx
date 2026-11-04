@@ -1,7 +1,7 @@
 import { wmiStaty } from "@/lib/cache-filtrow";
 import { krajZVin, rokZKodu, werdykt } from "@/lib/vin";
 import { ScanLine } from "lucide-react";
-import Link from "next/link";
+import Link from "@/components/Link";
 import type { ReactNode } from "react";
 
 const num = new Intl.NumberFormat("pl-PL");

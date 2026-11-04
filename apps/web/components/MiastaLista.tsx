@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronDown } from "lucide-react";
-import Link from "next/link";
+import Link from "@/components/Link";
 import { useState } from "react";
 
 const num = new Intl.NumberFormat("pl-PL");

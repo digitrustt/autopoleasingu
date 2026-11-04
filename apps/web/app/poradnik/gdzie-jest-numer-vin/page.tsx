@@ -3,7 +3,7 @@ import { HistoriaBlok } from "@/components/HistoriaBlok";
 import { Faq, Lista, Sekcja, Uwaga, type Pytanie } from "@/components/Poradnik";
 import { VinSzukaj } from "@/components/VinSzukaj";
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/Link";
 
 export const metadata: Metadata = {
   title: "Gdzie jest numer VIN w samochodzie i w dokumentach",

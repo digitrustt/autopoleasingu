@@ -14,7 +14,7 @@ import {
 import { slugify } from "@/lib/slug";
 import { WOJEWODZTWA, type Wojewodztwo, wojewodztwoMiejsca } from "@/lib/wojewodztwa";
 import { Building2, Map as MapIcon, MapPin, TrendingDown } from "lucide-react";
-import Link from "next/link";
+import Link from "@/components/Link";
 import { notFound } from "next/navigation";
 import { nazwaGlowna, slugMiasta } from "@/lib/miasta";
 

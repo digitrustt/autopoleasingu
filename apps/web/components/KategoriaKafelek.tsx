@@ -1,5 +1,5 @@
 import { CarImage } from "@/components/CarImage";
-import Link from "next/link";
+import Link from "@/components/Link";
 
 const pln = new Intl.NumberFormat("pl-PL", {
   style: "currency",

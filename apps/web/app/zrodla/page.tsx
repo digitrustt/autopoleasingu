@@ -2,7 +2,7 @@ import { shortSource } from "@/lib/format";
 import { getSourceHealth } from "@/lib/queries";
 import { ArrowLeft, CircleAlert, CircleCheck, CircleSlash, ExternalLink } from "lucide-react";
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/Link";
 import { connection } from "next/server";
 
 /*

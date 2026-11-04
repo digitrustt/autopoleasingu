@@ -3,7 +3,7 @@ import { OfferCard } from "@/components/OfferCard";
 import { type FilterParams, Pagination } from "@/components/Pagination";
 import { type Filters as F, PAGE_SIZE, countListings, getListings } from "@/lib/queries";
 import { DatabaseZap, SearchX } from "lucide-react";
-import Link from "next/link";
+import Link from "@/components/Link";
 
 /**
  * Siatka wynikow jako osobny komponent async.

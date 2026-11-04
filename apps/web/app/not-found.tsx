@@ -1,6 +1,6 @@
 import { Logo } from "@/components/Logo";
 import { SearchX } from "lucide-react";
-import Link from "next/link";
+import Link from "@/components/Link";
 
 /**
  * Wlasna 404.

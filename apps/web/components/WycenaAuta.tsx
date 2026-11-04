@@ -7,7 +7,7 @@ import { type YearBar, YearBars } from "@/components/charts/YearBars";
 import type { ScatterData } from "@/lib/queries";
 import { modelHref } from "@/lib/slug";
 import { ArrowRight, Info } from "lucide-react";
-import Link from "next/link";
+import Link from "@/components/Link";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 
 const zl = new Intl.NumberFormat("pl-PL", { style: "currency", currency: "PLN", maximumFractionDigits: 0 });

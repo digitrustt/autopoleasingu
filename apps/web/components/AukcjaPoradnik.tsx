@@ -5,7 +5,7 @@ import { StatStrip } from "@/components/StatStrip";
 import { ZapisPasek } from "@/components/ZapisPasek";
 import { getFilterStats, getListings } from "@/lib/queries";
 import { Gavel } from "lucide-react";
-import Link from "next/link";
+import Link from "@/components/Link";
 
 const num = new Intl.NumberFormat("pl-PL");
 

@@ -6,7 +6,7 @@ import { UbezpieczenieBlok } from "@/components/UbezpieczenieBlok";
 import { filtryMarek } from "@/lib/cache-filtrow";
 import { OPLATY, PCC_DNI, REJESTRACJA_DNI, STAN_NA } from "@/lib/oplaty";
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/Link";
 
 /* Strona prawie statyczna — z bazy tylko lista marek (bufor na godzine). */
 export const revalidate = 86_400;

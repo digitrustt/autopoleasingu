@@ -1,5 +1,5 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import Link from "next/link";
+import Link from "@/components/Link";
 
 const cls =
   "flex items-center gap-1 rounded-lg border border-[var(--color-line)] bg-[var(--color-panel)] " +

@@ -3,7 +3,7 @@ import { StatStrip } from "@/components/StatStrip";
 import { getStats, getTopSpreads, getVinSpread } from "@/lib/queries";
 import { Copy } from "lucide-react";
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/Link";
 import { connection } from "next/server";
 
 /*

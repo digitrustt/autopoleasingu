@@ -14,7 +14,7 @@ import {
 import { makeHref, slugify } from "@/lib/slug";
 import { ArrowUpRight, Building2, Gavel, MapPin, SlidersHorizontal, TrendingDown } from "lucide-react";
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/Link";
 import { notFound } from "next/navigation";
 import { slugMiasta } from "@/lib/miasta";
 

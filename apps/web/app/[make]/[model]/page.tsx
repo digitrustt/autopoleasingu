@@ -23,7 +23,7 @@ import { makeHref, modelHref, slugify } from "@/lib/slug";
 import { bodySpec, fuelSpec } from "@/lib/spec";
 import { CalendarRange, Gauge, Layers, SlidersHorizontal, TrendingDown } from "lucide-react";
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/Link";
 import { paryModelu } from "@/lib/pary";
 import { paryMarkaMiastoLiczniki } from "@/lib/cache-filtrow";
 import { makaMiastoHref } from "@/lib/marka-miasto";

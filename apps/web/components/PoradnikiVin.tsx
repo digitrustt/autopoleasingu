@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/Link";
 
 const POZYCJE = [
   { href: "/poradnik/gdzie-jest-numer-vin", tekst: "Gdzie jest numer VIN w samochodzie" },

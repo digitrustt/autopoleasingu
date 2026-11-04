@@ -17,7 +17,7 @@ import { modelHref, resolveSlug, slugify } from "@/lib/slug";
 import { bodySpec } from "@/lib/spec";
 import { Layers, SlidersHorizontal, TrendingDown } from "lucide-react";
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/Link";
 import { notFound } from "next/navigation";
 import { oferty, zrodel } from "@/lib/format";
 import { paryMarkaMiastoLiczniki, wmiStaty } from "@/lib/cache-filtrow";

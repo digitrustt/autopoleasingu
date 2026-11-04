@@ -12,7 +12,7 @@ import type { getModelsForFilter, getSources, getStats } from "@/lib/queries";
 import { linieModelowe, rodzinyModeli, wariantyRodziny } from "@/lib/rodziny";
 import { Activity } from "lucide-react";
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/Link";
 import { Suspense } from "react";
 
 /**

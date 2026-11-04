@@ -31,7 +31,7 @@ import {
   Settings2,
   Zap,
 } from "lucide-react";
-import Link from "next/link";
+import Link from "@/components/Link";
 import { PoradnikiVin } from "@/components/PoradnikiVin";
 import { notFound } from "next/navigation";
 

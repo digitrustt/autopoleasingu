@@ -5,7 +5,7 @@ import { ZapisPasek } from "@/components/ZapisPasek";
 import { getFilterStats, getListings } from "@/lib/queries";
 import { Landmark } from "lucide-react";
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/Link";
 import { connection } from "next/server";
 
 /* Raz na dobe i dopiero na zadanie — patrz komentarz w analizy/utrata-wartosci. */

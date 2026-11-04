@@ -8,7 +8,7 @@ import { groupBySlug, slugify } from "@/lib/slug";
 import { WOJEWODZTWA, wojewodztwoMiejsca } from "@/lib/wojewodztwa";
 import { MapPin } from "lucide-react";
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/Link";
 import { connection } from "next/server";
 import { nazwaGlowna, slugMiasta } from "@/lib/miasta";
 

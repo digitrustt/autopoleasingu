@@ -2,7 +2,7 @@
 
 import { sprobujPrzeladowac, zglosBlad } from "@/lib/blad-klienta";
 import { RefreshCw, TriangleAlert } from "lucide-react";
-import Link from "next/link";
+import Link from "@/components/Link";
 import { useEffect, useState } from "react";
 
 /**

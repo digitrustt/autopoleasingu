@@ -21,7 +21,7 @@ import { makeHref, modelHref, slugify } from "@/lib/slug";
 import { fuelSpec } from "@/lib/spec";
 import { SlidersHorizontal } from "lucide-react";
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/Link";
 import { notFound } from "next/navigation";
 
 /* Raz na dobe — patrz komentarz w [make]/[model]/page.tsx. */

@@ -5,7 +5,7 @@ import { getMarketByFuel, getMarketByYear, getStats } from "@/lib/queries";
 import { fuelSpec } from "@/lib/spec";
 import { TrendingDown } from "lucide-react";
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/Link";
 import { connection } from "next/server";
 
 /*

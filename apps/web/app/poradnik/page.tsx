@@ -2,7 +2,7 @@ import { Crumbs } from "@/components/Crumbs";
 import { PORADNIKI } from "@/lib/poradniki";
 import { BookOpen } from "lucide-react";
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/Link";
 
 export const metadata: Metadata = {
   title: "Poradniki — jak kupić auto poleasingowe",

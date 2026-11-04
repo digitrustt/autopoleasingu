@@ -2,7 +2,7 @@ import { LegalPage } from "@/components/LegalPage";
 import { db, subscriptions } from "@auta/db";
 import { eq } from "drizzle-orm";
 import { CircleCheck, CircleX } from "lucide-react";
-import Link from "next/link";
+import Link from "@/components/Link";
 
 export const dynamic = "force-dynamic";
 

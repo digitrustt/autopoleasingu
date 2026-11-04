@@ -9,7 +9,7 @@ import { GRUPY, type Kategoria } from "@/lib/filtry";
 import { getFilterCities, getFilterMakes, getFilterStats, getListings } from "@/lib/queries";
 import { makeHref, slugify } from "@/lib/slug";
 import { Layers, MapPin, SlidersHorizontal, TrendingDown } from "lucide-react";
-import Link from "next/link";
+import Link from "@/components/Link";
 import { slugMiasta } from "@/lib/miasta";
 
 const pln = new Intl.NumberFormat("pl-PL", {

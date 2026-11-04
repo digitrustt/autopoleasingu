@@ -1,6 +1,6 @@
 import { FooterSignup } from "@/components/FooterSignup";
 import { Logo } from "@/components/Logo";
-import Link from "next/link";
+import Link from "@/components/Link";
 
 /**
  * Stopka trzyma dokladnie te sama szerokosc co naglowek i lista ofert:

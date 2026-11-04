@@ -7,7 +7,7 @@ import { getVinMarka } from "@/lib/queries";
 import { makeHref, slugify } from "@/lib/slug";
 import { type Marka, OPIS_WERDYKTU, krajZVin, wgMarek, werdykt } from "@/lib/vin";
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/Link";
 import { notFound } from "next/navigation";
 
 /* Raz na dobe — dane zmieniaja sie tylko z porannym zaciagiem. */
