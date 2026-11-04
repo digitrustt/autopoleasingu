@@ -117,7 +117,8 @@ export default function robots(): MetadataRoute.Robots {
       ...MODELE.map(regula),
       ...NIEPOTRZEBNE.map((userAgent) => ({ userAgent, disallow: "/" })),
     ],
-    sitemap: "https://autopoleasingu.pl/sitemap.xml",
+    // Druga mapa: pilot swiezych ofert (4.11.2026) — patrz app/sitemap-oferty.xml.
+    sitemap: ["https://autopoleasingu.pl/sitemap.xml", "https://autopoleasingu.pl/sitemap-oferty.xml"],
     host: "https://autopoleasingu.pl",
   };
 }
