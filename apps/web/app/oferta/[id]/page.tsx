@@ -28,7 +28,8 @@ import {
 import { kategorieOferty } from "@/lib/linki-oferty";
 import { kredytDlaCeny } from "@/lib/kredyt";
 import { paryModelu } from "@/lib/pary";
-import { makeHref, modelHref } from "@/lib/slug";
+import { makeHref, modelHref, modelKey, slugify } from "@/lib/slug";
+import { getRocznikiZeStrona, rocznikHref } from "@/lib/roczniki";
 import { bodySpec, driveSpec, fuelSpec, gearboxSpec } from "@/lib/spec";
 import {
   ArrowUpRight,
@@ -226,7 +227,7 @@ export default async function OfferPage({ params }: { params: Promise<{ id: stri
    * odrozniaja te strone od skopiowanego ogloszenia: pokazuja, gdzie ta
    * konkretna sztuka stoi wsrod pozostalych.
    */
-  const [similar, histogram, scatter, years, tanszych, miastaZeStrona, paryZeStrona] = await Promise.all([
+  const [similar, histogram, scatter, years, tanszych, miastaZeStrona, paryZeStrona, roczniki] = await Promise.all([
     getSimilar(o),
     getPriceHistogram(o.make, o.model),
     getScatter(o.make, o.model),
@@ -235,6 +236,7 @@ export default async function OfferPage({ params }: { params: Promise<{ id: stri
     o.priceGross != null ? countCheaperThan(o.make, o.model, o.priceGross) : Promise.resolve(0),
     slugiMiastZeStrona(),
     paryMarkaMiastoZeStrona(),
+    getRocznikiZeStrona(),
   ]);
 
   /*
@@ -256,6 +258,18 @@ export default async function OfferPage({ params }: { params: Promise<{ id: stri
    * linkowanie z najczesciej odwiedzanego typu strony. Patrz lib/linki-oferty.ts.
    */
   const kategorie = kategorieOferty(o);
+
+  /*
+   * Strona rocznika tego auta (5.11.2026), jesli ma wlasna strone (prog w
+   * lib/roczniki). Oferty to strony, ktore Google zna najlepiej — link z kazdej
+   * z nich to najmocniejszy sygnal, ze rocznik jest wazny, a czlowiekowi daje
+   * porownanie ceny z tym samym rocznikiem.
+   */
+  const kluczModelu = o.model ? `${slugify(o.make)}/${modelKey(o.model)}` : null;
+  const linkRocznika =
+    o.model && o.year && roczniki.some((r) => r.klucz === kluczModelu && r.year === o.year)
+      ? rocznikHref(o.make, o.model, o.year)
+      : null;
   const porownania = o.model ? paryModelu(o.make, o.model, 4) : [];
 
   const sameYear = o.year ? years.find((y) => y.year === o.year) : undefined;
@@ -825,6 +839,15 @@ export default async function OfferPage({ params }: { params: Promise<{ id: stri
           )}
 
           <div className="mt-3 flex flex-wrap gap-2 text-[13px]">
+            {linkRocznika && (
+              <Link
+                href={linkRocznika}
+                className="flex items-center gap-1.5 rounded-lg border border-[var(--color-line)] px-3 py-1.5 text-neutral-400 transition-colors hover:border-accent/70 hover:text-accent"
+              >
+                <Gauge size={14} />
+                Wszystkie {name} {o.year} — ceny i przebiegi
+              </Link>
+            )}
             <Link
               href={modelHref(o.make, o.model)}
               className="flex items-center gap-1.5 rounded-lg border border-[var(--color-line)] px-3 py-1.5 text-neutral-400 transition-colors hover:border-accent/70 hover:text-accent"
@@ -887,6 +910,16 @@ export default async function OfferPage({ params }: { params: Promise<{ id: stri
               {name} po leasingu
             </Link>
           </li>
+          {linkRocznika && (
+            <li>
+              <Link
+                href={linkRocznika}
+                className="inline-block rounded-lg border border-[var(--color-line)] bg-[var(--color-panel)] px-3 py-1.5 text-neutral-300 transition-colors hover:border-neutral-600 hover:text-neutral-100"
+              >
+                {name} {o.year}
+              </Link>
+            </li>
+          )}
           {kategorie.map((k) => (
             <li key={k.href}>
               <Link
