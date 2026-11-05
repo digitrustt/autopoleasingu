@@ -5,29 +5,34 @@ import { markaOk, modelOk } from "@/lib/smiec";
 const BASE = "https://autopoleasingu.pl";
 
 /*
- * Co 6 godzin: zaciag chodzi rano, a mapa i tak trzyma tylko ostatnie 48 h,
- * wiec czesciej nie ma czego zmieniac. Jedno zapytanie na 6 godzin.
+ * Co 6 godzin: zaciag chodzi rano, wiec czesciej nie ma czego zmieniac.
+ * Jedno zapytanie na 6 godzin.
  */
 export const revalidate = 21_600;
 
-/** Ile ofert zglaszamy naraz. Patrz komentarz nizej — to jest bezpiecznik CPU. */
-const LIMIT = 300;
+/**
+ * Bezpiecznik, nie cel: przy ~2300 ofertach na tydzien zostaje zapas na
+ * dni z wiekszym naplywem, a mapa nie urosnie bez kontroli, gdyby zrodlo
+ * nagle zrzucilo kilka tysiecy aut naraz. Patrz komentarz nizej.
+ */
+const LIMIT = 5_000;
 
 /**
- * PILOT (4.11.2026): mapa SWIEZYCH ofert, osobna od sitemap.xml.
+ * Mapa SWIEZYCH ofert, osobna od sitemap.xml — tak jak `sitemap-fresh.xml`
+ * w Otomoto (~10 tys. najnowszych ogloszen).
  *
  * Oferty to 55% wejsc z Google (405 z 737 osob w 14 dni, na 519 roznych
  * ofert), ale robot zna tylko te, na ktore trafil przez linki z naszych
  * stron — wiekszosc z 29 tys. aut sprzedaje sie, zanim w ogole je zobaczy.
- * Tu dajemy mu znac o autach dodanych w ostatnich 48 godzinach, poki sa
- * w sprzedazy.
+ * Tu dajemy mu znac o autach dodanych w ostatnich 7 dniach, poki sa
+ * w sprzedazy. Tylko "kup teraz" z cena i zdjeciem.
  *
- * Tylko "kup teraz" z cena i zdjeciem, od najwiekszej okazji, max 300.
- * Pelna lista (~1200 na dwie doby, 29 tys. lacznie) to kazdorazowy render
- * strony oferty przy wizycie robota, a 25.10 bylismy na 70% limitu CPU
- * Vercel Hobby — przekroczenie 5.10 wylaczylo serwis. Jesli po 3-4 tygodniach
- * te oferty zaczna sie indeksowac i przyciagac ludzi, to sygnal do planu Pro
- * i zdjecia limitu; jesli nie, mape mozna po prostu usunac.
+ * Historia limitu: 4.11.2026 pilot na 300 ofertach z 48 h, bo kazda wizyta
+ * robota to render strony oferty, a 25.10 bylismy na 70% limitu CPU Vercel
+ * Hobby (przekroczenie 5.10 wylaczylo serwis). 5.11 rozszerzone do calego
+ * tygodnia (~2300), po wylaczeniu prefetchu linkow (components/Link.tsx),
+ * ktory zjadal wiecej renderow niz cala ta mapa. Kolejny krok — wszystkie
+ * aktywne oferty — dopiero gdy zuzycie CPU w panelu zostanie ponizej ~50%.
  */
 export async function GET() {
   const oferty = await db
@@ -44,10 +49,10 @@ export async function GET() {
         eq(listings.offerKind, "fixed"),
         isNotNull(listings.priceGross),
         isNotNull(listings.thumbnailUrl),
-        gt(listings.firstSeenAt, sql`now() - interval '48 hours'`),
+        gt(listings.firstSeenAt, sql`now() - interval '7 days'`),
       ),
     )
-    .orderBy(sql`${listings.dealScore} desc nulls last`, desc(listings.firstSeenAt))
+    .orderBy(desc(listings.firstSeenAt))
     // Zapas na odsiane smieci (marka "Other", model z cala specyfikacja).
     .limit(LIMIT * 2);
 
