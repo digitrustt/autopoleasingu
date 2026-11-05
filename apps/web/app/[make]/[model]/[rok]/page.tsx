@@ -398,7 +398,16 @@ export default async function RocznikPage({
                 <tbody>
                   {sprzedane.map((s, i) => (
                     <tr key={i} className="border-b border-[var(--color-line)] last:border-0">
-                      <td className="max-w-[220px] truncate px-4 py-2.5 text-neutral-300">{s.trim ?? "—"}</td>
+                      <td className="max-w-[220px] truncate px-4 py-2.5 text-neutral-300">
+                        {/* Link do historii VIN (5.11.2026): strony VIN potrzebuja linkow, zeby trafic do indeksu. */}
+                        {s.vin && s.vin.length === 17 ? (
+                          <Link href={`/vin/${s.vin}`} className="hover:text-accent" title={`Historia VIN ${s.vin}`}>
+                            {s.trim ?? s.vin}
+                          </Link>
+                        ) : (
+                          (s.trim ?? "—")
+                        )}
+                      </td>
                       <td className="px-4 py-2.5 text-right tabular-nums text-neutral-500">
                         {s.mileageKm != null ? `${num.format(s.mileageKm)} km` : "—"}
                       </td>

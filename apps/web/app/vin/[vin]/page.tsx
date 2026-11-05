@@ -13,8 +13,9 @@ import { paryMarkaMiastoZeStrona } from "@/lib/cache-filtrow";
 import { makaMiastoHref } from "@/lib/marka-miasto";
 import { slugMiasta } from "@/lib/miasta";
 import { paryModelu } from "@/lib/pary";
-import { getListings, getVinHistory, getWmiMake } from "@/lib/queries";
-import { makeHref, modelHref } from "@/lib/slug";
+import { getListings, getVinHistory, getWmiMake, getYearBreakdown, getYearSold } from "@/lib/queries";
+import { getRocznikiZeStrona, rocznikHref } from "@/lib/roczniki";
+import { makeHref, modelHref, modelKey, slugify } from "@/lib/slug";
 import { poprawnyVin } from "@/lib/vin";
 import type { Metadata } from "next";
 import {
@@ -248,7 +249,7 @@ export default async function VinPage({ params }: { params: Promise<{ vin: strin
    * liczbami tej sztuki, liste podobnych aut i sciezke Marka > Model > VIN.
    */
   const nazwaAuta = [spec.make, spec.model].filter(Boolean).join(" ");
-  const [podobne, paryMiast] = await Promise.all([
+  const [podobne, paryMiast, rokiModelu, sprzedaneModelu, roczniki] = await Promise.all([
     getListings(
       {
         make: spec.make,
@@ -262,7 +263,31 @@ export default async function VinPage({ params }: { params: Promise<{ vin: strin
       7,
     ),
     paryMarkaMiastoZeStrona(),
+    // Tlo rocznika: dwa male zapytania pogrupowane po roku, pisownia modelu z oferty.
+    spec.year && spec.model ? getYearBreakdown(spec.make, spec.model) : Promise.resolve([]),
+    spec.year && spec.model ? getYearSold(spec.make, spec.model) : Promise.resolve([]),
+    getRocznikiZeStrona(),
   ]);
+  /*
+   * "Na tle rocznika" (5.11.2026). Przy aucie z jednym ogloszeniem strona VIN
+   * powtarzala strone oferty i Google odrzucal ja jako duplikat (4 486 stron
+   * VIN "zeskanowane, niezindeksowane"). Porownanie TEJ sztuki z mediana jej
+   * rocznika to tresc, ktorej strona oferty nie ma — i link do strony rocznika,
+   * ktora z kolei potrzebuje linkow, zeby trafic do indeksu.
+   */
+  const tenRok = spec.year ? rokiModelu.find((y) => y.year === spec.year) : undefined;
+  const tenRokSprzedane = spec.year ? sprzedaneModelu.find((y) => y.year === spec.year) : undefined;
+  const cenaSztuki = data.listings
+    .filter((l) => l.offerKind === "fixed" && l.priceGross != null)
+    .map((l) => l.priceGross as number)
+    .sort((a, b) => a - b)[0];
+  const linkRocznika =
+    spec.year &&
+    spec.model &&
+    roczniki.some((r) => r.klucz === `${slugify(spec.make)}/${modelKey(spec.model as string)}` && r.year === spec.year)
+      ? rocznikHref(spec.make, spec.model, spec.year)
+      : null;
+
   const idTych = new Set(data.listings.map((l) => l.id));
   const podobneAuta = podobne.filter((o) => !idTych.has(o.id)).slice(0, 6);
 
@@ -406,6 +431,58 @@ export default async function VinPage({ params }: { params: Promise<{ vin: strin
           />
         ) : null;
       })()}
+
+      {tenRok && tenRok.total >= 3 && (
+        <section className="mb-6 rounded-xl border border-[var(--color-line)] bg-[var(--color-panel)] p-4">
+          <h2 className="mb-2 text-base font-semibold text-neutral-100">
+            {nazwaAuta} {spec.year} na tle rocznika
+          </h2>
+          <p className="text-[14px] leading-relaxed text-neutral-400">
+            Mediana ceny {nazwaAuta} z {spec.year} roku w ofertach „kup teraz” to{" "}
+            <span className="font-medium text-neutral-200">{pln.format(tenRok.medianPrice)}</span> (
+            {num.format(tenRok.total)} ofert)
+            {tenRok.medianMileage != null && <>, przy medianie przebiegu {num.format(tenRok.medianMileage)} km</>}.
+            {cenaSztuki != null && tenRok.medianPrice > 0 && (
+              <>
+                {" "}
+                Ta sztuka ({pln.format(cenaSztuki)}) jest{" "}
+                {Math.abs(cenaSztuki - tenRok.medianPrice) / tenRok.medianPrice < 0.02 ? (
+                  "w okolicach mediany"
+                ) : (
+                  <>
+                    o {Math.round((Math.abs(cenaSztuki - tenRok.medianPrice) / tenRok.medianPrice) * 100)}%{" "}
+                    {cenaSztuki < tenRok.medianPrice ? "tańsza" : "droższa"}
+                  </>
+                )}
+                {spec.mileageKm != null && tenRok.medianMileage != null && (
+                  <>
+                    , a jej przebieg jest o {num.format(Math.abs(spec.mileageKm - tenRok.medianMileage))} km{" "}
+                    {spec.mileageKm < tenRok.medianMileage ? "niższy" : "wyższy"}
+                  </>
+                )}
+                .
+              </>
+            )}
+            {tenRokSprzedane && tenRokSprzedane.sold >= 3 && (
+              <>
+                {" "}
+                Auta z tego rocznika, które zniknęły z ofert w ostatnich 180 dniach, kosztowały typowo{" "}
+                {pln.format(tenRokSprzedane.soldMedian)}.
+              </>
+            )}
+          </p>
+          <p className="mt-2 text-[13px]">
+            <Link
+              href={linkRocznika ?? modelHref(spec.make, spec.model ?? "")}
+              className="text-accent hover:underline"
+            >
+              {linkRocznika
+                ? `Wszystkie ${nazwaAuta} ${spec.year} — ceny i przebiegi`
+                : `Ceny ${nazwaAuta} według rocznika`}
+            </Link>
+          </p>
+        </section>
+      )}
 
       <VehicleHistory
         vin={data.vin}

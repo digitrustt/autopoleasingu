@@ -958,7 +958,19 @@ export async function getSitemapEntries() {
     db
       .select({ vin: listings.vin, updated: sql<string>`max(${listings.lastSeenAt})` })
       .from(listings)
-      .where(and(eq(listings.status, "active"), isNotNull(listings.vin)))
+      /*
+       * VIN-y z HISTORIA, takze sprzedane (5.11.2026): wiecej niz jedno ogloszenie
+       * w aktywnych albo zniknietych w 180 dniach. Wczesniej tylko dwa aktywne
+       * naraz (~1 tys.), a strona sprzedanego auta z kilkoma wystawieniami to
+       * wlasnie ta historia, ktorej szukaja ludzie wpisujacy numer w Google.
+       * Pojedyncze ogloszenia zostaja poza mapa — dubluja strone oferty.
+       */
+      .where(
+        and(
+          isNotNull(listings.vin),
+          sql`(${listings.status} = 'active' or ${listings.goneAt} > now() - interval '180 days')`,
+        ),
+      )
       .groupBy(listings.vin)
       .having(sql`count(*) > 1`),
 
@@ -2386,6 +2398,7 @@ export async function getRocznikWersje(make: string, model: string | string[], y
 export async function getRocznikSprzedane(make: string, model: string | string[], year: number) {
   return db
     .select({
+      vin: listings.vin,
       trim: listings.trim,
       mileageKm: listings.mileageKm,
       priceGross: listings.priceGross,
