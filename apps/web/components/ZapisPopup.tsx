@@ -8,10 +8,12 @@ import { banerWidoczny } from "@/lib/consent";
 import {
   GOTOWOSC,
   KLUCZ_DECYZJA,
+  KLUCZ_SESJA,
   type KontekstWyjscia,
   type PrzedWyjsciem,
   SYGNAL_PRZED_WYJSCIEM,
   biezacaOferta,
+  zapisZdecydowany,
 } from "@/lib/zapis-sygnal";
 import { ArrowUpRight, Bell, Briefcase, Landmark, ShieldCheck, X } from "lucide-react";
 import { usePathname } from "next/navigation";
@@ -47,10 +49,11 @@ import { otworzPartnera } from "@/lib/wyjscie";
  *
  *  - Zamkniecie ZAWSZE przenosi do oferty — krzyzyk, tlo, Escape i "przejdz
  *    bez zapisu". To propozycja, nie bramka.
- *  - Raz na sesje i nigdy wiecej po zamknieciu. Zamkniecie zapisuje sie
- *    w localStorage NA STALE. Nakladka, ktora wraca po odmowie, jest gorsza
- *    niz jej brak: kosztuje zaufanie, ktorego przy tym ruchu nie ma z czego
- *    oddawac. Oba wyzwalacze dziela ten sam zamek — zadne "a moze teraz".
+ *  - Raz na sesje. Zamkniecie obowiazuje do konca sesji (sessionStorage),
+ *    zapis — na stale (localStorage). Do 8.11.2026 zamkniecie dzialalo na
+ *    stale i z ~500 pokazan wychodzilo 2 zapisy; na wyrazne polecenie
+ *    wlasciciela kazda nowa sesja dostaje nakladke raz. Zadne "a moze teraz"
+ *    w obrebie sesji. Oba wyzwalacze dziela ten sam zamek.
  *  - Nie pokazuje sie, dopoki baner cookies jest na ekranie. Dwie nakladki
  *    naraz to sciana, ktora zamyka sie odruchowo, razem z cala strona.
  *  - Escape i klikniecie w tlo zamykaja. Krzyzyk jest pelnowymiarowy, nie
@@ -78,9 +81,12 @@ function zapisz(store: Storage, k: string, v: string): void {
   }
 }
 
-/** Decyzja o zapisie juz zapadla — zamknieta albo zapisana — wiec nigdy wiecej. */
+/**
+ * Zapisany — nigdy wiecej; zamknal w tej sesji — do konca sesji
+ * (od 8.11.2026, wczesniej zamkniecie dzialalo na stale).
+ */
 function zdecydowano(): boolean {
-  return czytaj(localStorage, KLUCZ_DECYZJA) !== null;
+  return zapisZdecydowany();
 }
 
 /**
@@ -186,7 +192,9 @@ export function ZapisPopup() {
   const [doOferty, setDoOferty] = useState(false);
 
   const schowaj = useCallback((decyzja: "zamkniete" | "zapisano") => {
-    zapisz(localStorage, KLUCZ_DECYZJA, decyzja);
+    // Zapis = na stale (localStorage); zamkniecie = do konca sesji.
+    if (decyzja === "zapisano") zapisz(localStorage, KLUCZ_DECYZJA, decyzja);
+    zapisz(sessionStorage, KLUCZ_SESJA, decyzja);
     setWjechal(false);
     // Domykamy dopiero po animacji, zeby nakladka nie znikala skokiem.
     setTimeout(() => {

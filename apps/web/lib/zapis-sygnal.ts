@@ -74,19 +74,29 @@ export function zglosWyjscie(kontekst: KontekstWyjscia = {}): void {
  * tak samo: od razu otwieraja oferte. To jest decyzja wlasciciela serwisu;
  * nigdy nie robic z tego bramki, ktorej nie da sie ominac jednym kliknieciem.
  *
- * Raz na zawsze: po zapisie albo zamknieciu kolejne klikniecia ida juz prosto
- * do sprzedawcy (wspolny klucz z ZapisPopup).
+ * Raz na sesje: po zamknieciu kolejne klikniecia w tej sesji ida prosto do
+ * sprzedawcy; po zapisie — juz zawsze (wspolne klucze z ZapisPopup).
  */
 export const SYGNAL_PRZED_WYJSCIEM = "zapis:przed-wyjsciem";
 
-/** Klucz decyzji nakladki w localStorage — wspolny dla wszystkich wyzwalaczy. */
+/**
+ * Klucz decyzji nakladki w localStorage. Od 8.11.2026 trzyma TYLKO "zapisano"
+ * (zapisany nie dostaje nakladki nigdy wiecej). Dawne wartosci "zamkniete"
+ * sa ignorowane — zamkniecie obowiazuje teraz do konca sesji.
+ */
 export const KLUCZ_DECYZJA = "zapis_popup_decyzja";
+
+/** Zamkniecie nakladki w tej sesji (sessionStorage) — kolejna sesja pokaze ja znowu. */
+export const KLUCZ_SESJA = "zapis_popup_sesja";
 
 export function zapisZdecydowany(): boolean {
   try {
-    return window.localStorage.getItem(KLUCZ_DECYZJA) !== null;
+    return (
+      window.localStorage.getItem(KLUCZ_DECYZJA) === "zapisano" ||
+      window.sessionStorage.getItem(KLUCZ_SESJA) !== null
+    );
   } catch {
-    // Bez localStorage nie zapamietamy zamkniecia — wiec nie przechwytujemy wcale.
+    // Bez storage nie zapamietamy zamkniecia — wiec nie przechwytujemy wcale.
     return true;
   }
 }
