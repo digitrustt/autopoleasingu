@@ -3,7 +3,7 @@
 import { BANER_ID, type Consent, hasConsentDecision, readConsent, writeConsent } from "@/lib/consent";
 import { SYGNAL_PRZED_WYJSCIEM, SYGNAL_WYJSCIA } from "@/lib/zapis-sygnal";
 import { Cookie } from "lucide-react";
-import Link from "next/link";
+import Link from "@/components/Link";
 import { useEffect, useState } from "react";
 
 /**
@@ -11,14 +11,12 @@ import { useEffect, useState } from "react";
  *
  * NIE BLOKUJE POMIARU — analityka działa od wejścia (patrz DOMYSLNA_ZGODA
  * w lib/consent.ts, gdzie stoi powód i ostrzeżenie prawne). Baner wisi,
- * dopóki człowiek sam czegoś nie kliknie, i daje realną możliwość odmowy.
+ * dopóki człowiek nie kliknie „OK".
  *
- * „Odrzuć" DZIAŁA NAPRAWDĘ i musi tak zostać: zatrzymuje pomiar i czyści
- * to, co PostHog zdążył zebrać w tej sesji. Przycisk, który udaje wybór,
- * byłby okłamywaniem człowieka, który świadomie odmawia.
- *
- * Dwa przyciski o równej wadze. „Odrzuć" schowane pod linkiem albo w szarym,
- * ledwo widocznym tekście jest tak zwanym dark patternem.
+ * Przycisku „Odrzuć" w banerze NIE MA — decyzja właściciela z 28.10.2026,
+ * na jego odpowiedzialność. Wyłączenie pomiaru zostało tylko na /cookies
+ * (ConsentToggle) i tam nadal działa naprawdę: zatrzymuje pomiar i czyści
+ * to, co PostHog zdążył zebrać w tej sesji.
  *
  * PRZEWINIĘCIE CHOWA BANER, ale NIE zapisuje żadnej decyzji — i to jest tu
  * cała różnica. Wcześniej scroll ustawiał zgodę, co było obejściem potrzebnym,
@@ -27,7 +25,7 @@ import { useEffect, useState } from "react";
  * przeczytałeś albo zignorowałeś.
  *
  * Skutek uboczny jest zamierzony: baner wraca przy następnym wejściu, bo
- * decyzja nie zapadła. Kto chce ją zamknąć na stałe, klika „OK" albo „Odrzuć".
+ * decyzja nie zapadła. Kto chce ją zamknąć na stałe, klika „OK".
  */
 export function CookieConsent() {
   const [visible, setVisible] = useState(false);
@@ -73,8 +71,8 @@ export function CookieConsent() {
 
   if (!visible) return null;
 
-  function decide(v: Consent) {
-    writeConsent(v);
+  function accept() {
+    writeConsent("granted");
     setVisible(false);
   }
 
@@ -89,7 +87,7 @@ export function CookieConsent() {
         <p className="flex max-w-[70ch] items-center gap-2.5 text-[13px] leading-relaxed text-neutral-400">
           <Cookie size={18} className="shrink-0 text-neutral-500" />
           <span>
-            Używamy ciasteczek do anonimowych statystyk. Możesz to wyłączyć.{" "}
+            Używamy ciasteczek do anonimowych statystyk.{" "}
             <Link href="/cookies" className="underline underline-offset-2 hover:text-accent">
               Szczegóły
             </Link>
@@ -99,14 +97,7 @@ export function CookieConsent() {
         <div className="flex shrink-0 items-center gap-2">
           <button
             type="button"
-            onClick={() => decide("denied")}
-            className="rounded-lg border border-[var(--color-line)] px-4 py-2 text-sm text-neutral-300 transition-colors hover:border-neutral-600"
-          >
-            Odrzuć
-          </button>
-          <button
-            type="button"
-            onClick={() => decide("granted")}
+            onClick={accept}
             className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-black transition-colors hover:bg-white"
           >
             OK

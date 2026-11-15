@@ -15,11 +15,10 @@ export default function Cookies() {
       <Section title="Analityka jest domyślnie włączona">
         <p>
           Anonimowa analityka działa od momentu wejścia na stronę — nie czekamy na kliknięcie
-          w banerze. Baner informuje o tym i daje możliwość wyłączenia.
+          w banerze. Baner informuje o tym, a wyłączyć pomiar możesz przełącznikiem niżej.
         </p>
         <p>
-          Aby ją wyłączyć, kliknij <strong className="text-neutral-200">„Odrzuć"</strong>{" "}
-          w banerze albo użyj przełącznika niżej. Działa w każdej chwili, także po fakcie —
+          Aby ją wyłączyć, użyj przełącznika niżej. Działa w każdej chwili, także po fakcie —
           wyłączenie zatrzymuje zbieranie i kasuje to, co PostHog zdążył zapisać
           w Twojej przeglądarce.
         </p>
@@ -84,7 +83,7 @@ export default function Cookies() {
           nie zawierają Twojego imienia, e-maila ani niczego, co pozwoliłoby Cię wskazać.
         </p>
         <p>
-          Sam wybór „zgadzam się / odrzuć" trzymamy w pamięci lokalnej przeglądarki, nie
+          Sam wybór (włączona / wyłączona) trzymamy w pamięci lokalnej przeglądarki, nie
           w ciasteczku. Dzięki temu przed decyzją nie wysyłamy do siebie ani jednego bajtu.
         </p>
       </Section>
