@@ -64,6 +64,14 @@ import { otworzPartnera } from "@/lib/wyjscie";
 
 const KLUCZ_LICZNIK = "zapis_popup_obejrzane";
 const PROG = 2;
+/**
+ * Wyzwalacz "druga obejrzana oferta" WYLACZONY 17.11.2026. Dzielil zamek
+ * z wyjsciem do sprzedawcy: kto zamknal nakladke po drugiej ofercie, przy
+ * wyjsciu juz jej nie widzial (3 z 4 sprawdzonych osob bez nakladki przed
+ * wyjsciem). Wlasciciel chce nakladki RAZ NA SESJE PRZED WYJSCIEM, wiec to
+ * wyjscie ma miec ten slot zawsze.
+ */
+const WYZWALACZ_OFERTY = false;
 
 /** localStorage bywa niedostepny (tryb prywatny, blokady) — nigdy nie wywalamy strony. */
 function czytaj(store: Storage, k: string): string | null {
@@ -213,6 +221,7 @@ export function ZapisPopup() {
 
   /* WYZWALACZ 1: druga obejrzana oferta w tej sesji. */
   useEffect(() => {
+    if (!WYZWALACZ_OFERTY) return;
     if (!pathname?.startsWith("/oferta/")) return;
     if (!wolno()) return;
 
