@@ -19,7 +19,7 @@
         {
           "type": "header",
           "key": "user-agent",
-          "value": "(?i).*(bytespider|petalbot|ahrefsbot|semrushbot|mj12bot|dotbot|dataforseobot|blexbot|serpstatbot|barkrowler|amazonbot|imagesiftbot|scrapy|python-requests|python-httpx|aiohttp|go-http-client|okhttp|headlesschrome|phantomjs).*"
+          "value": "(?i).*(bytespider|petalbot|ahrefsbot|semrushbot|mj12bot|dotbot|dataforseobot|blexbot|serpstatbot|barkrowler|amazonbot|imagesiftbot|scrapy|python-requests|python-httpx|aiohttp|go-http-client|okhttp|headlesschrome|phantomjs|yandexbot|seznambot|ccbot|meta-externalagent|ia_archiver|sogou|baiduspider|coccocbot).*"
         }
       ],
       "mitigate": { "action": "deny" }

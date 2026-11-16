@@ -47,7 +47,9 @@ const config: NextConfig = {
     const cdn = [
       {
         key: "Vercel-CDN-Cache-Control",
-        value: "s-maxage=21600, stale-while-revalidate=86400",
+        // 16.11.2026: doba zamiast 6 h (po wylaczeniu serwisu 14.11 za limit CPU).
+        // Zaciag jest raz na dobe, wiec czestsze odswiezanie nic nie daje.
+        value: "s-maxage=86400, stale-while-revalidate=604800",
       },
     ];
     const cdnDlugi = [
