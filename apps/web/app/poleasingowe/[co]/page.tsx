@@ -14,7 +14,7 @@ import {
   getListings,
 } from "@/lib/queries";
 import { shortSource, oferty, zrodel } from "@/lib/format";
-import { groupBySlug, makeHref, resolveAliases, slugify } from "@/lib/slug";
+import { groupBySlug, makeHref, modelKey, resolveAliases, slugify } from "@/lib/slug";
 import { KategoriaWidok } from "@/components/KategoriaWidok";
 import { znajdzKategorie } from "@/lib/filtry";
 import { getCityModelRanking } from "@/lib/queries";
@@ -73,7 +73,12 @@ async function resolve(slug: string) {
   const miasta = await getCitiesWithCounts();
   // Grupowanie po miescie glownym, nie po samym zapisie — patrz lib/miasta.ts.
   const grupy = groupBySlug(miasta, (m) => nazwaGlowna(m.city ?? ""));
-  const grupa = grupy.get(slugify(slug));
+  /*
+   * Klucz mapy to modelKey ("krzeduze"), nie slug ("krze-duze"). Do 17.11.2026
+   * bylo tu slugify — kazde miasto z dwoch slow (Krze Duze, Ozarow Mazowiecki,
+   * Zielona Gora) dawalo 404.
+   */
+  const grupa = grupy.get(modelKey(slug));
   if (!grupa || grupa.length === 0) return null;
 
   const nazwy = grupa.map((g) => g.city).filter((c): c is string => c != null);
