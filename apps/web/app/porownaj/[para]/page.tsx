@@ -78,7 +78,17 @@ export async function generateMetadata({
    * tytul mowi "porownanie", a opis od razu daje werdykt z liczbami.
    */
   const dlugi = `${nazwaA} czy ${nazwaB}? Porównanie: ceny, przebiegi, roczniki`;
-  const title = dlugi.length <= 70 ? dlugi : `${nazwaA} vs ${nazwaB} — porównanie cen i przebiegów`;
+  /*
+   * 17.11.2026: dluzsze pary (np. "Lexus UX czy Toyota Corolla Cross?") spadaly
+   * od razu do wersji "vs", choc ludzie pytaja "czy". Posredni krok trzyma "czy".
+   */
+  const sredni = `${nazwaA} czy ${nazwaB}? Ceny i przebiegi`;
+  const title =
+    dlugi.length <= 70
+      ? dlugi
+      : sredni.length <= 70
+        ? sredni
+        : `${nazwaA} vs ${nazwaB} — porównanie cen i przebiegów`;
   const pA = statsA.medianPrice;
   const pB = statsB.medianPrice;
   const kmA = statsA.medianMileage;

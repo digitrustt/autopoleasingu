@@ -159,7 +159,7 @@ export async function generateMetadata({
     `Auta poleasingowe ${wMiescie(found.miasto)}: ${num.format(stats.total)} ${oferty(stats.total)} z ` +
     `${stats.sources} ${zrodel(stats.sources)}` +
     (stats.minPrice ? `, ceny od ${pln.format(stats.minPrice)}` : "") +
-    `. Firmy leasingowe, CFM i programy dealerskie w jednym miejscu, aktualizowane codziennie.`;
+    `. Za gotówkę, w leasingu albo na raty — oferty firm leasingowych i dealerów, aktualizowane codziennie.`;
 
   return {
     title,

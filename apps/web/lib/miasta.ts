@@ -37,6 +37,40 @@ const MIASTA: [nazwa: string, odmiany: string[], dopelniacz: string[]][] = [
   ["Olsztyn", ["olsztyn"], ["olsztyna"]],
   ["Opole", ["opole"], ["opola"]],
   ["Częstochowa", ["częstochowa", "czestochowa"], ["częstochowy", "czestochowy"]],
+  /*
+   * 17.11.2026: miasta z setka i wiecej ofert, ktore dostawaly "w miejscowosci X"
+   * (Kalisz 599, Plock 580, Myslowice 511…). Stare adresy wariantow ("bielsko")
+   * przekierowuje przekierowanieMiasta w app/poleasingowe/[co].
+   */
+  ["Kalisz", ["kalisz"], ["kalisza"]],
+  ["Płock", ["płock", "plock"], ["płocka", "plocka"]],
+  ["Mysłowice", ["mysłowice", "myslowice"], ["mysłowic", "myslowic"]],
+  ["Siedlce", ["siedlce"], ["siedlec"]],
+  ["Rybnik", ["rybnik"], ["rybnika"]],
+  ["Sosnowiec", ["sosnowiec"], ["sosnowca"]],
+  ["Zielona Góra", ["zielona góra", "zielona gora"], ["zielonej góry", "zielonej gory"]],
+  ["Leszno", ["leszno"], ["leszna"]],
+  ["Tychy", ["tychy"], ["tychów", "tychow"]],
+  ["Radom", ["radom"], ["radomia"]],
+  ["Lubin", ["lubin"], ["lubina"]],
+  ["Bytom", ["bytom"], ["bytomia"]],
+  ["Wejherowo", ["wejherowo"], ["wejherowa"]],
+  ["Gliwice", ["gliwice"], ["gliwic"]],
+  ["Konin", ["konin"], ["konina"]],
+  ["Chorzów", ["chorzów", "chorzow"], ["chorzowa"]],
+  ["Ruda Śląska", ["ruda śląska", "ruda slaska"], ["rudy śląskiej", "rudy slaskiej"]],
+  ["Bielsko-Biała", ["bielsko-biała", "bielsko-biala", "bielsko biała", "bielsko biala", "bielsko"], ["bielska-białej", "bielska-bialej", "bielska"]],
+  ["Nowy Targ", ["nowy targ"], ["nowego targu"]],
+  ["Grudziądz", ["grudziądz", "grudziadz"], ["grudziądza", "grudziadza"]],
+  ["Koszalin", ["koszalin"], ["koszalina"]],
+  ["Elbląg", ["elbląg", "elblag"], ["elbląga", "elblaga"]],
+  ["Tarnów", ["tarnów", "tarnow"], ["tarnowa"]],
+  ["Legnica", ["legnica"], ["legnicy"]],
+  [
+    "Gorzów Wielkopolski",
+    ["gorzów wielkopolski", "gorzow wielkopolski", "gorzów wlkp", "gorzow wlkp"],
+    ["gorzowa wielkopolskiego", "gorzowa wlkp"],
+  ],
 ];
 
 /** Dzielnice Warszawy zapisywane bez nazwy miasta (takze w nazwach dealerow). */
@@ -69,7 +103,7 @@ const REGULY: [RegExp, string][] = [
 ];
 
 /** Inne miejscowosci, ktore zawieraja nazwe duzego miasta. */
-const WYJATKI = /opole lubelskie/i;
+const WYJATKI = /opole lubelskie|kalisz pomorski|bytom odrzański|bytom odrzanski/i;
 
 /** "Warszawa - Wola" -> "Warszawa"; nazwa spoza listy zostaje bez zmian. */
 export function nazwaGlowna(city: string): string {
@@ -104,6 +138,31 @@ const MIEJSCOWNIK: Record<string, string> = {
   Olsztyn: "w Olsztynie",
   Opole: "w Opolu",
   Częstochowa: "w Częstochowie",
+  Kalisz: "w Kaliszu",
+  Płock: "w Płocku",
+  Mysłowice: "w Mysłowicach",
+  Siedlce: "w Siedlcach",
+  Rybnik: "w Rybniku",
+  Sosnowiec: "w Sosnowcu",
+  "Zielona Góra": "w Zielonej Górze",
+  Leszno: "w Lesznie",
+  Tychy: "w Tychach",
+  Radom: "w Radomiu",
+  Lubin: "w Lubinie",
+  Bytom: "w Bytomiu",
+  Wejherowo: "w Wejherowie",
+  Gliwice: "w Gliwicach",
+  Konin: "w Koninie",
+  Chorzów: "w Chorzowie",
+  "Ruda Śląska": "w Rudzie Śląskiej",
+  "Bielsko-Biała": "w Bielsku-Białej",
+  "Nowy Targ": "w Nowym Targu",
+  Grudziądz: "w Grudziądzu",
+  Koszalin: "w Koszalinie",
+  Elbląg: "w Elblągu",
+  Tarnów: "w Tarnowie",
+  Legnica: "w Legnicy",
+  "Gorzów Wielkopolski": "w Gorzowie Wielkopolskim",
 };
 
 /** "w Warszawie"; dla miejscowosci spoza listy bezpieczne "w mieście X". */
