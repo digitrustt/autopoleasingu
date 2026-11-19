@@ -13,21 +13,46 @@
  * skladalem te liste tutaj, importujac funkcje z aplikacji Next — i to nie
  * dziala, bo tamten kod uzywa aliasu `@/`, ktory zyje tylko w jej buildzie.
  * Pobranie sitemapy jest zreszta lepsze samo w sobie: nie ma dwoch miejsc,
- * ktore trzeba pamietac, zeby trzymac zgodne. Pojedynczych ofert tam nie ma,
- * i tak ma zostac — zyja po kilka dni i sa zabronione w robots.txt.
+ * ktore trzeba pamietac, zeby trzymac zgodne.
+ *
+ * OFERTY (20.11.2026). Wczesniej ich tu nie bylo, bo "sa zabronione
+ * w robots.txt" — ale ta blokada zostala zdjeta we wrzesniu, a ChatGPT przysyla
+ * dzis ~30 osob dziennie, z czego wiekszosc na strony ofert. Zglaszamy wiec
+ * oferty z sitemap-oferty.xml dodane w ostatnich 36 godzinach (kilkaset
+ * dziennie), na poczatku listy. Tylko nowe: kazde zgloszenie to wizyta robota
+ * Bing, czyli render strony i CPU na Vercelu, a stare oferty Bing juz zna.
  */
 const HOST = "autopoleasingu.pl";
 const BASE = `https://${HOST}`;
 const KLUCZ = process.env.INDEXNOW_KEY;
 
 async function main() {
-  if (!KLUCZ) {
+  if (!KLUCZ && !process.env.INDEXNOW_DRY) {
     console.log("✓ indexnow: INDEXNOW_KEY nie ustawiony — pomijam");
     return;
   }
 
   const xml = await (await fetch(`${BASE}/sitemap.xml`)).text();
-  const adresy = [...xml.matchAll(/<loc>(.*?)<\/loc>/g)].map((m) => m[1]);
+  const strony = [...xml.matchAll(/<loc>(.*?)<\/loc>/g)].map((m) => m[1]);
+
+  // Swieze oferty — patrz komentarz na gorze. Blad tej mapy nie blokuje reszty.
+  let oferty: string[] = [];
+  try {
+    const xmlOfert = await (await fetch(`${BASE}/sitemap-oferty.xml`)).text();
+    const od = Date.now() - 36 * 3600 * 1000;
+    oferty = [...xmlOfert.matchAll(/<loc>(.*?)<\/loc><lastmod>(.*?)<\/lastmod>/g)]
+      .filter((m) => Date.parse(m[2]) >= od)
+      .map((m) => m[1]);
+  } catch (err) {
+    console.error("✗ indexnow: sitemap-oferty.xml:", err instanceof Error ? err.message : String(err));
+  }
+  const adresy = [...new Set([...oferty, ...strony])];
+  console.log(`  indexnow: ${oferty.length} swiezych ofert + ${strony.length} stron z mapy`);
+
+  if (process.env.INDEXNOW_DRY) {
+    console.log("  indexnow: INDEXNOW_DRY — nic nie wysylam; przyklad:", adresy.slice(0, 3));
+    return;
+  }
 
   if (adresy.length === 0) {
     console.error("✗ indexnow: mapa strony nie zwrocila zadnego adresu");
