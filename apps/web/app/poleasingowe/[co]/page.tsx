@@ -8,7 +8,9 @@ import { StatStrip } from "@/components/StatStrip";
 import {
   getCitiesWithCounts,
   getCityMakes,
+  getCityRynek,
   getCitySellers,
+  getCitySprzedane,
   getCityStats,
   getFilterStats,
   getListings,
@@ -19,8 +21,9 @@ import { KategoriaWidok } from "@/components/KategoriaWidok";
 import { znajdzKategorie } from "@/lib/filtry";
 import { getCityModelRanking } from "@/lib/queries";
 import { WojewodztwoWidok, miejscaWojewodztwa } from "@/components/WojewodztwoWidok";
-import { znajdzWojewodztwo } from "@/lib/wojewodztwa";
-import { Building2, MapPin, SlidersHorizontal, TrendingDown } from "lucide-react";
+import { wojewodztwoMiejsca, znajdzWojewodztwo } from "@/lib/wojewodztwa";
+import { markaOk, modelOk } from "@/lib/smiec";
+import { Building2, Clock, MapPin, SlidersHorizontal, TrendingDown } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "@/components/Link";
 import { notFound, permanentRedirect } from "next/navigation";
@@ -193,12 +196,15 @@ export default async function PoleasingowePage({ params }: { params: Promise<{ c
   }
   const { miasto, warianty, wszystkie } = found;
 
-  const [stats, marki, sprzedawcy, oferty] = await Promise.all([
+  const [stats, marki, sprzedawcy, oferty, rynek, sprzedaneSurowe] = await Promise.all([
     getCityStats(warianty),
     getCityMakes(warianty),
     getCitySellers(warianty),
     getListings({ city: warianty, sort: "deal_desc", withPrice: "1" }, 1, 24),
+    getCityRynek(warianty),
+    getCitySprzedane(warianty),
   ]);
+  const sprzedane = sprzedaneSurowe.filter((x) => markaOk(x.make) && modelOk(x.model)).slice(0, 8);
 
   if (stats.total === 0) notFound();
 
@@ -234,6 +240,37 @@ export default async function PoleasingowePage({ params }: { params: Promise<{ c
         "poleasingowe sprzedają głównie firmy wystawiające fakturę. Warunki, w tym dopuszczalny " +
         "wiek auta, ustala leasingodawca, a nie sprzedawca.",
     },
+    /*
+     * 20.11.2026: dwa pytania z danymi, ktorych nie ma nikt inny — kto realnie
+     * wystawia auta w tym miescie i jak szybko schodza. Patrz getCityRynek.
+     */
+    ...(sprzedawcy.length > 0
+      ? [
+          {
+            q: `Gdzie kupić auto poleasingowe ${wMiescie(miasto)}?`,
+            a:
+              `Najwięcej aut ${wMiescie(miasto)} wystawiają teraz: ` +
+              sprzedawcy
+                .slice(0, 3)
+                .map((x) => `${shortSource(x.sourceName)} (${num.format(x.total)})`)
+                .join(", ") +
+              `. Wszystkie oferty (${num.format(stats.total)}) z ${stats.sources} ${zrodel(stats.sources)} ` +
+              "zbieramy na tej stronie i aktualizujemy codziennie.",
+          },
+        ]
+      : []),
+    ...(rynek.dniMediana != null && rynek.sprzedane30 >= 5
+      ? [
+          {
+            q: `Jak szybko sprzedają się auta poleasingowe ${wMiescie(miasto)}?`,
+            a:
+              `Liczba aut „kup teraz”, które w ostatnich 30 dniach zniknęły z ogłoszeń ${wMiescie(miasto)}: ` +
+              `${num.format(rynek.sprzedane30)} (zwykle oznacza to sprzedaż). Połowa z nich zniknęła w ciągu ` +
+              `${num.format(rynek.dniMediana)} ${rynek.dniMediana === 1 ? "dnia" : "dni"} od wystawienia, ` +
+              "więc dobrej oferty nie warto długo odkładać.",
+          },
+        ]
+      : []),
   ];
   const jsonLd = {
     "@context": "https://schema.org",
@@ -252,6 +289,23 @@ export default async function PoleasingowePage({ params }: { params: Promise<{ c
    * Przyciecie robi teraz MiastaLista, ktora daje przycisk "zobacz wszystkie".
    */
   const inne = wszystkie.filter((m) => m.city && slugMiasta(m.city) !== slugMiasta(miasto));
+
+  /*
+   * Okolice (20.11.2026): miasta z tego samego wojewodztwa, zgrupowane po
+   * miescie glownym. Kto szuka "auta poleasingowe warszawa", czesto kupi tez
+   * w Jankach czy Ozarowie — a te strony dostaja link z wlasciwego miejsca.
+   */
+  const woj = wojewodztwoMiejsca(miasto);
+  const okoliceMapa = new Map<string, { nazwa: string; total: number }>();
+  if (woj) {
+    for (const m of inne) {
+      if (!m.city || wojewodztwoMiejsca(m.city) !== woj) continue;
+      const slug = slugMiasta(m.city);
+      const byl = okoliceMapa.get(slug);
+      okoliceMapa.set(slug, { nazwa: byl?.nazwa ?? nazwaGlowna(m.city), total: (byl?.total ?? 0) + m.total });
+    }
+  }
+  const okolice = [...okoliceMapa.entries()].sort((a, b) => b[1].total - a[1].total).slice(0, 12);
 
   return (
     <main className="mx-auto max-w-[1400px] px-4 py-6">
@@ -355,6 +409,59 @@ export default async function PoleasingowePage({ params }: { params: Promise<{ c
         ]}
       />
 
+      {(rynek.sprzedane30 >= 5 || sprzedane.length > 0) && (
+        <section className="mb-8">
+          <h2 className="mb-1 flex items-center gap-2 text-lg font-semibold text-neutral-100">
+            <Clock size={17} className="text-neutral-600" />
+            Jak szybko schodzą auta {wMiescie(miasto)}
+          </h2>
+          <p className="mb-3 max-w-[72ch] text-[13px] leading-relaxed text-neutral-500">
+            {`Nowe oferty w ostatnich 7 dniach: ${num.format(rynek.nowe7)}. Auta „kup teraz”, które ` +
+              `zniknęły z ogłoszeń w ostatnich 30 dniach: ${num.format(rynek.sprzedane30)}` +
+              (rynek.dniMediana != null
+                ? `, połowa z nich w ciągu ${num.format(rynek.dniMediana)} ${rynek.dniMediana === 1 ? "dnia" : "dni"} od wystawienia`
+                : "") +
+              ". Zniknięcie z ogłoszeń zwykle oznacza sprzedaż."}
+          </p>
+          {sprzedane.length > 0 && (
+            <div className="overflow-x-auto rounded-xl border border-[var(--color-line)]">
+              <table className="w-full min-w-[520px] text-sm">
+                <thead>
+                  <tr className="border-b border-[var(--color-line)] text-left text-[11px] uppercase tracking-wide text-neutral-600">
+                    <th className="px-4 py-2.5 font-medium">Ostatnio sprzedane</th>
+                    <th className="px-4 py-2.5 text-right font-medium">Rocznik</th>
+                    <th className="px-4 py-2.5 text-right font-medium">Przebieg</th>
+                    <th className="px-4 py-2.5 text-right font-medium">Ostatnia cena</th>
+                    <th className="px-4 py-2.5 text-right font-medium">Wystawione</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sprzedane.map((x) => (
+                    <tr key={x.id} className="border-b border-[var(--color-line)] last:border-0">
+                      <td className="px-4 py-2 font-medium text-neutral-200">
+                        <Link href={`/oferta/${x.id}`} className="hover:text-accent">
+                          {x.make} {x.model}
+                        </Link>
+                      </td>
+                      <td className="px-4 py-2 text-right tabular-nums text-neutral-500">{x.year ?? "—"}</td>
+                      <td className="px-4 py-2 text-right tabular-nums text-neutral-500">
+                        {x.mileageKm != null ? `${num.format(x.mileageKm)} km` : "—"}
+                      </td>
+                      <td className="px-4 py-2 text-right font-semibold tabular-nums text-neutral-100">
+                        {x.priceGross != null ? pln0(x.priceGross) : "—"}
+                      </td>
+                      <td className="px-4 py-2 text-right tabular-nums text-neutral-500">
+                        {x.dni} {x.dni === 1 ? "dzień" : "dni"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      )}
+
       {sprzedawcy.length > 0 && (
         <section className="mb-8">
           <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold text-neutral-100">
@@ -406,6 +513,34 @@ export default async function PoleasingowePage({ params }: { params: Promise<{ c
               <OfferCard key={o.id} o={o} index={i} />
             ))}
           </div>
+        </section>
+      )}
+
+      {woj && okolice.length > 0 && (
+        <section className="mb-8">
+          <h2 className="mb-1 text-lg font-semibold text-neutral-100">
+            Auta poleasingowe w okolicy — województwo {woj.nazwa}
+          </h2>
+          <p className="mb-3 text-[13px] text-neutral-500">
+            Pozostałe miejsca w województwie {woj.wMiejscowniku}, w których stoją auta.{" "}
+            <Link href={`/poleasingowe/${woj.slug}`} className="text-accent hover:underline">
+              Wszystkie oferty w województwie {woj.wMiejscowniku}
+            </Link>
+            .
+          </p>
+          <ul className="flex flex-wrap gap-2">
+            {okolice.map(([slug, o]) => (
+              <li key={slug}>
+                <Link
+                  href={`/poleasingowe/${slug}`}
+                  className="flex items-baseline gap-2 rounded-lg border border-[var(--color-line)] bg-[var(--color-panel)] px-3 py-2 text-[13px] text-neutral-200 hover:border-accent/70 hover:text-accent"
+                >
+                  {o.nazwa}
+                  <span className="text-[11px] tabular-nums text-neutral-600">{num.format(o.total)}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
         </section>
       )}
 

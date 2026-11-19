@@ -1406,6 +1406,59 @@ export async function getCitySellers(city: string | string[], limit = 10) {
 }
 
 /**
+ * Ruch na rynku w miescie (20.11.2026): ile aut doszlo, ile zeszlo i po ilu
+ * dniach. Tego nie ma zaden portal z ogloszeniami — znaja tylko to, co dzis
+ * wisi — a dla strony miasta to tresc wlasna, zmieniajaca sie codziennie.
+ * Duze miasta (Warszawa ~35-42, Krakow ~38, Wroclaw ~27 w Search Console)
+ * mialy strone zbudowana z tych samych klockow co reszta serwisu.
+ */
+export async function getCityRynek(city: string | string[]) {
+  const [row] = await db
+    .select({
+      nowe7: sql<number>`count(*) filter (
+        where ${listings.firstSeenAt} > now() - interval '7 days'
+      )::int`,
+      sprzedane30: sql<number>`count(*) filter (
+        where ${listings.status} = 'gone' and ${listings.goneAt} > now() - interval '30 days'
+      )::int`,
+      dniMediana: sql<number | null>`percentile_cont(0.5) within group (
+        order by ${listings.goneAt}::date - ${listings.firstSeenAt}::date
+      ) filter (
+        where ${listings.status} = 'gone' and ${listings.goneAt} > now() - interval '90 days'
+      )::int`,
+    })
+    .from(listings)
+    .where(and(cityMatches(city), eq(listings.offerKind, "fixed")));
+  return row;
+}
+
+/** Ostatnio sprzedane w miescie — z cena i czasem wystawienia, do tabeli na stronie miasta. */
+export async function getCitySprzedane(city: string | string[], limit = 8) {
+  return db
+    .select({
+      id: listings.id,
+      make: listings.make,
+      model: listings.model,
+      year: listings.year,
+      mileageKm: listings.mileageKm,
+      priceGross: listings.priceGross,
+      dni: sql<number>`greatest(0, ${listings.goneAt}::date - ${listings.firstSeenAt}::date)::int`,
+    })
+    .from(listings)
+    .where(
+      and(
+        cityMatches(city),
+        eq(listings.status, "gone"),
+        eq(listings.offerKind, "fixed"),
+        isNotNull(listings.priceGross),
+        sql`${listings.goneAt} > now() - interval '30 days'`,
+      ),
+    )
+    .orderBy(desc(listings.goneAt))
+    .limit(limit * 2);
+}
+
+/**
  * Surowe pary marka x miasto — wejscie do stron krzyzowych (/[make]/poleasingowe/[miasto]).
  *
  * Prog tutaj jest CELOWO niski (5, nie 20). To sa surowe zapisy miasta prosto
