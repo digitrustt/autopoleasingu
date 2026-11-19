@@ -98,6 +98,7 @@ export async function runSource(
       mileageKm: listings.mileageKm,
       lastSeenAt: listings.lastSeenAt,
       status: listings.status,
+      auctionEndsAt: listings.auctionEndsAt,
     })
     .from(listings)
     .where(eq(listings.sourceId, adapter.id));
@@ -280,10 +281,41 @@ export async function runSource(
     );
   }
 
+  /*
+   * Licytacje po terminie zamykamy NIEZALEZNIE od bezpiecznika wyzej (20.11.2026).
+   * CarArena wystawia aukcje partiami po ~300: po zakonczeniu partii lista na
+   * stronie jest krotsza niz 70% tego, co mamy w bazie, wiec bezpiecznik uznawal
+   * kazdy przebieg za "niepelny" i nie zamykal niczego. Zebralo sie tak 750
+   * licytacji zakonczonych 6-18.11 i wiszacych jako aktywne. Licytacja po
+   * terminie, ktorej nie ma na liscie, jest zakonczona na pewno — tu nie ma
+   * ryzyka, ze skasujemy zywa oferte. Data zamkniecia = termin licytacji.
+   */
+  const zamkniete = new Set<number>();
+  if (!opts.dryRun && didDiscover) {
+    const poTerminie = known
+      .filter(
+        (k) =>
+          k.status === "active" &&
+          k.auctionEndsAt != null &&
+          k.auctionEndsAt.getTime() < Date.now() - 12 * 3600_000 &&
+          !seenExternalIds.has(k.externalId),
+      )
+      .map((k) => k.id);
+    for (const id of poTerminie) zamkniete.add(id);
+    for (let i = 0; i < poTerminie.length; i += 500) {
+      const chunk = poTerminie.slice(i, i + 500);
+      await db
+        .update(listings)
+        .set({ status: "gone", goneAt: sql`coalesce(${listings.auctionEndsAt}, now())` })
+        .where(and(inArray(listings.id, chunk), eq(listings.status, "active")));
+      result.gone += chunk.length;
+    }
+  }
+
   if (!opts.dryRun && didDiscover && !partial) {
     const missing = known
       // Tylko aktywne — inaczej licznik "zniknelo" liczyl cala historie zrodla.
-      .filter((k) => k.status === "active" && !seenExternalIds.has(k.externalId))
+      .filter((k) => k.status === "active" && !seenExternalIds.has(k.externalId) && !zamkniete.has(k.id))
       .map((k) => k.id);
 
     for (let i = 0; i < missing.length; i += 500) {
