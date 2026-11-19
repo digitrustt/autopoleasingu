@@ -103,7 +103,8 @@ export async function generateMetadata({
     (d.tenSprzedane && d.tenSprzedane.sold >= 3
       ? `${d.ten ? ", a" : "Auta"} sprzedane w ostatnich 180 dniach kosztowały typowo ${pln.format(d.tenSprzedane.soldMedian)}`
       : "") +
-    ". Przebiegi, wersje silnikowe, zmiany cen i aktualne oferty po leasingu.";
+    // 20.11.2026: zapytania "<model> leasing" — tytul rocznika jest juz pelny, wiec leasing idzie do opisu.
+    ". Przebiegi, wersje silnikowe, zmiany cen i aktualne oferty — za gotówkę, w leasingu lub na raty.";
 
   return {
     title,

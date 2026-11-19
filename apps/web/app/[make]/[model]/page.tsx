@@ -84,12 +84,23 @@ export async function generateMetadata({
    * "POLEASINGOWE", NIE TYLKO "PO LEASINGU" (22.10.2026). Search Console:
    * "bmw poleasingowe" poz. 23, "toyota poleasingowe" 20, "bmw x3 poleasingowe"
    * 25, "skoda superb poleasingowa" 46 — sedno niszy, a tytuly mialy tylko
-   * "po leasingu". W polskim Google forma slowa ma znaczenie; tytul niesie
-   * teraz obie.
+   * "po leasingu". W polskim Google forma slowa ma znaczenie.
+   *
+   * LEASING ZAMIAST "PO LEASINGU" (20.11.2026). Eksport Search Console (28 dni
+   * do 14.11): ~417 zapytan "<model> leasing" / "leasing <model>" na pozycjach
+   * 20-80, prawie bez klikniec — a "<model> po leasingu" pojedyncze. Sekcja
+   * leasingu jest na stronie od 4.11, ale tytul o niej milczal. Dopisek idzie
+   * tylko wtedy, gdy tytul miesci sie w ~65 znakach; dluzsze nazwy zostaja przy
+   * starym formacie, zeby Google nie ucinal ceny.
    */
-  const title = `${name} poleasingowe — ${num.format(stats.total)} ${oferty(stats.total)} po leasingu${
+  const rdzen = `${name} poleasingowe — ${num.format(stats.total)} ${oferty(stats.total)}${
     stats.minPrice ? ` od ${pln.format(stats.minPrice)}` : ""
   }`;
+  const title =
+    [`${rdzen} · leasing i raty`, `${rdzen} · leasing`].find((t) => t.length <= 65) ??
+    `${name} poleasingowe — ${num.format(stats.total)} ${oferty(stats.total)} po leasingu${
+      stats.minPrice ? ` od ${pln.format(stats.minPrice)}` : ""
+    }`;
   /*
    * Opis zaczyna sie od CENY, nie od liczby zrodel.
    *
@@ -121,7 +132,7 @@ export async function generateMetadata({
       : "") +
     `. ${num.format(stats.total)} ${oferty(stats.total)} z ${stats.sources} ${zrodel(stats.sources)}, aktualizowane codziennie.` +
     // Zapytania "<model> leasing" (30.10.2026) — Google pogrubia trafione slowa w opisie.
-    " Leasing dla firm i kredyt.";
+    " Kupisz za gotówkę, w leasingu albo na raty.";
 
   return {
     title,
@@ -338,7 +349,7 @@ export default async function ModelPage({
         {stats.medianMileage != null &&
           `, mediana przebiegu ${num.format(stats.medianMileage)} km`}
         . Ten sam egzemplarz bywa wystawiony w kilku kanałach po różnych cenach — pokazujemy je
-        obok siebie zamiast scalać.
+        obok siebie zamiast scalać. Auta „kup teraz” kupisz też w leasingu albo na raty.
       </p>
 
       <RataLista etykieta={`model-${make}-${model}`.toLowerCase().replace(/[^a-z0-9]+/g, "-")} />
